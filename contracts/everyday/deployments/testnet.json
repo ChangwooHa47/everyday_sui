@@ -1,0 +1,9 @@
+{
+  "network": "testnet",
+  "packageId": "0x361efffcabf0ecd042a605ede4f9ff114fc3c0af39ce0d3ef51adfd9e0cc1263",
+  "adminId": "0x9ce3c7dcdc22db6a2c5bef1dcefc90a664abac01d763c43fedd5fb6b492c1694",
+  "upgradeCapId": "0xad9d5e76ad2972b0f8eb41c6d97cd48c900aaa3e731adb5948672bd3a02e8603",
+  "creator": "0x97eb51ec405dfd3edf9f5cbe7f38dc8e0cba2ff6252ffe565055a52fe618aa47",
+  "publishDigest": "C4ySsykV54Ym9GevYnqiuQQ3UT5imNn6DoYRyqs4Vd5h",
+  "sourceSha256": "2708bcc49e160d5f6f19f2076aed5940224c688a5cd162235662a5df5c9bd7ac"
+}

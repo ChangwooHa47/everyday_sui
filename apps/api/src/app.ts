@@ -28,7 +28,14 @@ export function buildApp(logger = false, options?: { db: Database; auth: AuthCon
   if (options) {
     app.register(cors, { origin: options.auth.origins, methods: ['GET','POST','DELETE','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] });
     app.register(rateLimit, { max: 60, timeWindow: '1 minute' });
-    app.get('/health/ready', async () => { await options.db.query('SELECT 1'); return { status: 'ok' }; });
+    app.get('/health/ready', { config: { rateLimit: false } }, async (_request, reply) => {
+      try {
+        await options.db.query('SELECT 1');
+        return { status: 'ok' };
+      } catch {
+        return reply.code(503).send({ status: 'unavailable' });
+      }
+    });
     registerAuth(app, options.db, options.auth);
     registerAi(app, options.db, options.auth, options.ai);
     registerMarket(app, options.db, options.auth, options.market);

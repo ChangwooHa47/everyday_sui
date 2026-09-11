@@ -17,7 +17,7 @@ ARG NEXT_PUBLIC_WALRUS_AGGREGATOR
 ARG NEXT_PUBLIC_WALRUS_PUBLISHER
 ARG NEXT_PUBLIC_SEAL_SERVER_IDS
 ARG NEXT_PUBLIC_SEAL_THRESHOLD=2
-RUN node -e "const url = new URL(process.env.NEXT_PUBLIC_API_BASE); if (url.protocol !== 'https:' || url.origin !== process.env.NEXT_PUBLIC_API_BASE) throw Error('NEXT_PUBLIC_API_BASE must be an exact public HTTPS origin');"
+RUN node -e "const value = process.env.NEXT_PUBLIC_API_BASE; let valid = false; try { const url = new URL(value); valid = url.protocol === 'https:' && url.origin === value; } catch {} if (!valid) { console.error('Set web service variable NEXT_PUBLIC_API_BASE to the API public HTTPS origin, without a trailing slash, then rebuild.'); process.exit(1); }"
 RUN npm run build --workspace @everyday/contracts && npm run build --workspace @everyday/web
 
 FROM node:24-bookworm-slim AS runtime
