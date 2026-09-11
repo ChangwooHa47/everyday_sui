@@ -2,6 +2,14 @@
 
 이번 리뷰는 담당 에이전트의 코드 검토와 실제 실행 검증이다. 별도 독립 보안 감사는 아니다.
 
+## 2026-09-12 로그인 재검증
+
+- `5623009`: Slush의 ZkLogin 서명을 일반 키 서명 allowlist가 거절하던 결함을 수정했다. 설치된 Sui SDK의 `isValidPersonalMessageSignature`에 테스트넷 gRPC client와 예상 주소를 전달한다. 잘못된 서명은 401, 검증 서비스 실패는 503이며 세션을 발급하지 않는다. RPC timeout은 10초다.
+- 공식 기준: https://sdk.mystenlabs.com/sui/cryptography 및 https://sdk.mystenlabs.com/dapp-kit/actions/sign-personal-message. 설치된 SDK의 gRPC 검증 구현도 대조했다.
+- Railway API 배포 `1ef32b60-99de-4782-99ae-18d04984b986` SUCCESS. 오르카의 실제 Slush 계정으로 서명 승인 후 `/v1/auth/sessions` 200, `/v1/me` 200 및 로그인 주소 일치, 원본 `/create` 화면 진입을 확인했다. 같은 요청 재사용 401, 새 challenge에 기존 서명을 붙인 요청 401도 실제 API에서 확인했다. 토큰·서명은 기록하지 않았다.
+- `check:backend`: API 16개, Move 20개 통과. 전체 build 및 브라우저 테스트 2개 통과. 이 수정에는 화면·스타일 변경이 없다.
+- 이 검증은 로그인 범위다. 원본 화면의 Spring `/api` 생성·채팅 계약은 현재 Railway API에 연결되지 않았으며, 로그인 성공이 해당 기능의 완료를 의미하지 않는다.
+
 ## 수정한 결함
 
 1. API가 Railway의 PORT를 무시했다. PORT를 최우선으로 사용하고 운영 기본 호스트를 0.0.0.0으로 변경했다. 잘못된 PORT는 로컬 API_PORT로 숨기지 않고 실패한다.
