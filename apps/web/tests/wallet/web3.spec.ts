@@ -1,6 +1,18 @@
 import { test,expect } from '@playwright/test';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 
+test('Slush opens from the original page title without an encoding error', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toHaveTitle('everyday — with your character');
+  await page.getByRole('button', { name: '로그인', exact: true }).click();
+  const popupPromise = page.waitForEvent('popup');
+  await page.getByRole('dialog').getByRole('button', { name: 'Slush logo Slush', exact: true }).click();
+  const popup = await popupPromise;
+  await expect(popup).toHaveURL(/^https:\/\/my\.slush\.app\//);
+  await expect(page.getByRole('heading', { name: 'Connection failed', exact: true })).toHaveCount(0);
+  await popup.close();
+});
+
 test('original UI signs wallet login without replacing routes or using a demo account',async ({page},testInfo) => {
   const keys = [new Ed25519Keypair(),new Ed25519Keypair()];
   const legacyRequests: string[] = [];

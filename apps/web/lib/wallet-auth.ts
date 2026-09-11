@@ -4,6 +4,7 @@ import { normalizeSuiAddress } from '@mysten/sui/utils';
 import { apiUrl, rpcUrl } from './web3/config';
 
 export const walletKit = createDAppKit({ networks: ['testnet'],
+  slushWalletConfig: { appName: 'everyday' },
   createClient: () => new SuiGrpcClient({ network: 'testnet', baseUrl: rpcUrl }) });
 let session: { token: string; address: string; expiresAt: string } | null = null;
 let generation = 0;
