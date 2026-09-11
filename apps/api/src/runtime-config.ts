@@ -1,0 +1,41 @@
+import { z } from 'zod';
+import { addressSchema } from './auth.js';
+import { createPackageStore } from './market-package.js';
+import { createMemoryProvider } from './memory-provider.js';
+import type { MarketChain } from './market-chain.js';
+import type { AiConfig } from './turn-service.js';
+import type { Database } from './database.js';
+import { createGiftService, createGiftTransport, giftDecision } from './gifts.js';
+const httpsUrl = z.string().url().refine(value => new URL(value).protocol === 'https:').transform(value => value.replace(/\/$/, ''));
+export function aiFromEnv(env: NodeJS.ProcessEnv = process.env): AiConfig | undefined {
+  if (!env.AI_API_KEY && !env.AI_ENDPOINT && !env.AI_MODEL) return undefined;
+  return { apiKey: z.string().min(1).parse(env.AI_API_KEY), endpoint: z.string().url().parse(env.AI_ENDPOINT),
+    model: z.string().min(1).parse(env.AI_MODEL), dailyLimit: z.coerce.number().int().min(1).max(10000).parse(env.AI_DAILY_LIMIT ?? 50) };
+}
+export function runtimeFromEnv(chain: MarketChain | undefined, env: NodeJS.ProcessEnv = process.env, db?: Database) {
+  const rpcUrl = httpsUrl.parse(env.SUI_GRPC_URL ?? 'https://fullnode.testnet.sui.io:443');
+  let runtime; let memory;
+  if (env.SUI_OPERATOR_KEY) {
+    if (!chain) throw Error('SUI_MARKET_PACKAGE_ID is required for market runtime');
+    const servers = z.array(z.object({ objectId: addressSchema, weight: z.literal(1), aggregatorUrl: httpsUrl.optional() }).strict()).min(2).parse(JSON.parse(env.SEAL_SERVERS_JSON ?? 'null'));
+    if (new Set(servers.map(s => s.objectId)).size !== servers.length) throw Error('Seal servers must be distinct');
+    runtime = { previewTurns: z.coerce.number().int().min(1).max(20).parse(env.MARKET_PREVIEW_TURNS ?? 3),
+      packages: createPackageStore({ packageId: chain.packageId, rpcUrl, operatorKey: env.SUI_OPERATOR_KEY, servers,
+        threshold: z.coerce.number().int().min(2).max(servers.length).parse(env.SEAL_THRESHOLD ?? 2),
+        publisher: httpsUrl.parse(env.WALRUS_PUBLISHER), aggregator: httpsUrl.parse(env.WALRUS_AGGREGATOR),
+        epochs: z.coerce.number().int().min(1).max(53).parse(env.WALRUS_EPOCHS ?? 2) }) };
+  }
+  if (env.MEMWAL_DELEGATE_MASTER_KEY) {
+    if (!chain) throw Error('SUI_MARKET_PACKAGE_ID is required for memory');
+    memory = createMemoryProvider({ masterKey: z.string().regex(/^[a-fA-F0-9]{64}$/).parse(env.MEMWAL_DELEGATE_MASTER_KEY),
+      packageId: addressSchema.parse(env.MEMWAL_PACKAGE_ID), registryId: addressSchema.parse(env.MEMWAL_REGISTRY_ID),
+      marketPackageId: chain.packageId, rpcUrl, serverUrl: httpsUrl.parse(env.MEMWAL_SERVER_URL ?? 'https://relayer-staging.memory.walrus.xyz') });
+  }
+  let gifts;
+  if (env.AGENT_GIFTS_ENABLED === '1') {
+    const ai = aiFromEnv(env);
+    if (!db || !chain || !runtime || !ai || !env.SUI_OPERATOR_KEY) throw Error('Agent gifts require DB, market runtime and AI configuration');
+    gifts = createGiftService(db, createGiftTransport(chain.packageId, rpcUrl, env.SUI_OPERATOR_KEY), giftDecision(ai));
+  }
+  return { runtime, memory, gifts };
+}

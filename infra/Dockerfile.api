@@ -1,0 +1,24 @@
+FROM node:24-bookworm-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json tsconfig.base.json ./
+COPY packages/contracts/package.json packages/contracts/package.json
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+RUN npm ci --ignore-scripts
+COPY packages/contracts packages/contracts
+COPY apps/api apps/api
+RUN npm run build --workspace @everyday/contracts && npm run build --workspace @everyday/api
+
+FROM node:24-bookworm-slim AS runtime
+ENV NODE_ENV=production API_HOST=0.0.0.0 API_PORT=3001
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY packages/contracts/package.json packages/contracts/package.json
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+RUN npm ci --omit=dev --ignore-scripts --workspace @everyday/api --workspace @everyday/contracts && npm cache clean --force
+COPY --from=build /app/packages/contracts/dist packages/contracts/dist
+COPY --from=build /app/apps/api/dist apps/api/dist
+USER node
+EXPOSE 3001
+CMD ["node", "apps/api/dist/server.js"]

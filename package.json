@@ -1,0 +1,29 @@
+{
+  "name": "everyday-sui",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@11.19.0",
+  "engines": { "node": ">=24 <25", "npm": ">=11 <12" },
+  "workspaces": ["packages/*", "apps/*"],
+  "overrides": { "postcss": "8.5.28" },
+  "scripts": {
+    "test:move": "node scripts/move.mjs test",
+    "build:move": "node scripts/move.mjs build",
+    "check:backend": "npm run build --workspace @everyday/contracts && npm run typecheck --workspace @everyday/api && npm run test --workspace @everyday/api && npm run test:move",
+    "dev:web": "npm run dev --workspace @everyday/web",
+    "dev:api": "npm run dev --workspace @everyday/api",
+    "dev:api:local": "npm run dev:local --workspace @everyday/api",
+    "dev:api:configured": "npm run dev:configured --workspace @everyday/api",
+    "start:market": "npm run start --workspace @everyday/web -- --hostname 127.0.0.1 --port 3000",
+    "start:viewer": "npm run start --workspace @everyday/web -- --hostname 127.0.0.1 --port 3002",
+    "probe:testnet": "node scripts/testnet-probe.mjs",
+    "deploy:testnet": "node scripts/testnet-bootstrap.mjs --execute",
+    "build": "npm run build --workspace @everyday/contracts && npm run build --workspace @everyday/api && npm run build --workspace @everyday/web",
+    "build:static": "npm run build:static --workspace @everyday/web",
+    "typecheck": "npm run build --workspace @everyday/contracts && npm run typecheck --workspaces --if-present",
+    "test": "npm run build --workspace @everyday/contracts && npm run test --workspace @everyday/api && npm run test:unit --workspace @everyday/web",
+    "test:web3": "npm run test:web3 --workspace @everyday/web",
+    "test:e2e": "npm run test:e2e --workspace @everyday/web",
+    "baseline:build": "npm run build:baseline --workspace @everyday/web"
+  }
+}

@@ -1,0 +1,21 @@
+# Original independent checkouts and local tools remain outside the monorepo.
+/frontend/
+/backend/
+/.local-tools/
+node_modules/
+.next/
+out/
+dist/
+build/
+.gradle/
+*.tsbuildinfo
+next-env.d.ts
+test-results/
+playwright-report/
+.env
+.env.*
+!.env.example
+!.env.local.example
+.DS_Store
+.vercel/
+*.log

@@ -1,0 +1,1233 @@
+{
+  "importedAt": "2026-09-07",
+  "files": [
+    {
+      "source": "frontend/BASELINE.md",
+      "destination": "apps/web/BASELINE.md",
+      "sourceSha256": "09102346c40cd89706e2ea3dd4234e929ef64ece111b3953dfe91d533ed1f871",
+      "changedDuringFoundation": true
+    },
+    {
+      "source": "frontend/playwright.config.ts",
+      "destination": "apps/web/playwright.config.ts",
+      "sourceSha256": "1aad102cf0f34124686450227c722db7a2282d84cdc6b4b041a92a34265de9c8",
+      "changedDuringFoundation": true
+    },
+    {
+      "source": "frontend/scripts/baseline.mjs",
+      "destination": "apps/web/scripts/baseline.mjs",
+      "sourceSha256": "746f2f7eb9ca797790f4308b61bd2f9a19d91eec0c4df4fcc2331bf4fb40ed5a",
+      "changedDuringFoundation": true
+    },
+    {
+      "source": "frontend/tests/e2e/baseline.spec.ts",
+      "destination": "apps/web/tests/e2e/baseline.spec.ts",
+      "sourceSha256": "5efa71ea4ad5d4ed9839fb079e85725c1e55168184137f96675ce4e312b99be4",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/.env.local.example",
+      "destination": "legacy/frontend/.env.local.example",
+      "sourceSha256": "83496015f977d4c00a8afcfd11306d49bea8637a4ff0ad57593f79816b9c0097",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/.gitignore",
+      "destination": "apps/web/.gitignore",
+      "sourceSha256": "33e258246abcd8191f6532aecda684cc8d89c156ac4270a254fd24c742f92c24",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/README.md",
+      "destination": "legacy/frontend/README.md",
+      "sourceSha256": "5fea2378c99244692af0065b125fcd3c0be8f29d77056f77392e86e4569c0624",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/api/chat/route.ts",
+      "destination": "legacy/frontend/app/api/chat/route.ts",
+      "sourceSha256": "c23a1edeba56aad5d34525d4b1348f26460cdb0e260595d8a1f1b9a07476052b",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/api/compile-character/route.ts",
+      "destination": "legacy/frontend/app/api/compile-character/route.ts",
+      "sourceSha256": "3d2c1accf58b13a87c77368c1c28ae35ff753844dc282729421946f7ea8055e4",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/api/interview/route.ts",
+      "destination": "legacy/frontend/app/api/interview/route.ts",
+      "sourceSha256": "05809f77ac9f2894aabb1a8a2b95f46faabb13b0e070e13ccfdc965bc63f4004",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/api/nano-angles/route.ts",
+      "destination": "legacy/frontend/app/api/nano-angles/route.ts",
+      "sourceSha256": "ecaeaecfa5e57fdbb5139b6e0276d3a3e1d5d698635586627d440aa0a7968648",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/api/photo/route.ts",
+      "destination": "legacy/frontend/app/api/photo/route.ts",
+      "sourceSha256": "8453cb28b158576b1be524aba8a34f51055afe34a52b41dba89eb298552e36b2",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/api/recompile/route.ts",
+      "destination": "legacy/frontend/app/api/recompile/route.ts",
+      "sourceSha256": "54d0042ed3e106cd6d8d9e63df081c50599956984b6392a3cceb37826b7e9a2f",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/api/summarize/route.ts",
+      "destination": "legacy/frontend/app/api/summarize/route.ts",
+      "sourceSha256": "bce4c76506983c5750cd482efd65b7568ab591a8e31dd438d36a0d46642e3b64",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/api/train-character/route.ts",
+      "destination": "legacy/frontend/app/api/train-character/route.ts",
+      "sourceSha256": "2858480c4468985a775bbc24724503022ce1cd8569afee2ffa9b9d87dd6c3f7a",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/character/page.tsx",
+      "destination": "apps/web/app/character/page.tsx",
+      "sourceSha256": "8aa0dd5ff60d19afc1c1bfca7f68993e083299e66ce319555dda7193ac3f491d",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/chat/page.tsx",
+      "destination": "apps/web/app/chat/page.tsx",
+      "sourceSha256": "3104b8b84f7c5e2f179a9f4fa6a9496fd915867d64fd3c9736cf1b0146ed3256",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/chatlist/page.tsx",
+      "destination": "apps/web/app/chatlist/page.tsx",
+      "sourceSha256": "ae9c1a0b4e69ace5097f6a41546a317445661910e3b83c2c396282998a671522",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/community/page.tsx",
+      "destination": "apps/web/app/community/page.tsx",
+      "sourceSha256": "3e487afc29bd3752d68d45f44704b58d8a467cad0f1f912405c161fcb7fd885d",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/components.tsx",
+      "destination": "apps/web/app/components.tsx",
+      "sourceSha256": "0ec0f72bc89d3c4b8fa44da4094c8c4d444eab02dd2d50337f3053b183b896c4",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/create/page.tsx",
+      "destination": "apps/web/app/create/page.tsx",
+      "sourceSha256": "5f3e6597a11ffc1138802d2e4e0639e30fd412ef0396e19ee2d91a95b9289b92",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/edit/page.tsx",
+      "destination": "apps/web/app/edit/page.tsx",
+      "sourceSha256": "a2c3252738feb72741aac1b3230212b386510d5a2b465677e2abd679d8ea3cbd",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/episode/page.tsx",
+      "destination": "apps/web/app/episode/page.tsx",
+      "sourceSha256": "402aaee694f72cab101d61142c304eaa0dca4cc743307c55247e786c655e9b08",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/gallery/page.tsx",
+      "destination": "apps/web/app/gallery/page.tsx",
+      "sourceSha256": "f76b43a2f74a0bc8a6a4dc28294e81956a7a8e5f44955442a1b3b8c81f27cfb3",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/globals.css",
+      "destination": "apps/web/app/globals.css",
+      "sourceSha256": "96e89d36bccf84fc9048b834f3320d66f22524cd297fd07d7a23617c18edec90",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/home/page.tsx",
+      "destination": "apps/web/app/home/page.tsx",
+      "sourceSha256": "08017275cd7295fdaca7f869fcd635cf23e644a5b98585106f90d4101915790d",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/icons.tsx",
+      "destination": "apps/web/app/icons.tsx",
+      "sourceSha256": "3f568797626dbe3b7596a3a4a349a626e25ce6397519f231be134a615f083152",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/layout.tsx",
+      "destination": "apps/web/app/layout.tsx",
+      "sourceSha256": "7c1368081d763722454fd2da9271c6328afd47491f4887bf1d81574cfcde2965",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/measure/page.tsx",
+      "destination": "legacy/frontend/app/measure/page.tsx",
+      "sourceSha256": "da33477ef5e204b94a32f11aaa7244454357008241206b7f66a6053d83b862ee",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/my/page.tsx",
+      "destination": "apps/web/app/my/page.tsx",
+      "sourceSha256": "5d17a0fb9158d71c710be48011c7be3a2131adb5adfec2beb2c62438e5147d07",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/page.tsx",
+      "destination": "apps/web/app/page.tsx",
+      "sourceSha256": "7bb7d519ad6026aa0d55911fb0b576b3db7e34b4d219c515f60eaa14b9f6a4ba",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/photobooth/page.tsx",
+      "destination": "apps/web/app/photobooth/page.tsx",
+      "sourceSha256": "a904221b5d7c6b6a36692fe0c17eaa4974774995b8618f8bb71559261a61e352",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/subscription/page.tsx",
+      "destination": "apps/web/app/subscription/page.tsx",
+      "sourceSha256": "3f967bcb070f4f5d53b6946c30354a43c74b412d6faf2e09eea695a12341d409",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/app/train/page.tsx",
+      "destination": "legacy/frontend/app/train/page.tsx",
+      "sourceSha256": "0ddfcfeb3f45674cf6d055b5e78636c7f913b62fb0ab83ca1eeb8f18dee94744",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/docs/soul-스타일-전체목록.md",
+      "destination": "apps/web/docs/soul-스타일-전체목록.md",
+      "sourceSha256": "791d3f1bb5d0db79731709b6440fafdc31fea4a16582ef4f19e292b48488aa9f",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/docs/사진-생성-개선-리캡.md",
+      "destination": "apps/web/docs/사진-생성-개선-리캡.md",
+      "sourceSha256": "40c5e771e04cd4c5ce934d5b963b572063ac6e9d23ea8bd86e93a6aada67a27e",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/api.ts",
+      "destination": "apps/web/lib/api.ts",
+      "sourceSha256": "4ca5ed165e78529738b7c07bc895462764d46c210f97d8905f28356e8f7252b0",
+      "changedDuringFoundation": true
+    },
+    {
+      "source": "frontend/lib/character.ts",
+      "destination": "apps/web/lib/character.ts",
+      "sourceSha256": "7b3dd0e054de21071c3858fac5ef3e110fe386005cdfd025ff426b4042b50255",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/higgsfield.ts",
+      "destination": "apps/web/lib/higgsfield.ts",
+      "sourceSha256": "87167eae484b4e086786df3e001ca65f674f288249023255ec8c4c87fde65c79",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/interview.ts",
+      "destination": "apps/web/lib/interview.ts",
+      "sourceSha256": "fd4409e3df8e89d5aafc5467bfd7b546c11bb2ca1e4281cd52a9fb5fe1c2bc1e",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/pricing.ts",
+      "destination": "apps/web/lib/pricing.ts",
+      "sourceSha256": "307b5a50a6c44323d384ed2a81cb65478497f106c74f4c521a738a8e63e994ac",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/scenarios.ts",
+      "destination": "apps/web/lib/scenarios.ts",
+      "sourceSha256": "5f9db44f4d1f23853e1c48f2428f3c9857b5ff030b100a085b9202f22aa77a95",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/store.ts",
+      "destination": "apps/web/lib/store.ts",
+      "sourceSha256": "c7de3703ded88a11764525dd1ab337af137ca0b5a97508756315dd51b0c05497",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/package.json",
+      "destination": "apps/web/package.json",
+      "sourceSha256": "c82377f5787aedbbf91cc1e41d915edb5b0cda833f4a594d882e41997f0eaa45",
+      "changedDuringFoundation": true
+    },
+    {
+      "source": "frontend/public/icons/arrow-left.svg",
+      "destination": "apps/web/public/icons/arrow-left.svg",
+      "sourceSha256": "a4d40baa38b3917cb4a735f06adb82d5e0b7eb5dd9c003ccb160255962a416e2",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/arrow-right.svg",
+      "destination": "apps/web/public/icons/arrow-right.svg",
+      "sourceSha256": "6f188d7100cb492deb07d4262e93c4491ace1578d8e11c3333b032f8b59707a8",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/bell.svg",
+      "destination": "apps/web/public/icons/bell.svg",
+      "sourceSha256": "4e7d304acb631eeb289a87baad26f9f42715f086d7916718342c8f9ea6365663",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/book.svg",
+      "destination": "apps/web/public/icons/book.svg",
+      "sourceSha256": "e1a07e5aa5e366ddb9c62cde7921b4c2ea92a41906f6c36ad31883cdc600e1ca",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/camera.svg",
+      "destination": "apps/web/public/icons/camera.svg",
+      "sourceSha256": "4ebe6b77b6f2891a7cc8e9115d902b8e1dd37588a854e81fe96243f4230f96b5",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/change.svg",
+      "destination": "apps/web/public/icons/change.svg",
+      "sourceSha256": "faed2e44e49c6e8923b9d633c9a5414d718f8709129477ea9279e4a93c2129ed",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/chat.svg",
+      "destination": "apps/web/public/icons/chat.svg",
+      "sourceSha256": "32e1cdc8c57a2a89358621cf2e87243e70cd617cc6d3bf6f66f0800da76e8c70",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/check.svg",
+      "destination": "apps/web/public/icons/check.svg",
+      "sourceSha256": "e15824ecace8b8075952b7afd34fc816eb7ac3c3bfc7821b2bd6485fa06cef82",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/chevron-left.svg",
+      "destination": "apps/web/public/icons/chevron-left.svg",
+      "sourceSha256": "8ff68c811f57d3f253e67a72ed29b00ac63ebe61946c4d41d0e44aec6d745f25",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/chevron-right.svg",
+      "destination": "apps/web/public/icons/chevron-right.svg",
+      "sourceSha256": "8fbea509715163452b29be0d4f2d22cb60c95cf324e47e5b674c4dc5e725dd7e",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/close.svg",
+      "destination": "apps/web/public/icons/close.svg",
+      "sourceSha256": "d258d6e84100e3d5fc6591cd436d5fed1d40ceb1683b1e7e1acb1974147e97c1",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/community.svg",
+      "destination": "apps/web/public/icons/community.svg",
+      "sourceSha256": "f35648d722751904e10d07b7bf8bad4c4996db92d9cbe6f4d6dfd6e8e39d9c9b",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/edit-small.svg",
+      "destination": "apps/web/public/icons/edit-small.svg",
+      "sourceSha256": "39cee91fecb67b5970c2ecd0ac36e4ddb2589e19d3e222bf70ad88c46409efdc",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/edit.svg",
+      "destination": "apps/web/public/icons/edit.svg",
+      "sourceSha256": "884f92e437c0fe1e38836edce0f0b0166aff29e324bba6a2542543417e1941bd",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/generate.svg",
+      "destination": "apps/web/public/icons/generate.svg",
+      "sourceSha256": "a0df6be417f291d7a9af05f0527afbe4a5c2a53a0626a62f592f0ebacafc886e",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/heart.svg",
+      "destination": "apps/web/public/icons/heart.svg",
+      "sourceSha256": "c781d09cd5a6960121998d025f06bc8f3f9d0f66ccd0bbf29c73ca9300cfacd2",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/home.svg",
+      "destination": "apps/web/public/icons/home.svg",
+      "sourceSha256": "fc0e765ff2de08625d568de6181166d02652e8a0e8d4774511e0230c6dae331e",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/menu.svg",
+      "destination": "apps/web/public/icons/menu.svg",
+      "sourceSha256": "a2daafe826e6337e95b4cfa0f6e43ba2b5304280fb1768fb0f88ceb3995ff577",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/more-horizontal.svg",
+      "destination": "apps/web/public/icons/more-horizontal.svg",
+      "sourceSha256": "7e2931f5db2fb6c8bbfa840f091cbaac0cdf7ec43ff645a6b6f497ebe9c62038",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/nav-chat.svg",
+      "destination": "apps/web/public/icons/nav-chat.svg",
+      "sourceSha256": "fddea9e31c402094a577742c7d37a4564c7b590fb21001fdf7973d50dfa38a5c",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/nav-community.svg",
+      "destination": "apps/web/public/icons/nav-community.svg",
+      "sourceSha256": "7cc021962564418c116c4886752574110da3d8038c44f35a83ba2a1fd0d930e9",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/nav-home.svg",
+      "destination": "apps/web/public/icons/nav-home.svg",
+      "sourceSha256": "96af66811946727f5fa027087c0016d9b4cf686ecf9e2023fb353d82d34cb613",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/nav-mypage.svg",
+      "destination": "apps/web/public/icons/nav-mypage.svg",
+      "sourceSha256": "5d8876d957704ad628b45f35ae52552278f07cd53572fd4cd52fa2797d9cd19b",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/person.svg",
+      "destination": "apps/web/public/icons/person.svg",
+      "sourceSha256": "8bedb8b0d3b4d0760aecc945e0c7403ace043ca46e0071c230404f4350589c80",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/plus.svg",
+      "destination": "apps/web/public/icons/plus.svg",
+      "sourceSha256": "d3f4b13ee93faa322f95df009421c4df7726f4bbaa957b7facfd5c04fec78311",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/search.svg",
+      "destination": "apps/web/public/icons/search.svg",
+      "sourceSha256": "135738bcf2dbfdafb56ad173c6a616fc389b62d6da0a8b74ced4c35779bd291e",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/send.svg",
+      "destination": "apps/web/public/icons/send.svg",
+      "sourceSha256": "5a99103b622b9063d28c3a87c3bf56d00daf94d3c6329ec5078b87af241ba6b6",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/settings.svg",
+      "destination": "apps/web/public/icons/settings.svg",
+      "sourceSha256": "e38c16cbbe2e22c197223ff055a38390a244a3f009080facd9e27ea557d10e67",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/icons/trash.svg",
+      "destination": "apps/web/public/icons/trash.svg",
+      "sourceSha256": "92fa9b77a4e352b5be5b31c4b9c70f9c2729ab86fc6cfa0cf7596e271753bddf",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/amper-nemcut-8.png",
+      "destination": "apps/web/public/portraits/amper-nemcut-8.png",
+      "sourceSha256": "d7ae5e4671fd01e7fa712130546f773c85b2b8f86de7381cd34d6eb5c414aa98",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/amper-profile-7.png",
+      "destination": "apps/web/public/portraits/amper-profile-7.png",
+      "sourceSha256": "62d08e83ee260445eeb62dfd109f8f63849bed4ba079bc7b3c57b5c50a24ec31",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/amper2-profile-17.png",
+      "destination": "apps/web/public/portraits/amper2-profile-17.png",
+      "sourceSha256": "8b1638a773a60b0826c8b339742a638bdab663f6286ed297abe9b6a303c436c9",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/eonni-cafe-5.png",
+      "destination": "apps/web/public/portraits/eonni-cafe-5.png",
+      "sourceSha256": "e1c0bd99e18682363f807d4aa9ca5c2a219756186e27334fbe3390e136a88f6b",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/eonni-nemcut-3.png",
+      "destination": "apps/web/public/portraits/eonni-nemcut-3.png",
+      "sourceSha256": "4bd2eff8e8881f3a72ff92545c7c2b481c539aa8a7a3dfb5a941054c2b4a8e7b",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/eonni-night-4.png",
+      "destination": "apps/web/public/portraits/eonni-night-4.png",
+      "sourceSha256": "884ad4d452461904c90bf3ee5259d7c8131129013ce7535681411ac21800784f",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/eonni-profile-2.png",
+      "destination": "apps/web/public/portraits/eonni-profile-2.png",
+      "sourceSha256": "6e4a702309216a0d48c340e43336f82ef06fb82becc87638caa67fa00028717f",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/menhera-profile-6.png",
+      "destination": "apps/web/public/portraits/menhera-profile-6.png",
+      "sourceSha256": "3277b72597d3e5fa59b9179c90f242f15168d497863cb46abb3b35baa2039355",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/mindi-cafe-11.png",
+      "destination": "apps/web/public/portraits/mindi-cafe-11.png",
+      "sourceSha256": "3a319779d879ba5a55fde1ac0b0d907850180948a58131f6dabc451bf8ac1221",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/mindi-cafe-12.png",
+      "destination": "apps/web/public/portraits/mindi-cafe-12.png",
+      "sourceSha256": "ad4663a299235eae321b3f0cacd66316884a1f23baeced74a7a2d55ed28cd08b",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/mindi-cafe-13.png",
+      "destination": "apps/web/public/portraits/mindi-cafe-13.png",
+      "sourceSha256": "c7fdfe0fdc27a5c1cd48f2f9cf3dd086e6a95ac42135475cb301556000b9d6b3",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/mindi-free-14.png",
+      "destination": "apps/web/public/portraits/mindi-free-14.png",
+      "sourceSha256": "3c8df1089855d3e70dbcb48116630f2e467cbb68426289e32f42b7be4cda9750",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/mindi-free-15.png",
+      "destination": "apps/web/public/portraits/mindi-free-15.png",
+      "sourceSha256": "f6435dc64ab1b9df935ed26ec8725abc00a19319262067198c32738cd0969c1a",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/mindi-night-16.png",
+      "destination": "apps/web/public/portraits/mindi-night-16.png",
+      "sourceSha256": "ad68233839c38d1e0d639f19eefdb05721ffa8b78f2ee137bf91040c673b9da9",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/mindi-profile-10.png",
+      "destination": "apps/web/public/portraits/mindi-profile-10.png",
+      "sourceSha256": "91a6103333cbe85cccefaca6d50c1842af74766fe4f5b7a09bdd2d462a84af54",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/oppa-profile-9.png",
+      "destination": "apps/web/public/portraits/oppa-profile-9.png",
+      "sourceSha256": "6e9edb4699b1fa9c5725bdabb5b232dfb67876ab0689f791b24b117f18836ea8",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/wangja-night-1.png",
+      "destination": "apps/web/public/portraits/wangja-night-1.png",
+      "sourceSha256": "1e6f0046d7e775fc72bb7d76d9eea995f1abe585367393455e2df6e7ba05102e",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/public/portraits/wangja-profile-0.png",
+      "destination": "apps/web/public/portraits/wangja-profile-0.png",
+      "sourceSha256": "f60f4bfb3b0630d265cc4a668e04cf750bfed80bca259535ae8c6eb577addf99",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/scripts/measure-cost.ts",
+      "destination": "legacy/frontend/scripts/measure-cost.ts",
+      "sourceSha256": "fb4c2b6c9e99b20de93be26234e5ed79f1aedab7333726a1883027ad71c50bb8",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/scripts/tone-compare.ts",
+      "destination": "legacy/frontend/scripts/tone-compare.ts",
+      "sourceSha256": "f529fd39e4a0c55740241bce8e8a297615167622a62d3ce02bb27677b885f496",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/scripts/tone-test.ts",
+      "destination": "legacy/frontend/scripts/tone-test.ts",
+      "sourceSha256": "70895f5a20722a43c45ff5b1e97edf1b4ab4bbb45482b28f1f7911c7107f8972",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/tsconfig.json",
+      "destination": "apps/web/tsconfig.json",
+      "sourceSha256": "cbdd94e4d249200ce15f49ab34689fd64c0efa28d93a373001fc3f6a7bb5d219",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/BASELINE.md",
+      "destination": "legacy/spring/BASELINE.md",
+      "sourceSha256": "97f8531520e932daff92a9efdcf2e18047ba302d3984fa3667d8a208974b9197",
+      "changedDuringFoundation": true
+    },
+    {
+      "source": "backend/scripts/baseline.ps1",
+      "destination": "legacy/spring/scripts/baseline.ps1",
+      "sourceSha256": "fc30bb4382ee542680d44d8812937c03f45487e7ec7d9680680964d71e7c54f4",
+      "changedDuringFoundation": true
+    },
+    {
+      "source": "backend/src/test/java/com/everyday/backend/baseline/BaselineAiConfiguration.java",
+      "destination": "legacy/spring/src/test/java/com/everyday/backend/baseline/BaselineAiConfiguration.java",
+      "sourceSha256": "8096d4c611df6bb71ca7ca7d7578d3fc446a211bfb46953bd4b891f5976291e6",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/test/java/com/everyday/backend/baseline/BaselineApiTests.java",
+      "destination": "legacy/spring/src/test/java/com/everyday/backend/baseline/BaselineApiTests.java",
+      "sourceSha256": "d5cbac1a7b4a21d5cec7a0768e44174e30ea431269a9095fd3777744cfa70dd0",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/test/java/com/everyday/backend/baseline/BaselineApplication.java",
+      "destination": "legacy/spring/src/test/java/com/everyday/backend/baseline/BaselineApplication.java",
+      "sourceSha256": "185bf3eab7e238985f4ff2119530ab80f32a58eadfcab4ff15e177b984816148",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/test/resources/application-baseline.yaml",
+      "destination": "legacy/spring/src/test/resources/application-baseline.yaml",
+      "sourceSha256": "e8f66c916966d4fdf92d0039f78faee55d4a8eb5452a29c11165b1a0160dafe5",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/.env.example",
+      "destination": "legacy/spring/.env.example",
+      "sourceSha256": "585ac3b059f215da976c23f13e747a9a7da2de79727d9a241a88cbe1f938eac9",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/.gitattributes",
+      "destination": "legacy/spring/.gitattributes",
+      "sourceSha256": "fe495e43270d435b102b52732f83383357ac97d0633e8644b4b41a65bb03a66f",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/.gitignore",
+      "destination": "legacy/spring/.gitignore",
+      "sourceSha256": "6bdbfef7c0bad068ef3ba5002daf8e3920f6f0125b1bf085b67038249cdc1776",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/README.md",
+      "destination": "legacy/spring/README.md",
+      "sourceSha256": "cbc1bc2a1cdfb274ca0431eb705e4c9c5a9bf385779b52bf20ee3649614f2576",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/backend_claude.md",
+      "destination": "legacy/spring/backend_claude.md",
+      "sourceSha256": "78d84532e65a80157df33f058858edfbdbc8cd75903e73b84cc0d01fa3fbc5bd",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/build.gradle",
+      "destination": "legacy/spring/build.gradle",
+      "sourceSha256": "6a1fdb2977a41ffef840524bfe4d0bf64cc6ca24b0c031c4bbf2749ce131c3b7",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/gradle/wrapper/gradle-wrapper.jar",
+      "destination": "legacy/spring/gradle/wrapper/gradle-wrapper.jar",
+      "sourceSha256": "497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/gradle/wrapper/gradle-wrapper.properties",
+      "destination": "legacy/spring/gradle/wrapper/gradle-wrapper.properties",
+      "sourceSha256": "d52e6828653070625e119ad7378c579131fff5e46039c5bd6b82a7a7e0dd9659",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/gradlew",
+      "destination": "legacy/spring/gradlew",
+      "sourceSha256": "ab5c0cad16305af2e619c159c1f58dd68d07fab9c11e36701e109c0277407f7a",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/gradlew.bat",
+      "destination": "legacy/spring/gradlew.bat",
+      "sourceSha256": "475c4f08cd57cf2faa819e7f36d72aa93f0ad646ea23a8f7fa3ef54dee1cbc52",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/settings.gradle",
+      "destination": "legacy/spring/settings.gradle",
+      "sourceSha256": "3f0d322bb1fc8d36fe4532e8319795aed819bce956f9e390d60942c7bde3ae84",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/BackendApplication.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/BackendApplication.java",
+      "sourceSha256": "11245f24514f4db0fd0412e581d3925aa9429c279a0b2e5155da298bb0c321e6",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/DemoDataSeeder.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/DemoDataSeeder.java",
+      "sourceSha256": "02ca1fa94297fcd549e0d53de04cb8fec165589b3cff356097bac59dd5f94354",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/TestController.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/TestController.java",
+      "sourceSha256": "5eaa75047ffebe9ef93814b4d9fbc701c79b4dbaf067ab3c6ec05a5c392775a2",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/auth/controller/AuthController.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/auth/controller/AuthController.java",
+      "sourceSha256": "c31bddf3d84e40e6d722d331132a7ef4d290c90d3bbffedb07f53d65c015c505",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/auth/dto/LoginRequest.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/auth/dto/LoginRequest.java",
+      "sourceSha256": "af9930a06f4e2e500733544b5a48c1fae742569bcee30f1668b389631547a30a",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/auth/dto/SignupRequest.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/auth/dto/SignupRequest.java",
+      "sourceSha256": "fa06e2e2c189f90d1cc37fce50d28c8830129f17c64d27b3599be9ea21c14190",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/auth/dto/TokenResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/auth/dto/TokenResponse.java",
+      "sourceSha256": "624ff354630735397a17b38d70a6676dee722e5d35bc280900f896f1526767e1",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/auth/jwt/JwtAuthenticationFilter.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/auth/jwt/JwtAuthenticationFilter.java",
+      "sourceSha256": "b7a761342003450bab519f5e7af955edb1d0b83f270ffba94c23265e00acda8c",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/auth/jwt/JwtTokenProvider.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/auth/jwt/JwtTokenProvider.java",
+      "sourceSha256": "aeb353cc5829f003e5291650cf25201bda2b53c35c8949ddf1f4bee4f48374f7",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/auth/service/AuthService.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/auth/service/AuthService.java",
+      "sourceSha256": "515aca13181fd0b1146232d018dd37631dad3b0fe0ccfc64273dc0fb37b09156",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/controller/CharacterController.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/controller/CharacterController.java",
+      "sourceSha256": "72bb5a26a845caa5517f7c9220c49daaebdbd6d8ebf3be0a9f1bb0924e962703",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/dto/CallNameRequest.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/dto/CallNameRequest.java",
+      "sourceSha256": "0af63b2b9c539449495a5e7dbf77d94dbbcaa2a7c6dde22706cc2e2bdefa8f1d",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/dto/CharacterResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/dto/CharacterResponse.java",
+      "sourceSha256": "bc7b15f2b3f0338e36967b7da89cf109c4727b96f6ede513d5ee1a0ac893fd31",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/dto/CharacterSummaryResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/dto/CharacterSummaryResponse.java",
+      "sourceSha256": "8c2438947f8bce757a256d484abb5a39475c9ad8c6e61f9bb7a7ae85b009dfb9",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/dto/CharacterUpdateRequest.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/dto/CharacterUpdateRequest.java",
+      "sourceSha256": "44c9c43a6cb9290ecab383b39d3b8937753547194f7635b69b1f589d871b2802",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/dto/CompileRequest.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/dto/CompileRequest.java",
+      "sourceSha256": "4b76b64c1f1825b93079d0721cb682ec8fe759f4b330a5a045b3ddbd44536d82",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/dto/CompileResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/dto/CompileResponse.java",
+      "sourceSha256": "ac17934ba44b8e0134bb0005b51c66c7671bea25891576cb68012e04cb489e7f",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/dto/InterviewAnswer.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/dto/InterviewAnswer.java",
+      "sourceSha256": "7729d4b30fe53c513d14a8ec0bbc8cd3c544edd1c490d52369941e1bda9ef8b7",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/dto/InterviewQuestionResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/dto/InterviewQuestionResponse.java",
+      "sourceSha256": "d5e2f3fbcf88344713640a1b5df41daa611148266a04ccb973861c5ae4db1079",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/dto/InterviewRequest.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/dto/InterviewRequest.java",
+      "sourceSha256": "05c9b57cb0579d80db7b474a8382996c7142d24e03ac53158b3a70df81c09e75",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/dto/SelectPortraitRequest.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/dto/SelectPortraitRequest.java",
+      "sourceSha256": "b9050b854f927987cf7792068ad115a8a7887c037760525922ff8c3616ba3b10",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/entity/Character.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/entity/Character.java",
+      "sourceSha256": "5b80516a0c5e54434a150a6ccd1a69fba2176bb1e275a8d688aacf263e1592f4",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/entity/Gender.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/entity/Gender.java",
+      "sourceSha256": "126d3c97fe2dac8ed3d56643e68551487eb193ca723b25706fd0cd4193295d33",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/entity/RelationshipType.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/entity/RelationshipType.java",
+      "sourceSha256": "05f6250c2272dde2385159a477f23f4d73e94ce7f7a69f475aab2ecf6f935e59",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/repository/CharacterRepository.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/repository/CharacterRepository.java",
+      "sourceSha256": "f648a3b53cff577b8d744b75eab85cefaf3c581208bcbc91b0da409c247e8a97",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/service/CharacterService.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/service/CharacterService.java",
+      "sourceSha256": "2e7504fdc029102f72ddd27e412322412022df0ca5f1ab1e5ad3477b9cc9ca97",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/character/service/PortraitGenerationService.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/character/service/PortraitGenerationService.java",
+      "sourceSha256": "eaa5b2988041b96cf14dd121a3448f7916c2241c67d799b6aba5ee2c8bf67e3d",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/chat/controller/ChatController.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/chat/controller/ChatController.java",
+      "sourceSha256": "a31962235bff1f85a6cbd3d62b07f1374e9b9bf75f8623e032f9461792101036",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/chat/dto/ChatMessageResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/chat/dto/ChatMessageResponse.java",
+      "sourceSha256": "3f97b16c92801fce64ab98cfd23ab21ce511e0d8b799acbe98204c4786bb6ade",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/chat/dto/SendMessageRequest.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/chat/dto/SendMessageRequest.java",
+      "sourceSha256": "bbb3c3972df248ddbae1afb7706e91f8e41a7d5347df9e57dea8a5ad21d2ad14",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/chat/entity/ChatMessage.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/chat/entity/ChatMessage.java",
+      "sourceSha256": "bc2208011a0b74cdd113d52a4e7d34bb751f1cad7329feca3752c9ff6ededa49",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/chat/entity/MessageSender.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/chat/entity/MessageSender.java",
+      "sourceSha256": "120ec3991745128698ac5eec1dec12a633dd592af0b1a4c1bbcd1e7fa01897ff",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/chat/repository/ChatMessageRepository.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/chat/repository/ChatMessageRepository.java",
+      "sourceSha256": "226c836bcb9a2a002c134f29a3bf99a473c140fa314231363fb0535f4d6cc609",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/chat/service/ChatService.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/chat/service/ChatService.java",
+      "sourceSha256": "2612cb162865d1380a496f3c6ce4c369b473da1dc376a21df0b07b02bf58d902",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/common/config/AsyncConfig.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/common/config/AsyncConfig.java",
+      "sourceSha256": "7d08c95a5db29879d035ff36b65773b447788afcad219dd329bff606b23269cc",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/common/config/JpaAuditingConfig.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/common/config/JpaAuditingConfig.java",
+      "sourceSha256": "a7c971687f0a8e02da7a2c61bc303654861184162d39399976979e658b0cd124",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/common/config/SecurityConfig.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/common/config/SecurityConfig.java",
+      "sourceSha256": "6b98d60773843ef31a08b5568b57cfe29e36bdf6465bbdf4f416811d12ca8fa6",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/common/config/SwaggerConfig.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/common/config/SwaggerConfig.java",
+      "sourceSha256": "256562247307002187239d9ffe34b116b4bb3c593c178750f465b3b9bdf5db0b",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/common/entity/BaseTimeEntity.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/common/entity/BaseTimeEntity.java",
+      "sourceSha256": "a8244d61afb905a26e1f28eb9a6dc7c450fc184c4425507bccc9e11ab0ae0d5d",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/common/exception/CustomException.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/common/exception/CustomException.java",
+      "sourceSha256": "72c0b852903ce05609ec8478b9ef89f7e6af06eb4c6c69ea5478d7804820d7a6",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/common/exception/ErrorCode.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/common/exception/ErrorCode.java",
+      "sourceSha256": "92b9608f80c7e5c78632035fdaa3369f567cc13a56f7ec64d5aefe017deb50ed",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/common/exception/GlobalExceptionHandler.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/common/exception/GlobalExceptionHandler.java",
+      "sourceSha256": "53662d103a20f7d8fb50fd062bbad7beec7404b9098b26840f80d91bfa0391ce",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/common/response/ApiResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/common/response/ApiResponse.java",
+      "sourceSha256": "242100d341beb457f10495bebbb05eed33c220ab3ef702c070a21ea47f410c58",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/common/security/SecurityUtils.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/common/security/SecurityUtils.java",
+      "sourceSha256": "7c1cf14b7efaf41e41717bb53130ac395a2476bb9579961e597474f101ee2a71",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/episode/EpisodeCatalogSeeder.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/episode/EpisodeCatalogSeeder.java",
+      "sourceSha256": "8d9b0609f45a49af80e487c896d15551d0bcdcd712cbf049a28f21dbb0a0d0ae",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/episode/controller/EpisodeController.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/episode/controller/EpisodeController.java",
+      "sourceSha256": "27c3a5d14f5406301315ac71e0b97d12e92b90cbef00871b2ecb9faea42e56b9",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/episode/dto/EpisodeResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/episode/dto/EpisodeResponse.java",
+      "sourceSha256": "20cbb3d2fe15e38c4a3e32215c835e32e3c7023be279934e251500a6cd6e7038",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/episode/dto/EpisodeStartResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/episode/dto/EpisodeStartResponse.java",
+      "sourceSha256": "baa5789dd0c6bbb54170056fddc43e71eb3a48e32e4447a643303fba9418126d",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/episode/entity/CharacterEpisode.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/episode/entity/CharacterEpisode.java",
+      "sourceSha256": "b3fcb2225d5045a5040db83e6ca52083235e09cea32338026fcac156cc15cf9b",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/episode/entity/Episode.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/episode/entity/Episode.java",
+      "sourceSha256": "438be440861ef17f8dd721a11e645cfb4d094d0c3e4e60ae32ca10a889438b93",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/episode/entity/EpisodeStatus.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/episode/entity/EpisodeStatus.java",
+      "sourceSha256": "bef022751b0cd44c701a2b226997a171fba960dc1175ff36a6eeccd5b14b0db0",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/episode/repository/CharacterEpisodeRepository.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/episode/repository/CharacterEpisodeRepository.java",
+      "sourceSha256": "6e7fcb300ba03fae79daf0887f3b8718b1b6aa7625d0bb7fe76ae70f489d2e58",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/episode/repository/EpisodeRepository.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/episode/repository/EpisodeRepository.java",
+      "sourceSha256": "387f63bc7ff649f1e2a77046c8f0d2e9a37fbd54d93fab76e6297769a6fc1b6f",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/episode/service/EpisodeService.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/episode/service/EpisodeService.java",
+      "sourceSha256": "5e4c9a277487d1dabea48f0be22c059162c1c7e86ac5507c1a3e955f213cd436",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/gallery/controller/GalleryController.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/gallery/controller/GalleryController.java",
+      "sourceSha256": "7711bfe0ae0e62c5ea9126286dd07892ce7cdc5da19391f8c0e47dd0bb783796",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/gallery/service/GalleryService.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/gallery/service/GalleryService.java",
+      "sourceSha256": "587a51bcfc6bfea4dcce2b7a50222d55f9236e6e0963db62e1ccfeecf842cd63",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/image/HiggsfieldImageClient.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/image/HiggsfieldImageClient.java",
+      "sourceSha256": "33d496eb6077f04cb0e95efdf6f05cb41da86789dc4f6990a176233ce0557cbf",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/image/ImageClient.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/image/ImageClient.java",
+      "sourceSha256": "68f3df52d9e10f8d45f48500e5aecc3639c87f23ae71c5a486dfcda486bca9f3",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/image/ImageProperties.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/image/ImageProperties.java",
+      "sourceSha256": "f4f80f3251917b08fcf82e3de3a315dabbe17abab2818719b6eae4374c14e8ac",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/llm/AnthropicLlmClient.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/llm/AnthropicLlmClient.java",
+      "sourceSha256": "baaafa46729ed4a7a4043aa92aa6c7b32dbffbeeca167b26cb0ccebf1829b1ee",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/llm/LlmClient.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/llm/LlmClient.java",
+      "sourceSha256": "47e54fb7dbcd42d665188869b0ffc889b8d450b75dd9fe7a45de7f4a5838812d",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/llm/LlmMessage.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/llm/LlmMessage.java",
+      "sourceSha256": "4a2f211c27b89e83cb21a24368c5f21da45a5dc1d96a78d82dc9c45d89fd916b",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/llm/LlmProperties.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/llm/LlmProperties.java",
+      "sourceSha256": "9aac2209f31e08fb12a54da36c71d3365a01e41fd271171f2dca12bbf16addcd",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/llm/prompt/CharacterPersona.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/llm/prompt/CharacterPersona.java",
+      "sourceSha256": "7ee1de9c788d64fb564ab3f07c521c5695f38812a7445aedb275e546e565a794",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/llm/prompt/CharacterPromptBuilder.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/llm/prompt/CharacterPromptBuilder.java",
+      "sourceSha256": "25a94aed9af2243121c4d182bee733c0441a278faa87f5b2c925a2ecdf9f8eef",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/photo/controller/PhotoController.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/photo/controller/PhotoController.java",
+      "sourceSha256": "48316ee9e2fcdad6662288cc1cd4e0d0e0135bce4f16c298944e086e124b342e",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/photo/dto/GeneratePhotoRequest.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/photo/dto/GeneratePhotoRequest.java",
+      "sourceSha256": "17a23eaa073a134eb264ff67c023f33a57c9941e30ed3ae00412932ff64a9aa4",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/photo/dto/PhotoConceptResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/photo/dto/PhotoConceptResponse.java",
+      "sourceSha256": "618c1145d1d39ead0db0a1e09a92e7008b890404ece071581db23609112f1531",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/photo/dto/PhotoGenerationResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/photo/dto/PhotoGenerationResponse.java",
+      "sourceSha256": "a731f8ae3e7d4538f949eb6dc1fecededd0a5dc048393085ed27a1b68479cde3",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/photo/dto/PhotoResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/photo/dto/PhotoResponse.java",
+      "sourceSha256": "8713ca4e59c51373a16b11055294117cb3bfca2c73ff0618014183248b855ba4",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/photo/entity/Photo.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/photo/entity/Photo.java",
+      "sourceSha256": "58dda5f4c06b1194aa2c8a423ee56f2b389c3ca0f06c17b8b9bbbce84b3ce4c4",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/photo/entity/PhotoConcept.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/photo/entity/PhotoConcept.java",
+      "sourceSha256": "00930b731e157f206d5d4ed0f67ddd8837df52eb8295a579664dae88cf7d27f7",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/photo/entity/PhotoType.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/photo/entity/PhotoType.java",
+      "sourceSha256": "c8e8fa2f7e7859b5fe3a7c11c141f30b03dfa8e01e17ea272660c750cb534732",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/photo/repository/PhotoRepository.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/photo/repository/PhotoRepository.java",
+      "sourceSha256": "ef15147999987e0b1e9c2f6442741f21de91c4496c843126aee91a47b8f1cb91",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/photo/service/PhotoService.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/photo/service/PhotoService.java",
+      "sourceSha256": "c88a9037370aa94e196a89054aee99fa245effdf1c1c6b8f9b50294a1759d7ef",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/user/controller/MyPageController.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/user/controller/MyPageController.java",
+      "sourceSha256": "7cee4242e0788022ecb795d067e5d9e45de3ef1954568c4c04cbf3827c99d8e9",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/user/dto/MyPageResponse.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/user/dto/MyPageResponse.java",
+      "sourceSha256": "272cd13361aad4c90c1eb725f6a461b1b4f5193484419e1aa1bedc5b1115587e",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/user/dto/MyPageUpdateRequest.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/user/dto/MyPageUpdateRequest.java",
+      "sourceSha256": "cbbb58ed52dc0d8cc8dba9ea376f82e9396ebc4269e4a88d4d3ebd2f431db161",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/user/entity/User.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/user/entity/User.java",
+      "sourceSha256": "5e7c867c43b3e3ffe83d85420f9efaf60cbbe4427a25ad131284ddb9665e6e35",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/user/repository/UserRepository.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/user/repository/UserRepository.java",
+      "sourceSha256": "338a2c49c6907f41a81e05061438d47013d43f80f706bf2bdb2a641c84158574",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/java/com/everyday/backend/user/service/MyPageService.java",
+      "destination": "legacy/spring/src/main/java/com/everyday/backend/user/service/MyPageService.java",
+      "sourceSha256": "b946386adacff768ada433bbeebef4ea21b0010d126a35d466abfadfe7a3e765",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/main/resources/application.yaml",
+      "destination": "legacy/spring/src/main/resources/application.yaml",
+      "sourceSha256": "e71483f47a07146384cb5631a8ef26b305ce532202fe24c15621e834cec5260d",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "backend/src/test/java/com/everyday/backend/BackendApplicationTests.java",
+      "destination": "legacy/spring/src/test/java/com/everyday/backend/BackendApplicationTests.java",
+      "sourceSha256": "83e7dd06912a4200f6a0083c804380350f21fa42aeccb205125c0bc59c0b1194",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/api.ts",
+      "destination": "legacy/frontend/lib/api.ts",
+      "sourceSha256": "4ca5ed165e78529738b7c07bc895462764d46c210f97d8905f28356e8f7252b0",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/character.ts",
+      "destination": "legacy/frontend/lib/character.ts",
+      "sourceSha256": "7b3dd0e054de21071c3858fac5ef3e110fe386005cdfd025ff426b4042b50255",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/higgsfield.ts",
+      "destination": "legacy/frontend/lib/higgsfield.ts",
+      "sourceSha256": "87167eae484b4e086786df3e001ca65f674f288249023255ec8c4c87fde65c79",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/interview.ts",
+      "destination": "legacy/frontend/lib/interview.ts",
+      "sourceSha256": "fd4409e3df8e89d5aafc5467bfd7b546c11bb2ca1e4281cd52a9fb5fe1c2bc1e",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/pricing.ts",
+      "destination": "legacy/frontend/lib/pricing.ts",
+      "sourceSha256": "307b5a50a6c44323d384ed2a81cb65478497f106c74f4c521a738a8e63e994ac",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/scenarios.ts",
+      "destination": "legacy/frontend/lib/scenarios.ts",
+      "sourceSha256": "5f9db44f4d1f23853e1c48f2428f3c9857b5ff030b100a085b9202f22aa77a95",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/lib/store.ts",
+      "destination": "legacy/frontend/lib/store.ts",
+      "sourceSha256": "c7de3703ded88a11764525dd1ab337af137ca0b5a97508756315dd51b0c05497",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/package.json",
+      "destination": "legacy/frontend/package.original.json",
+      "sourceSha256": "c82377f5787aedbbf91cc1e41d915edb5b0cda833f4a594d882e41997f0eaa45",
+      "changedDuringFoundation": false
+    },
+    {
+      "source": "frontend/tsconfig.json",
+      "destination": "legacy/frontend/tsconfig.original.json",
+      "sourceSha256": "cbdd94e4d249200ce15f49ab34689fd64c0efa28d93a373001fc3f6a7bb5d219",
+      "changedDuringFoundation": false
+    }
+  ],
+  "sourceCommits": {
+    "frontend": "81ca6eb406499f657806a155b9414a04fbb1d724",
+    "backend": "cb071ac2b1cc4e6a2e90609434593758fec46652"
+  }
+}

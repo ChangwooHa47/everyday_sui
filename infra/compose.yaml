@@ -1,0 +1,56 @@
+name: everyday-web3
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: everyday
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-everyday-local-only}
+      POSTGRES_DB: everyday
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U everyday"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    ports:
+      - "127.0.0.1:3001:3001"
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://everyday:${POSTGRES_PASSWORD:-everyday-local-only}@postgres:5432/everyday
+      WEB_ORIGINS: ${WEB_ORIGINS:-http://127.0.0.1:3000,http://127.0.0.1:3002}
+      API_AUDIENCE: ${API_AUDIENCE:-http://127.0.0.1:3001}
+      AI_ENDPOINT: ${AI_ENDPOINT:-}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      SUI_MARKET_PACKAGE_ID: ${SUI_MARKET_PACKAGE_ID:-}
+      SUI_GRPC_URL: ${SUI_GRPC_URL:-https://fullnode.testnet.sui.io:443}
+      SUI_OPERATOR_KEY: ${SUI_OPERATOR_KEY:-}
+      SEAL_SERVERS_JSON: ${SEAL_SERVERS_JSON:-}
+      SEAL_THRESHOLD: ${SEAL_THRESHOLD:-2}
+      WALRUS_PUBLISHER: ${WALRUS_PUBLISHER:-}
+      WALRUS_AGGREGATOR: ${WALRUS_AGGREGATOR:-}
+      WALRUS_EPOCHS: ${WALRUS_EPOCHS:-2}
+      MARKET_PREVIEW_TURNS: ${MARKET_PREVIEW_TURNS:-3}
+      MEMWAL_DELEGATE_MASTER_KEY: ${MEMWAL_DELEGATE_MASTER_KEY:-}
+      MEMWAL_SERVER_URL: ${MEMWAL_SERVER_URL:-https://relayer-staging.memory.walrus.xyz}
+      MEMWAL_PACKAGE_ID: ${MEMWAL_PACKAGE_ID:-}
+      MEMWAL_REGISTRY_ID: ${MEMWAL_REGISTRY_ID:-}
+      AGENT_GIFTS_ENABLED: ${AGENT_GIFTS_ENABLED:-0}
+      AI_DAILY_LIMIT: ${AI_DAILY_LIMIT:-50}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+volumes:
+  postgres-data:

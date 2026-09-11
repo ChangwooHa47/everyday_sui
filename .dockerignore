@@ -1,0 +1,15 @@
+.git
+frontend
+backend
+legacy
+.local-tools
+**/node_modules
+**/.next
+**/out
+**/dist
+**/build
+**/.gradle
+**/.env
+**/.env.*
+**/test-results
+**/playwright-report

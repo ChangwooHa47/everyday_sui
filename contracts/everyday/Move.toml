@@ -1,0 +1,6 @@
+[package]
+name = "everyday"
+edition = "2024"
+
+[addresses]
+everyday = "0x0"

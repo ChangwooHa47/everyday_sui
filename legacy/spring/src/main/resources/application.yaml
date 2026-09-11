@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: backend
+
+  datasource:
+    url: jdbc:mysql://mysql:3306/everyday
+    username: everyday
+    password: everyday1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+    show-sql: true
+
+    properties:
+      hibernate:
+        format_sql: true
+
+jwt:
+  secret: ${JWT_SECRET:everyday-demo-secret-key-please-override-in-env-0123456789}
+  access-token-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:86400000}
+
+app:
+  llm:
+    provider: anthropic
+    api-key: ${ANTHROPIC_API_KEY:}
+    base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
+    model: ${ANTHROPIC_MODEL:claude-sonnet-4-5}
+  image:
+    provider: higgsfield
+    api-key: ${HIGGSFIELD_API_KEY:}
+    api-secret: ${HIGGSFIELD_API_SECRET:}
+    base-url: ${HIGGSFIELD_BASE_URL:https://platform.higgsfield.ai}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

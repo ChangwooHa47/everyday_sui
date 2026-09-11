@@ -1,0 +1,356 @@
+/* everyday 디자인 토큰 (figma nKyolUAkQEK9hPqDAiOpGe node 0-1053) */
+@import url("https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css");
+
+:root {
+  /* GrayScale */
+  --gray-50: #f7f7fa;
+  --gray-100: #f0f0f5;
+  --gray-200: #e8e8ee;
+  --gray-300: #e1e1e8;
+  --gray-400: #cdced6;
+  --gray-500: #a9abb8;
+  --gray-600: #858889;
+  --gray-700: #525463;
+  --gray-800: #3e404c;
+  --gray-900: #282d36;
+  --black: #1e1e1e;
+  /* Orange */
+  --orange-50: #fffeeb;
+  --orange-100: #fff6e0;
+  --orange-200: #fff0d5;
+  --orange-300: #ffe8c9;
+  --orange-400: #ffd9bc;
+  --orange-500: #ffc9ad;
+  --orange-600: #ffb197;
+  --orange-700: #ff9a78;
+
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--gray-200);
+  font-family: "SUIT", -apple-system, "Apple SD Gothic Neo", sans-serif;
+  color: var(--black);
+}
+
+/* 폰 프레임 (375 고정, 데스크탑에선 중앙) */
+.phone {
+  max-width: 375px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── 타이포 (figma 스타일 시트) ── */
+.h1 { font-size: 28px; font-weight: 700; line-height: 135%; letter-spacing: -0.02em; }
+.h2 { font-size: 24px; font-weight: 700; line-height: 135%; letter-spacing: -0.02em; }
+.h3 { font-size: 22px; font-weight: 700; line-height: 135%; letter-spacing: -0.02em; }
+.headline1 { font-size: 18px; font-weight: 700; line-height: 135%; letter-spacing: -0.02em; }
+.headline2 { font-size: 16px; font-weight: 500; line-height: 145%; letter-spacing: -0.02em; }
+.body1 { font-size: 16px; font-weight: 500; line-height: 150%; letter-spacing: -0.02em; }
+.body2 { font-size: 14px; font-weight: 500; line-height: 150%; letter-spacing: -0.01em; }
+.label1 { font-size: 16px; font-weight: 700; line-height: 130%; letter-spacing: -0.02em; }
+.caption { font-size: 12px; font-weight: 500; line-height: 150%; }
+
+.logo {
+  font-family: "Avant Garde", "Century Gothic", Futura, "SUIT", sans-serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* ── 공통 컴포넌트 ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  min-height: 56px;
+}
+.topbar .nav-btn {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0;
+}
+.nav-prev { color: var(--gray-500); }
+.nav-next { color: var(--orange-700); font-weight: 700; }
+.nav-next:disabled { color: var(--gray-400); cursor: default; }
+
+.progress {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px;
+  margin: 8px 0 24px;
+}
+.progress span {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--gray-200);
+  transition: background 360ms var(--ease);
+}
+.progress span.active { background: var(--orange-600); }
+
+/* 선택 카드 (관계) */
+.select-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 20px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+  background: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--black);
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.select-card.selected {
+  border-color: var(--orange-700);
+  color: var(--orange-700);
+  font-weight: 700;
+  background: var(--orange-50);
+}
+.select-card .check { color: var(--gray-300); }
+.select-card.selected .check { color: var(--orange-700); }
+
+/* 칩 */
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--gray-200);
+  background: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.chip.selected {
+  background: var(--orange-400);
+  border-color: var(--orange-400);
+  color: var(--black);
+  font-weight: 700;
+}
+
+/* 인풋 */
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--black);
+  outline: none;
+  transition: border-color 200ms var(--ease);
+}
+.input:focus { border-color: var(--orange-600); background: #fff; }
+.input::placeholder { color: var(--gray-500); }
+
+/* CTA 버튼 */
+.cta {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border: none;
+  background: var(--gray-900);
+  color: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.cta:disabled { background: var(--gray-200); color: var(--gray-500); cursor: default; }
+
+/* 바텀 내비 */
+.bottom-nav {
+  display: flex;
+  border-top: 1px solid var(--gray-100);
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-nav a, .bottom-nav span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 0 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gray-400);
+  text-decoration: none;
+}
+.bottom-nav .active { color: var(--black); font-weight: 700; }
+
+/* 말풍선 */
+.bubble {
+  max-width: 78%;
+  width: fit-content;
+  padding: 11px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 150%;
+  letter-spacing: -0.01em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.bubble.char { background: var(--orange-50); border: 1px solid var(--orange-200); border-top-left-radius: 4px; }
+.bubble.user { background: var(--gray-900); color: #fff; border-top-right-radius: 4px; }
+
+/* 채팅 입력바 */
+.chat-inputbar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--gray-100);
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+}
+.send-btn {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: var(--orange-500);
+  color: var(--black);
+  font-size: 17px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  display: grid;
+  place-items: center;
+}
+.send-btn:disabled { background: var(--gray-200); color: var(--gray-400); }
+
+/* 홈 액션 버튼 3개 */
+.home-actions { display: flex; gap: 10px; padding: 14px 20px; }
+.home-action {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--gray-100);
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--black);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 200ms var(--ease);
+}
+.home-action:active { transform: scale(0.97); background: var(--orange-50); }
+.home-action .ico { font-size: 22px; }
+/* 액션 아이콘 뱃지 (figma 0:199 — 피치 라운드 사각 안에 오렌지 아이콘) */
+.ico-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--orange-100);
+  color: var(--orange-700);
+  display: grid;
+  place-items: center;
+}
+
+/* 팝업 */
+.dim {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 30, 30, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: fadein 200ms var(--ease);
+}
+.popup {
+  width: calc(100% - 54px);
+  max-width: 321px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 24px 20px 20px;
+}
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
+/* 캐릭터 아바타 placeholder */
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, var(--orange-100), var(--orange-400));
+  overflow: hidden;
+}
+
+/* 포인트 뱃지 */
+.point-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--orange-100);
+  font-size: 13px;
+  font-weight: 700;
+}
+.point-badge .p { color: var(--orange-700); }
+
+.fade-in { animation: fadein 360ms var(--ease); }
+
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* 로딩 스켈레톤 (shimmer) */
+.skeleton {
+  background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 37%, var(--gray-100) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+/* 타이핑 점 */
+.typing { display: inline-flex; gap: 4px; align-items: center; }
+.typing span {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--gray-400);
+  animation: typing 1.2s infinite ease-in-out both;
+}
+.typing span:nth-child(2) { animation-delay: 0.16s; }
+.typing span:nth-child(3) { animation-delay: 0.32s; }
+@keyframes typing {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}

@@ -1,0 +1,83 @@
+name: monorepo
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  move-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/cache@v4
+        id: sui-cache
+        with:
+          path: .local-tools/sui-linux
+          key: sui-testnet-v1.79.0-linux-x64-be99e1e8
+      - name: Install pinned Sui CLI
+        if: steps.sui-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 https://github.com/MystenLabs/sui/releases/download/testnet-v1.79.0/sui-testnet-v1.79.0-ubuntu-x86_64.tgz -o "$RUNNER_TEMP/sui.tgz"
+          echo "be99e1e81c098dd0beb2969d671fb8270ccc0520188ccea60213ae094d32337a  $RUNNER_TEMP/sui.tgz" | sha256sum --check
+          mkdir -p .local-tools/sui-linux
+          tar -xzf "$RUNNER_TEMP/sui.tgz" -C .local-tools/sui-linux --wildcards --no-anchored sui
+          chmod +x .local-tools/sui-linux/sui
+      - run: npm run test:move
+        env:
+          SUI_BIN: .local-tools/sui-linux/sui
+  types-build-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:web3
+        env:
+          PLAYWRIGHT_CHROMIUM: '1'
+      - run: npm run build:static
+      - run: docker build -f infra/Dockerfile.api -t everyday-api:ci .
+  compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '21'
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - run: chmod +x legacy/spring/gradlew
+      - run: ./gradlew test
+        working-directory: legacy/spring
+      - run: npm run baseline:build
+      - name: Start compatibility backend and run browser flow
+        shell: bash
+        env:
+          PLAYWRIGHT_CHROMIUM: '1'
+        run: |
+          cd legacy/spring
+          ./gradlew bootTestRun --console=plain > /tmp/everyday-baseline.log 2>&1 &
+          baseline_pid=$!
+          trap 'kill "$baseline_pid" 2>/dev/null || true' EXIT
+          cd ../..
+          ready=0
+          for attempt in {1..60}; do
+            if curl --silent --output /dev/null http://127.0.0.1:18080/api/me; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" != 1 ]; then cat /tmp/everyday-baseline.log; exit 1; fi
+          npm run test:e2e

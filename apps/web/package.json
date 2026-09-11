@@ -1,0 +1,35 @@
+{
+  "name": "@everyday/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "build:baseline": "node scripts/baseline.mjs build",
+    "start:baseline": "node scripts/baseline.mjs start",
+    "dev:baseline": "node scripts/baseline.mjs dev",
+    "test:e2e": "playwright test",
+    "test:unit": "tsx --test tests/web3.test.ts",
+    "test:web3": "playwright test --config playwright.web3.config.ts",
+    "build:static": "node scripts/export.mjs"
+  },
+  "dependencies": {
+    "@everyday/contracts": "^0.1.0",
+    "@mysten/dapp-kit-react": "^2.1.25",
+    "@mysten/seal": "^1.4.8",
+    "@mysten/sui": "^2.29.0",
+    "next": "^15.5.25",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
