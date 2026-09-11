@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { parseSerializedSignature } from '@mysten/sui/cryptography';
-import { verifyPersonalMessageSignature } from '@mysten/sui/verify';
+import { isValidPersonalMessageSignature } from '@mysten/sui/verify';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { isValidSuiAddress, normalizeSuiAddress } from '@mysten/sui/utils';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -28,6 +29,7 @@ export async function authenticate(req: FastifyRequest, db: Database, config: Au
 }
 
 export function registerAuth(app: FastifyInstance, db: Database, config: AuthConfig) {
+  const signatureClient = new SuiGrpcClient({ network: 'testnet', baseUrl: 'https://fullnode.testnet.sui.io:443', timeout: 10_000 });
   app.post('/v1/auth/challenges', async req => {
     const origin = getOrigin(req, config);
     const input = z.object({ address: addressSchema, network: z.literal(config.network) }).strict().parse(req.body);
@@ -53,9 +55,14 @@ export function registerAuth(app: FastifyInstance, db: Database, config: AuthCon
     if (!challenge.message.split('\n').includes(`Audience: ${config.audience}`)) throw failure(401, 'CHALLENGE_AUDIENCE_CHANGED');
     try {
       const scheme = parseSerializedSignature(input.signature).signatureScheme;
-      if (!['ED25519', 'Secp256k1', 'Secp256r1'].includes(scheme)) throw Error('unsupported');
-      await verifyPersonalMessageSignature(new TextEncoder().encode(challenge.message), input.signature, { address: challenge.address });
+      if (!['ED25519', 'Secp256k1', 'Secp256r1', 'ZkLogin'].includes(scheme)) throw Error('unsupported');
     } catch { throw failure(401, 'INVALID_OR_UNSUPPORTED_SIGNATURE'); }
+    let valid: boolean;
+    try {
+      valid = await isValidPersonalMessageSignature(new TextEncoder().encode(challenge.message), input.signature,
+        { address: challenge.address, client: signatureClient });
+    } catch { throw failure(503, 'SIGNATURE_VERIFICATION_UNAVAILABLE'); }
+    if (!valid) throw failure(401, 'INVALID_OR_UNSUPPORTED_SIGNATURE');
     const token = randomBytes(32).toString('base64url');
     const expiresAt = new Date(Date.now() + 1_800_000);
     const consumed = await db.query(`WITH consumed AS (
