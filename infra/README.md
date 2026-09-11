@@ -1,6 +1,6 @@
 ﻿# 인프라
 
-Railway API + Vercel 웹 배포는 [배포 가이드](DEPLOYMENT.md)를 따른다.
+Railway 웹 + API + Postgres 배포는 [배포 가이드](DEPLOYMENT.md)를 따른다.
 
 `compose.yaml`은 Postgres 17과 지갑 인증·AI gateway API를 실행한다.
 DB와 API는 로컬 호스트 5432/3001에만 바인딩한다. 기본 DB 암호는 로컬 개발용이다.
