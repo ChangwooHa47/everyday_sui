@@ -57,6 +57,17 @@ Invoke-RestMethod https://실제-API.up.railway.app/health/ready
 웹에서 지갑 로그인과 API 요청을 확인한다. 실제 구매/정산은 배포된 Move package와 실제 거래로 별도 검증해야 한다. Walrus 저장, Seal 복호화, MemWal 복원도 별도 실연동 확인이 필요하다.
 
 2026-09-11 로컬에서 `npm run build`를 실행해 공통 패키지, API, Next.js 전체 빌드가 통과했다.
+같은 날 `npm run check:backend`도 통과했다(API 14개, Move 20개 테스트).
 이 설정 파일만으로 Railway/Vercel 프로젝트 생성, 계정 연결, 환경변수 입력 또는 원격 배포가 완료되지는 않는다. 클라우드 배포와 Docker 이미지 기동은 아직 검증하지 않았다.
+
+### Sui testnet 배포 대기 상태 (2026-09-11)
+
+`npm run deploy:testnet`을 실행했으나 전용 지갑 잔액이 `0` MIST이고 faucet이 HTTP 429를 반환했다. 첫 응답의 Retry-After 45초를 기다린 뒤 재시도했지만 동일하게 거절됐다. 게시 거래는 생성되지 않았으며 package ID도 아직 없다.
+
+배포용 공개 주소:
+
+`0x97eb51ec405dfd3edf9f5cbe7f38dc8e0cba2ff6252ffe565055a52fe618aa47`
+
+이 주소에 테스트 SUI 0.2개 이상(`200000000` MIST)을 확보한 뒤 루트에서 `npm run deploy:testnet`을 다시 실행한다. 이는 스크립트의 최대 가스 예산이며 실제 수수료는 거래 결과로 확인한다. private key는 기존 `.local-tools/market-testnet/creator.key`를 그대로 사용하고 공개하지 않는다. 성공 결과는 `.local-tools/market-testnet/deployment.json`에 기록된다.
 
 공식 문서: [Railway Config as Code](https://docs.railway.com/config-as-code), [Vercel Monorepos](https://vercel.com/docs/monorepos).
