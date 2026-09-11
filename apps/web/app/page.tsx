@@ -56,7 +56,7 @@ export default function Splash() {
         className="caption fade-in"
         style={{ position: "absolute", bottom: 64, color: "var(--gray-500)" }}
       >
-        {!legacyBaseline ? <WalletLogin onLogin={() => router.push('/create')} /> : error
+        {!legacyBaseline ? <WalletLogin onLogin={() => router.push('/home')} /> : error
           ? "백엔드(localhost:8080)에 연결할 수 없어요"
           : hasCharacter === null
             ? "연결 중..."

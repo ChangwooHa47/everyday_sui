@@ -61,7 +61,8 @@ test('original UI signs wallet login without replacing routes or using a demo ac
   await expect(page.getByRole('alert')).toBeVisible();
   expect(sessionRequests).toEqual([]);
   await page.getByRole('button',{name:'로그인',exact:true}).click();
-  await expect(page).toHaveURL(/\/create$/);
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto('/create');
   await expect(page.getByRole('button',{name:'친구',exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'남성',exact:true})).toBeVisible();
   await page.screenshot({path:testInfo.outputPath('original-create.png'),fullPage:true});
