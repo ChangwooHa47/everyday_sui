@@ -24,17 +24,17 @@ walletKit.stores.$connection.subscribe(connection => {
 export function getWalletToken() {
   if (!session || !connected || normalizeSuiAddress(connected) !== session.address || Date.parse(session.expiresAt) <= Date.now()) {
     session = null;
-    throw Error('지갑으로 로그인해주세요.');
+    throw Error('로그인해주세요.');
   }
   return session.token;
 }
 
 export async function loginWithWallet() {
   const address = walletKit.stores.$connection.get().account?.address;
-  if (!address) throw Error('지갑을 연결해주세요.');
+  if (!address) throw Error('로그인해주세요.');
   const owner = normalizeSuiAddress(address);
   const started = generation;
-  const check = () => { if (started !== generation) throw Error('지갑이 변경되었습니다. 다시 로그인해주세요.'); };
+  const check = () => { if (started !== generation) throw Error('다시 로그인해주세요.'); };
   async function post(path: string, body: unknown) {
     const response = await fetch(`${apiUrl}${path}`, { method: 'POST',
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(15000) });

@@ -41,5 +41,5 @@ export async function sha256(bytes: Uint8Array) {
 }
 export function assertContext(manifest: PublicManifest | VaultManifest, appPackage: string, revision: string, subjectId?: string) {
   if (manifest.appPackage !== appPackage || manifest.revision !== revision ||
-    (manifest.kind === 'vault' && manifest.subjectId !== subjectId)) throw Error('보관 파일의 패키지·대상·버전이 체인과 다릅니다.');
+    (manifest.kind === 'vault' && manifest.subjectId !== subjectId)) throw Error('보관 파일을 확인할 수 없습니다.');
 }

@@ -23,12 +23,12 @@ export async function discover(owner: string): Promise<Asset[]> {
       for (const object of page.objects) {
         if (object.owner.$kind !== 'AddressOwner' || normalizeSuiAddress(object.owner.AddressOwner) !== normalizeSuiAddress(owner)) continue;
         const value = type === 'Character' ? Character.parse(object.content) : Vault.parse(object.content);
-        if (value.schemaVersion !== '1') throw Error('지원하지 않는 체인 객체 버전입니다.');
+        if (value.schemaVersion !== '1') throw Error('지원하지 않는 데이터 형식입니다.');
         assets.push({ id: normalizeSuiAddress(value.id), type, revision: value.revision,
           ref: value.blobId ? referenceSchema.parse({ blobId: value.blobId, contentHash: toHex(Uint8Array.from(value.contentHash)), endEpoch: value.endEpoch }) : null });
       }
       if (!page.hasNextPage) break;
-      if (!page.cursor || page.cursor === cursor) throw Error('체인 조회 커서가 진행되지 않습니다.');
+      if (!page.cursor || page.cursor === cursor) throw Error('목록을 불러올 수 없습니다.');
       cursor = page.cursor;
     } while (true);
   }

@@ -22,8 +22,8 @@ function LoginButton({ onLogin }: { onLogin: () => void }) {
   }
   return <>
     {account
-      ? <button type="button" className="caption" style={style} disabled={busy} onClick={() => void login()}>{busy ? '로그인 중...' : '지갑으로 로그인'}</button>
-      : <><button type="button" className="caption" style={style} onClick={() => { if (modal.current) modal.current.open = true; }}>지갑으로 로그인</button><ConnectModal ref={modal} /></>}
+      ? <button type="button" className="caption" style={style} disabled={busy} onClick={() => void login()}>{busy ? '로그인 중...' : '로그인'}</button>
+      : <><button type="button" className="caption" style={style} onClick={() => { if (modal.current) modal.current.open = true; }}>로그인</button><ConnectModal ref={modal} /></>}
     {error && <div role="alert" className="caption">{error}</div>}
   </>;
 }
