@@ -138,13 +138,14 @@ async function login(): Promise<string> {
 }
 
 export async function ensureAuth(): Promise<string> {
-  if (process.env.NEXT_PUBLIC_LEGACY_BASELINE !== '1') throw new Error('기존 Spring API는 비교 실행 모드에서만 사용할 수 있습니다.');
+  if (process.env.NEXT_PUBLIC_LEGACY_BASELINE !== '1') return (await import('./wallet-auth')).getWalletToken();
   return getToken() ?? login();
 }
 
 // ── 공통 fetch ──
 async function api<T>(path: string, init?: RequestInit, retried = false): Promise<T> {
   const token = await ensureAuth();
+  if (process.env.NEXT_PUBLIC_LEGACY_BASELINE !== '1') throw new Error('이 기능은 현재 연결 준비 중입니다.');
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {

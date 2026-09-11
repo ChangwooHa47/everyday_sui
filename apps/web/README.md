@@ -1,14 +1,11 @@
 ﻿# @everyday/web
 
-일반 실행의 기본 화면은 Sui 지갑 기반 `app/Web3App.tsx`다.
-`lib/web3`에 체인 객체·Seal 암호화·Walrus 저장·복원 코드를 둔다.
-실행과 공개 환경변수는 [루트 README](../../README.md), 범위와 제한은
-[구현 기록](../../docs/WEB3_IMPLEMENTATION.md)에 정리했다.
+기존 Everyday 화면과 경로를 그대로 사용한다. 공통 layout은 각 페이지의 children을 렌더링하며 시작 화면의 하단 로그인 버튼만 Sui 지갑 연결·메시지 서명을 수행한다.
 
-기존 페이지와 Spring 클라이언트는 `NEXT_PUBLIC_LEGACY_BASELINE=1`인 비교 빌드에서만 실행한다.
-일반 deep link에도 Web3 화면을 표시하며 기존 페이지의 effect를 마운트하지 않는다.
-기존 경로별 디자인을 Web3 데이터에 다시 연결하는 것은 후속 UI 작업이다.
+Web3App, MarketApp, Web3Entry와 전용 CSS, /market 및 /viewer 대체 UI는 제거했다. 기존 globals.css, 홈·생성·채팅 등 페이지 디자인은 변경하지 않았다.
 
-`npm run test:unit`은 저장 포맷/검증, `npm run test:web3`는 지갑 브라우저 검사다.
-`npm run test:e2e`는 기존 Spring 비교 검사다. 각 브라우저 검사 전에 알맞은 모드로 빌드한다.
-정적 export는 가능하지만 Walrus Sites 실제 게시는 수행하지 않았다.
+로그인은 실제 API /v1/auth/challenges 및 /v1/auth/sessions를 사용한다. 개인키를 저장하지 않고 세션 토큰은 메모리에만 보관한다. 지갑 변경·연결 해제 시 기존 세션을 폐기한다.
+
+기존 화면의 생성·채팅·프로필 데이터는 원래 Spring /api 계약을 사용한다. 현재 Railway /v1 API에는 그 계약이 구현돼 있지 않으므로, 해당 기능은 연결 준비 중 오류를 표시한다. 지갑 세션을 Spring 데모 계정으로 바꾸거나 성공을 모사하지 않는다. NEXT_PUBLIC_LEGACY_BASELINE=1은 원래 Spring 비교 테스트에만 사용한다.
+
+`npm run test:web3`는 기존 시작 화면 → 실제 지갑 메시지 서명 → 기존 생성 화면과 지갑 변경 시 세션 격리를 확인한다. `npm run test:e2e`는 별도 Spring 비교 환경에서 기존 전체 흐름을 확인한다. 테스트용 지갑/데이터는 운영 빌드에 포함되지 않는다.

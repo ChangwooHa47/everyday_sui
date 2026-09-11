@@ -46,7 +46,7 @@ try {
   const html = await (await waitFor(web)).text();
   const asset = html.match(/src="(\/_next\/[^" ]+)"/)?.[1];
   assert.ok(asset, 'Next.js JavaScript asset');
-  for (const route of ['/market', '/viewer', '/icons/home.svg', asset]) await waitFor(web + route);
+  for (const route of ['/create', '/subscription', '/icons/home.svg', asset]) await waitFor(web + route);
   assert.equal(docker('exec', names.web, 'id', '-u'), '1000');
   assert.equal(docker('exec', names.api, 'id', '-u'), '1000');
   console.log('PASS web image: PORT=8090, pages/static assets; both images run as non-root');

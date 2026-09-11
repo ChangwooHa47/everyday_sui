@@ -1,10 +1,13 @@
 "use client";
 
-// splash — Spring 백엔드 연동판. 데모 계정 자동 로그인 후 캐릭터 유무로 분기.
+// Original splash layout. Production signs in with a wallet; demo auth is baseline-only.
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { backend, ensureAuth } from "@/lib/api";
+import dynamic from 'next/dynamic';
+const WalletLogin = dynamic(() => import('./WalletLogin'), { ssr: false });
+const legacyBaseline = process.env.NEXT_PUBLIC_LEGACY_BASELINE === '1';
 
 export default function Splash() {
   const router = useRouter();
@@ -12,6 +15,7 @@ export default function Splash() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    if (!legacyBaseline) return;
     (async () => {
       try {
         await ensureAuth();
@@ -26,6 +30,7 @@ export default function Splash() {
   return (
     <div
       onClick={() => {
+        if (!legacyBaseline) return;
         if (hasCharacter === null) return;
         router.push(hasCharacter ? "/home" : "/create");
       }}
@@ -51,7 +56,7 @@ export default function Splash() {
         className="caption fade-in"
         style={{ position: "absolute", bottom: 64, color: "var(--gray-500)" }}
       >
-        {error
+        {!legacyBaseline ? <WalletLogin onLogin={() => router.push('/create')} /> : error
           ? "백엔드(localhost:8080)에 연결할 수 없어요"
           : hasCharacter === null
             ? "연결 중..."

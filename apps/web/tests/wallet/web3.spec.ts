@@ -1,12 +1,19 @@
 import { test,expect } from '@playwright/test';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 
-test('default product is Web3, signs real login messages, isolates wallet changes and makes no Spring requests',async ({page},testInfo) => {
+test('original UI signs wallet login without replacing routes or using a demo account',async ({page},testInfo) => {
   const keys = [new Ed25519Keypair(),new Ed25519Keypair()];
   const legacyRequests: string[] = [];
+  const sessionRequests: string[] = [];
+  let switchDuringSignature = true;
   page.on('request',r => {if(r.url().includes(':18080') || r.url().includes('/api/auth/')) legacyRequests.push(r.url());});
+  page.on('request',r => {if(r.url().endsWith('/v1/auth/sessions')) sessionRequests.push(r.url());});
   await page.exposeFunction('testSign',async (message:number[],address:string) => {
     const key = keys.find(k => k.toSuiAddress() === address)!;
+    if (switchDuringSignature) {
+      switchDuringSignature = false;
+      await page.evaluate(() => (window as unknown as {switchTestWallet:()=>void}).switchTestWallet());
+    }
     return key.signPersonalMessage(Uint8Array.from(message));
   });
   await page.addInitScript((accounts) => {
@@ -32,22 +39,23 @@ test('default product is Web3, signs real login messages, isolates wallet change
     (window as unknown as {switchTestWallet:()=>void}).switchTestWallet = () => {active=1;listeners.forEach(fn => fn({accounts:[walletAccounts[1]]}));};
   },keys.map(k => ({address:k.toSuiAddress(),publicKey:Array.from(k.getPublicKey().toRawBytes())})));
   await page.goto('/');
-  await expect(page.getByText('우리의 이야기를')).toBeVisible();
-  await page.screenshot({path:testInfo.outputPath('web3-welcome.png'),fullPage:true});
-  await page.getByRole('button',{name:'Connect Wallet'}).first().click();
+  await expect(page.getByText('with your character', {exact:true})).toBeVisible();
+  await expect(page.locator('.web3, .market-app')).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'지갑으로 로그인',exact:true})).toBeVisible();
+  await page.screenshot({path:testInfo.outputPath('original-welcome.png'),fullPage:true});
+  await page.getByRole('button',{name:'지갑으로 로그인',exact:true}).click();
   await page.getByRole('dialog').getByText('Everyday Test Wallet',{exact:true}).click();
-  await expect(page.getByRole('button',{name:'AI 로그인',exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'AI 로그인',exact:true}).click();
-  await expect(page.getByRole('button',{name:'AI 로그인됨'})).toBeVisible();
-  await page.getByLabel('공개 이름',{exact:true}).fill('지갑 A의 초안');
-  await page.getByRole('button',{name:'자산 새로고침'}).click();
-  await expect(page.locator('.w3-error')).toContainText('패키지를 먼저 배포');
-  await page.screenshot({path:testInfo.outputPath('web3-wallet.png'),fullPage:true});
+  await page.getByRole('button',{name:'지갑으로 로그인',exact:true}).click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  expect(sessionRequests).toEqual([]);
+  await page.getByRole('button',{name:'지갑으로 로그인',exact:true}).click();
+  await expect(page).toHaveURL(/\/create$/);
+  await expect(page.getByRole('button',{name:'친구',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'남성',exact:true})).toBeVisible();
+  await page.screenshot({path:testInfo.outputPath('original-create.png'),fullPage:true});
   await page.evaluate(() => (window as unknown as {switchTestWallet:()=>void}).switchTestWallet());
-  await expect(page.getByRole('button',{name:'AI 로그인',exact:true})).toBeVisible();
-  await expect(page.getByLabel('공개 이름',{exact:true})).toHaveValue('');
+  await page.goto('/home');
+  await expect(page.getByText('지갑으로 로그인해주세요.', {exact:false})).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('everyday.v2.jwt'))).toBeNull();
-  await page.goto('/chat');
-  await expect(page.getByRole('heading',{name:'everyday · Sui'})).toBeVisible();
   expect(legacyRequests).toEqual([]);
 });
