@@ -1,5 +1,7 @@
 # Web3 전환 구현 기록 — 2026-09-08
 
+> 폐기된 Web3 화면/개인 보관함 흐름의 과거 기록이다. 현재는 기존 Next.js 화면·Spring 제품 기능에 캐릭터 이용권 마켓을 연결한다. [현재 기획](../MARKET_PIVOT.md)과 [배포 리뷰](../../infra/DEPLOYMENT_REVIEW.md)를 따른다.
+
 현재 결과는 **로컬에서 검증한 Web3 베타 구현**이다. 실제 Sui 테스트넷 패키지 게시,
 Walrus 업로드, Seal 키 서버 왕복을 수행한 배포 완료 상태가 아니다.
 
@@ -87,7 +89,7 @@ AI 제공자에게 전송하는 최근 문맥과 설정은 그 제공자가 볼 
 
 - [Mysten dApp Kit Next.js](https://sdk.mystenlabs.com/dapp-kit/getting-started/next-js)
 - [Sui gRPC SDK](https://sdk.mystenlabs.com/sui/clients/grpc)
-- [Walrus HTTP 저장 응답](https://docs.wal.app/docs/http-api/storing-blobs)
+- [Walrus HTTP 저장 응답](https://docs.wal.app/docs/http-api/storing-blobs.html)
 - [Seal 공식 저장소](https://github.com/MystenLabs/seal)
 - 설치된 SDK의 타입 선언과 소스를 기준으로 컴파일했다. 현재 설치한 Seal은 문서 예시의
   extension 대신 실제 export인 `SealClient`를 사용한다.

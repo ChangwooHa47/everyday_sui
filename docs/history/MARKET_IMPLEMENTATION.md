@@ -1,5 +1,7 @@
 # 마켓 구현·자체 코드리뷰 — 2026-09-10
 
+> 과거 구현 기록이다. 당시 `/market`·`/viewer` 화면과 미배포·zkLogin 미구현 설명은 현재 상태가 아니다. 현재 기준은 [기획](../MARKET_PIVOT.md), [실행](../MARKET_RUNBOOK.md), [배포 리뷰](../../infra/DEPLOYMENT_REVIEW.md)다. 아래 결과를 오늘의 검증 결과로 인용하지 않는다.
+
 ## 구현
 
 - 제작자 등록/초안/시험 대화 → Seal+Walrus 패키지 보관 → 지갑 게시 → 카탈로그.
@@ -52,5 +54,5 @@ health 성공은 서명 인증·기억 저장 성공을 뜻하지 않는다. 실
 - 선물 영수증까지 연결했으며 포토부스 상품의 실제 사용/소진 처리는 아직 없다.
 - 시드 10명·에피소드 편집 UI·이미지 생성 pipeline의 마켓 연결은 별도 작업이다. API 패키지는 examples/episodes를 지원한다.
 
-공식 참고: [MemWal API](https://docs.wal.app/walrus-memory/sdk/api-reference),
+공식 참고: [MemWal API](https://docs.wal.app/walrus-memory/sdk/api-reference.html),
 [Seal SDK](https://sdk.mystenlabs.com/seal), [Sui 객체 조회](https://sdk.mystenlabs.com/sui/clients/querying).

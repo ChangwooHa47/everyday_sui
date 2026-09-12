@@ -1,4 +1,4 @@
-> 초기 Web2 코드 조사 기록이다. 현재 실행 순서는 [Web3 전환 계획](WEB3_NATIVE_PLAN.md)을 따른다.
+> 2026-09-07 원본 Web2 코드 조사 기록이다. 아래 문제와 계획은 당시 소스 기준이며 현재 코드의 결함 목록이 아니다. 현재 실행은 [기획](../MARKET_PIVOT.md)과 [배포 리뷰](../../infra/DEPLOYMENT_REVIEW.md)를 따른다. 링크된 현재 소스는 이후 수정될 수 있으므로 당시 구현은 아래 원본 커밋으로 확인한다.
 
 **Everyday 코드 조사 및 리팩토링 작업 계획**
 
@@ -40,18 +40,18 @@
 
 | 번호 | 근거 | 확인한 내용과 영향 |
 |---|---|---|
-| F1 | [lib/api.ts](../apps/web/lib/api.ts), [lib/store.ts](../apps/web/lib/store.ts), [train](../legacy/frontend/app/train/page.tsx) | Spring의 숫자 ID와 이전 localStorage 문자열 ID가 공존한다. 현재 생성 화면이 만든 캐릭터를 이전 train 페이지가 동일 데이터로 읽지 못한다. |
-| F2 | [create](../apps/web/app/create/page.tsx) | 1,031줄에 단계 전환, 요청, 폴링, 편집, JSX가 함께 있다. 단계도 0→1→2→3→4→6→7→5로 표현되어 흐름을 추적하기 어렵다. |
-| F3 | [create](../apps/web/app/create/page.tsx), [CharacterService](../legacy/spring/src/main/java/com/everyday/backend/character/service/CharacterService.java) | 사진 느낌 입력은 서버에 전달되지 않는다. ‘재생성’은 gallery 재조회다. 초상 생성은 카드 수정·사진 느낌 입력 전에 시작된다. 저장 실패를 무시하고 다음 단계로 진행하는 코드도 있다. |
-| F4 | [ChatService](../legacy/spring/src/main/java/com/everyday/backend/chat/service/ChatService.java), [home](../apps/web/app/home/page.tsx), [chatlist](../apps/web/app/chatlist/page.tsx) | 메시지 GET에서 이력이 비어 있으면 AI 인사를 생성·저장한다. 홈의 대화 일수 조회와 목록 미리보기에서도 이 동작이 발생할 수 있다. |
-| F5 | [CharacterService.updateCallName](../legacy/spring/src/main/java/com/everyday/backend/character/service/CharacterService.java), [CharacterPromptBuilder](../legacy/spring/src/main/java/com/everyday/backend/llm/prompt/CharacterPromptBuilder.java) | 호칭 필드만 변경하고 저장된 systemPrompt는 갱신하지 않는다. 채팅은 저장된 프롬프트를 사용하므로 새 호칭이 그 경로로 전달되지 않는다. |
-| F6 | [PortraitGenerationService](../legacy/spring/src/main/java/com/everyday/backend/character/service/PortraitGenerationService.java), [PhotoService](../legacy/spring/src/main/java/com/everyday/backend/photo/service/PhotoService.java) | 초상은 메모리 내 비동기 작업이고 실패는 로그에만 남는다. 포토부스는 DB 트랜잭션 안에서 외부 생성 완료를 기다린다. 작업 상태·재시작 복구·중복 요청 정책이 없다. |
-| F7 | [ChatService](../legacy/spring/src/main/java/com/everyday/backend/chat/service/ChatService.java), [EpisodeService](../legacy/spring/src/main/java/com/everyday/backend/episode/service/EpisodeService.java), [PhotoService](../legacy/spring/src/main/java/com/everyday/backend/photo/service/PhotoService.java) | 최근 메시지 10개 또는 5개만 필요해도 전체 이력을 읽고 자른다. 소유권 검사, 메시지 변환, JSON 코드펜스 제거도 중복된다. |
-| F8 | [CharacterResponse](../legacy/spring/src/main/java/com/everyday/backend/character/dto/CharacterResponse.java), [ImageClient](../legacy/spring/src/main/java/com/everyday/backend/image/ImageClient.java), [HiggsfieldImageClient](../legacy/spring/src/main/java/com/everyday/backend/image/HiggsfieldImageClient.java) | soulTrained는 작업 완료가 아니라 soulId 존재 여부다. 저장된 soulId를 실제 이미지 생성 요청의 custom_reference_id로 전달하는 경로는 없다. 이전 TS 경로는 이 파라미터를 지원한다. |
-| F9 | [api.ts](../apps/web/lib/api.ts), [chat](../apps/web/app/chat/page.tsx), [gallery](../apps/web/app/gallery/page.tsx) | 인증·HTTP·DTO·활성 캐릭터 상태가 한 파일에 모여 있다. JSON이 아닌 실패 응답 처리와 동시 로그인 합치기가 없다. 채팅은 모든 오류를 정책 거절 문구로 표시하며, 갤러리는 일부 오류를 숨긴다. |
-| F10 | [Photo](../legacy/spring/src/main/java/com/everyday/backend/photo/entity/Photo.java), [User](../legacy/spring/src/main/java/com/everyday/backend/user/entity/User.java), [CharacterEpisode](../legacy/spring/src/main/java/com/everyday/backend/episode/entity/CharacterEpisode.java) | 파일 원본은 보관하지 않고 제공자 URL만 저장한다. 포인트 경쟁 요청과 캐릭터별 에피소드 중복 시작을 보호하는 명시적 잠금/버전·복합 유일 제약이 없다. |
-| F11 | [application.yaml](../legacy/spring/src/main/resources/application.yaml), [DemoDataSeeder](../legacy/spring/src/main/java/com/everyday/backend/DemoDataSeeder.java), [Next API](../legacy/frontend/app/api) | DB 설정과 데모 인증 설정의 환경 분리가 필요하다. Next 개발 API에는 Spring JWT 보호가 적용되지 않는다. nano-angles는 개인 환경의 hf CLI와 OAuth에 의존한다. |
-| F12 | [README](../legacy/frontend/README.md), [백엔드 작업 기록](../legacy/spring/backend_claude.md), [사진 개선 기록](../apps/web/docs/사진-생성-개선-리캡.md) | 문서에 기술된 이전 흐름과 현재 Spring 연결 흐름이 다르다. 기록에 있는 스타일·말투·재생성 개선을 현재 동작으로 간주하면 안 된다. |
+| F1 | [lib/api.ts](../../apps/web/lib/api.ts), [lib/store.ts](../../apps/web/lib/store.ts), [train](../../legacy/frontend/app/train/page.tsx) | Spring의 숫자 ID와 이전 localStorage 문자열 ID가 공존한다. 현재 생성 화면이 만든 캐릭터를 이전 train 페이지가 동일 데이터로 읽지 못한다. |
+| F2 | [create](../../apps/web/app/create/page.tsx) | 1,031줄에 단계 전환, 요청, 폴링, 편집, JSX가 함께 있다. 단계도 0→1→2→3→4→6→7→5로 표현되어 흐름을 추적하기 어렵다. |
+| F3 | [create](../../apps/web/app/create/page.tsx), [CharacterService](../../legacy/spring/src/main/java/com/everyday/backend/character/service/CharacterService.java) | 사진 느낌 입력은 서버에 전달되지 않는다. ‘재생성’은 gallery 재조회다. 초상 생성은 카드 수정·사진 느낌 입력 전에 시작된다. 저장 실패를 무시하고 다음 단계로 진행하는 코드도 있다. |
+| F4 | [ChatService](../../legacy/spring/src/main/java/com/everyday/backend/chat/service/ChatService.java), [home](../../apps/web/app/home/page.tsx), [chatlist](../../apps/web/app/chatlist/page.tsx) | 메시지 GET에서 이력이 비어 있으면 AI 인사를 생성·저장한다. 홈의 대화 일수 조회와 목록 미리보기에서도 이 동작이 발생할 수 있다. |
+| F5 | [CharacterService.updateCallName](../../legacy/spring/src/main/java/com/everyday/backend/character/service/CharacterService.java), [CharacterPromptBuilder](../../legacy/spring/src/main/java/com/everyday/backend/llm/prompt/CharacterPromptBuilder.java) | 호칭 필드만 변경하고 저장된 systemPrompt는 갱신하지 않는다. 채팅은 저장된 프롬프트를 사용하므로 새 호칭이 그 경로로 전달되지 않는다. |
+| F6 | [PortraitGenerationService](../../legacy/spring/src/main/java/com/everyday/backend/character/service/PortraitGenerationService.java), [PhotoService](../../legacy/spring/src/main/java/com/everyday/backend/photo/service/PhotoService.java) | 초상은 메모리 내 비동기 작업이고 실패는 로그에만 남는다. 포토부스는 DB 트랜잭션 안에서 외부 생성 완료를 기다린다. 작업 상태·재시작 복구·중복 요청 정책이 없다. |
+| F7 | [ChatService](../../legacy/spring/src/main/java/com/everyday/backend/chat/service/ChatService.java), [EpisodeService](../../legacy/spring/src/main/java/com/everyday/backend/episode/service/EpisodeService.java), [PhotoService](../../legacy/spring/src/main/java/com/everyday/backend/photo/service/PhotoService.java) | 최근 메시지 10개 또는 5개만 필요해도 전체 이력을 읽고 자른다. 소유권 검사, 메시지 변환, JSON 코드펜스 제거도 중복된다. |
+| F8 | [CharacterResponse](../../legacy/spring/src/main/java/com/everyday/backend/character/dto/CharacterResponse.java), [ImageClient](../../legacy/spring/src/main/java/com/everyday/backend/image/ImageClient.java), [HiggsfieldImageClient](../../legacy/spring/src/main/java/com/everyday/backend/image/HiggsfieldImageClient.java) | soulTrained는 작업 완료가 아니라 soulId 존재 여부다. 저장된 soulId를 실제 이미지 생성 요청의 custom_reference_id로 전달하는 경로는 없다. 이전 TS 경로는 이 파라미터를 지원한다. |
+| F9 | [api.ts](../../apps/web/lib/api.ts), [chat](../../apps/web/app/chat/page.tsx), [gallery](../../apps/web/app/gallery/page.tsx) | 인증·HTTP·DTO·활성 캐릭터 상태가 한 파일에 모여 있다. JSON이 아닌 실패 응답 처리와 동시 로그인 합치기가 없다. 채팅은 모든 오류를 정책 거절 문구로 표시하며, 갤러리는 일부 오류를 숨긴다. |
+| F10 | [Photo](../../legacy/spring/src/main/java/com/everyday/backend/photo/entity/Photo.java), [User](../../legacy/spring/src/main/java/com/everyday/backend/user/entity/User.java), [CharacterEpisode](../../legacy/spring/src/main/java/com/everyday/backend/episode/entity/CharacterEpisode.java) | 파일 원본은 보관하지 않고 제공자 URL만 저장한다. 포인트 경쟁 요청과 캐릭터별 에피소드 중복 시작을 보호하는 명시적 잠금/버전·복합 유일 제약이 없다. |
+| F11 | [application.yaml](../../legacy/spring/src/main/resources/application.yaml), [DemoDataSeeder](../../legacy/spring/src/main/java/com/everyday/backend/DemoDataSeeder.java), [Next API](../../legacy/frontend/app/api) | DB 설정과 데모 인증 설정의 환경 분리가 필요하다. Next 개발 API에는 Spring JWT 보호가 적용되지 않는다. nano-angles는 개인 환경의 hf CLI와 OAuth에 의존한다. |
+| F12 | [README](../../legacy/frontend/README.md), [백엔드 작업 기록](../../legacy/spring/backend_claude.md), [사진 개선 기록](../../apps/web/docs/사진-생성-개선-리캡.md) | 문서에 기술된 이전 흐름과 현재 Spring 연결 흐름이 다르다. 기록에 있는 스타일·말투·재생성 개선을 현재 동작으로 간주하면 안 된다. |
 
 F10의 동시성 문제, F6의 커밋 전 비동기 시작과 재시작 손실, 갤러리 전환의 늦은 응답 덮어쓰기는 코드에서 예상되는 위험이다. 실제 재현 여부는 R0 및 해당 수정 단계의 테스트로 확인한다. 프롬프트 반영 누락과 전달되지 않는 입력은 정적으로 확인한 사실이다.
 
@@ -149,7 +149,7 @@ frontend/
 
 **리팩토링 뒤 기존 기능을 Sui/Walrus로 연결하는 순서**
 
-AI 추론은 기존 서버와 제공자가 수행하고, 생성된 데이터의 저장과 사용자 소유·변경 권한을 연결한다. Walrus는 blob 저장을, Sui는 객체 소유와 변경 권한을 제공한다. [Walrus 구조](https://docs.wal.app/docs/getting-started), [Sui 객체 소유](https://docs.sui.io/develop/objects/object-ownership)
+AI 추론은 기존 서버와 제공자가 수행하고, 생성된 데이터의 저장과 사용자 소유·변경 권한을 연결한다. Walrus는 blob 저장을, Sui는 객체 소유와 변경 권한을 제공한다. [Walrus 구조](https://docs.wal.app/docs/getting-started.html), [Sui 객체 소유](https://docs.sui.io/develop/objects/object-ownership)
 
 | 단계 | 기존 기능의 이관 내용 | 통과 조건 |
 |---|---|---|
@@ -158,8 +158,8 @@ AI 추론은 기존 서버와 제공자가 수행하고, 생성된 데이터의 
 | C3 대화·에피소드 | 기존 원문과 에피소드 데이터를 암호화한 묶음으로 보관. 일반/에피소드 구분과 순서 유지 | 복원한 기록이 원문과 일치하고 기존 채팅 화면에서 읽힘. 다른 사용자에게 평문 노출되지 않음 |
 | C4 기존 데이터 이관 | 테스트 데이터부터 소량씩 이전하고 완료 상태·실패·재시도를 기록 | 중복 실행에도 중복 기록이 생기지 않고, 기존 URL/DB 읽기에서 전환 가능 |
 
-- C1은 testnet에서 시작한다. 저장 완료·읽기 가능·수명 만료를 따로 확인한다. testnet의 데이터 지속성은 보장되지 않는다. [Walrus 시작 가이드](https://docs.wal.app/docs/getting-started)
-- 사진의 공개 범위, 개인 대화의 암호화와 키 보관·복구, 업로드 비용 부담 주체와 서명 경로를 해당 이관 단계 전에 확정한다. Walrus에 저장된 평문은 공개 접근 가능하며 보관 기간 연장이 필요하다. [Walrus 데이터 관리](https://docs.wal.app/docs/getting-started)
+- C1은 testnet에서 시작한다. 저장 완료·읽기 가능·수명 만료를 따로 확인한다. testnet의 데이터 지속성은 보장되지 않는다. [Walrus 시작 가이드](https://docs.wal.app/docs/getting-started.html)
+- 사진의 공개 범위, 개인 대화의 암호화와 키 보관·복구, 업로드 비용 부담 주체와 서명 경로를 해당 이관 단계 전에 확정한다. Walrus에 저장된 평문은 공개 접근 가능하며 보관 기간 연장이 필요하다. [Walrus 데이터 관리](https://docs.wal.app/docs/getting-started.html)
 - 체인으로 이관한 소유권·최신 버전은 확인된 Sui 상태를 기준으로 하고 DB는 조회용 인덱스로 맞춘다. Walrus 업로드와 Sui 갱신은 하나의 DB 트랜잭션이 아니므로 단계별 성공 상태를 보관하고 실패한 단계부터 복구한다.
 - 기존 포인트는 현재 사용량 정책으로 유지한다. 토큰 결제·구독·거래는 기존 구현의 단순 이관이 아니므로 이 계획에 포함하지 않는다. 장기 기억 추출·새 AI 기능도 이번 목표와 분리한다.
 
@@ -188,6 +188,6 @@ AI 추론은 기존 서버와 제공자가 수행하고, 생성된 데이터의 
 
 기본 자동 테스트는 고정 응답을 사용하고, 실제 모델의 품질 확인과 실제 testnet 검증은 따로 수행한다. 파일 이동 자체를 확인하는 테스트를 늘리는 대신 관찰 가능한 API·사용자 동작과 데이터 정합성을 검증한다.
 
-2026-09-07 R0 진행 결과: H2와 고정 AI 응답을 사용하는 로컬 실행 기준을 구축했다. 백엔드 5개 테스트·JAR 생성, 프론트 기준 빌드·타입 검사, 실제 Spring API를 사용하는 브라우저 시나리오 1개가 통과했다. 실행 방법과 한계는 [백엔드 기준 실행](../legacy/spring/BASELINE.md), [프론트 기준 실행](../apps/web/BASELINE.md)에 기록했다. Docker 데몬을 사용할 수 없어 MySQL 검증은 남아 있다. 일반 프론트 빌드의 AI 키 의존 문제도 기준 runner로만 우회했으며 R1에서 정리한다.
+2026-09-07 R0 진행 결과: H2와 고정 AI 응답을 사용하는 로컬 실행 기준을 구축했다. 백엔드 5개 테스트·JAR 생성, 프론트 기준 빌드·타입 검사, 실제 Spring API를 사용하는 브라우저 시나리오 1개가 통과했다. 실행 방법과 한계는 [백엔드 기준 실행](../../legacy/spring/BASELINE.md), [프론트 기준 실행](../../apps/web/BASELINE.md)에 기록했다. Docker 데몬을 사용할 수 없어 MySQL 검증은 남아 있다. 일반 프론트 빌드의 AI 키 의존 문제도 기준 runner로만 우회했으며 R1에서 정리한다.
 
 다음 작업 묶음은 R1이다. R1~R3의 구조 정리, R4~R5의 동작·작업 처리 수정, R6의 데이터 경계 정리까지 검토하고 C1 사진 저장을 연결한다. MySQL 검증은 DB 스키마·트랜잭션 변경 전에 보완한다.

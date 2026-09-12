@@ -1,5 +1,7 @@
 # Everyday — Web3 네이티브 전환 실행 계획
 
+> 폐기된 2026-09-07 전환 계획이다. Spring 제거·새 Web3 화면·개인 보관함 이전 요구는 현재 작업 지시가 아니다. 기존 제품을 재사용하는 [현재 기획](../MARKET_PIVOT.md)과 [배포 리뷰](../../infra/DEPLOYMENT_REVIEW.md)를 따른다.
+
 > 2026-09-08 후속 구현은 [Web3 구현 기록](WEB3_IMPLEMENTATION.md)에 정리했다.
 > 아래는 2026-09-07 설계 시점의 계획과 상태를 보존한 문서이며, 현재 구현 상태는 후속 기록을 기준으로 한다.
 
@@ -51,9 +53,9 @@ Indexer: Sui checkpoint → 이벤트/객체 변경 → Postgres 조회용 proje
 Recovery client: 지갑 → Sui → Walrus/Seal (Everyday API 없이 읽기·내보내기)
 ```
 
-Sui 소유 객체와 변경 검증을 권한의 기준으로 둔다. DB는 처리 상태와 빠른 조회를 담당한다. Walrus에는 바이트를, Sui에는 객체 소유와 작은 참조를 둔다. [Sui 객체 소유](https://docs.sui.io/develop/objects/object-ownership), [Walrus 저장 수명과 동작](https://docs.wal.app/docs/system-overview/operations)
+Sui 소유 객체와 변경 검증을 권한의 기준으로 둔다. DB는 처리 상태와 빠른 조회를 담당한다. Walrus에는 바이트를, Sui에는 객체 소유와 작은 참조를 둔다. [Sui 객체 소유](https://docs.sui.io/develop/objects/object-ownership), [Walrus 저장 수명과 동작](https://docs.wal.app/docs/system-overview/operations.html)
 
-웹은 Next의 정적 export를 Walrus Sites로 게시하는 것을 목표로 한다. Sites는 정적 자원을 Walrus에, 자원 인덱스를 Sui에 두고 HTTP portal을 통해 제공한다. SSR·서버 route가 필요한 기능은 별도 API로 둔다. 커스텀 도메인/portal의 deep link·보안 헤더·지갑 origin 동작은 P5에서 실제 검증한다. [Next 정적 export](https://nextjs.org/docs/app/guides/static-exports), [Walrus Sites 구조](https://docs.wal.app/docs/sites/introduction/technical-overview)
+웹은 Next의 정적 export를 Walrus Sites로 게시하는 것을 목표로 한다. Sites는 정적 자원을 Walrus에, 자원 인덱스를 Sui에 두고 HTTP portal을 통해 제공한다. SSR·서버 route가 필요한 기능은 별도 API로 둔다. 커스텀 도메인/portal의 deep link·보안 헤더·지갑 origin 동작은 P5에서 실제 검증한다. [Next 정적 export](https://nextjs.org/docs/app/guides/static-exports), [Walrus Sites 구조](https://docs.wal.app/docs/sites/introduction/technical-overview.html)
 
 초기 운영은 외부 관리형 Sui RPC와 Walrus gateway/publisher를 사용한다. 직접 validator/fullnode/storage node/Seal key server를 운영하는 것은 MVP 필수 요건이 아니다. 특정 RPC·portal 하나가 막혀도 확정 데이터를 읽을 수 있도록 설정 가능한 대체 경로를 제공한다.
 
@@ -149,7 +151,7 @@ testnet UpgradeCap은 별도 개발 지갑에, mainnet은 운영자 일상 서�
 5. 최초 운영비는 서비스가 한도 내 부담하고, 사용자가 직접 연장/다른 uploader로 이관할 수 있는 경로도 제공한다. 저장 Blob 소유권도 사용자에게 넘기는 정책을 P3에서 실제 연장·삭제 호출과 함께 검증한다.
 6. deletable은 모든 복사본 삭제나 비밀 보장을 뜻하지 않는다. 개인 데이터는 애초에 암호문으로 저장한다. 참조 제거·키 정책 폐기·스토리지 종료의 의미를 구분한다.
 
-Walrus의 공개 접근과 epoch 기반 보관은 설계의 전제다. testnet 장기 지속성을 운영 보장으로 사용하지 않는다. [Walrus operations](https://docs.wal.app/docs/system-overview/operations)
+Walrus의 공개 접근과 epoch 기반 보관은 설계의 전제다. testnet 장기 지속성을 운영 보장으로 사용하지 않는다. [Walrus operations](https://docs.wal.app/docs/system-overview/operations.html)
 
 ## 8. AI 작업, 비용, 체인 거래의 일관성
 
@@ -178,7 +180,7 @@ accepted → reserved → generating → generated → awaiting-client-encryptio
 
 가스 후원은 초기 UX 기본안이다. 다만 사용자가 서명한 **동일한 transaction bytes**를 후원하고, package/function/receiver/object/input/budget/expiry를 검사한다. nonce 로그인 서명으로 자산 변경을 대행하지 않는다. wallet private key는 서버에 두지 않는다. 후원 중단 시 읽기는 계속 가능하고 사용자가 자신의 gas로 승인된 작업을 실행할 수 있게 한다. [Sui sponsored transactions](https://docs.sui.io/develop/transaction-payment/sponsor-txn)
 
-Walrus 저장은 WAL 비용과 SUI gas가 함께 필요하다. 앱 소유 publisher가 저장비를 내고 결과 Blob 객체를 사용자 주소로 전달하는 안부터 검증한다. 이는 Sui 자산 갱신의 가스 후원과 별도 경로다. publisher를 공개 무인증으로 노출하지 않고 크기·기간·호출 수·지출을 제한한다. 동시 uploader는 소유 gas/storage 객체 충돌을 피하도록 signer/pool을 관리한다. [Walrus sponsored uploads](https://docs.wal.app/docs/sponsored-uploads)
+Walrus 저장은 WAL 비용과 SUI gas가 함께 필요하다. 앱 소유 publisher가 저장비를 내고 결과 Blob 객체를 사용자 주소로 전달하는 안부터 검증한다. 이는 Sui 자산 갱신의 가스 후원과 별도 경로다. publisher를 공개 무인증으로 노출하지 않고 크기·기간·호출 수·지출을 제한한다. 동시 uploader는 소유 gas/storage 객체 충돌을 피하도록 signer/pool을 관리한다. [Walrus sponsored uploads](https://docs.wal.app/docs/sponsored-uploads.html)
 
 ## 9. 채팅 저장과 지갑 확인 횟수
 

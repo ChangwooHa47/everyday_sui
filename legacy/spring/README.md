@@ -1,5 +1,7 @@
 # Everyday
 
+> 원본 Spring 사본의 과거 문서다. 아래 JWT·MySQL·환경/배포 안내는 현재 운영 설정이 아니다. 실제 운영 소스는 [apps/api/spring](../../apps/api/spring), 실행은 [루트 README](../../README.md)를 따른다.
+
 > AI Companion 서비스
 
 사용자가 원하는 AI 캐릭터를 생성하고,

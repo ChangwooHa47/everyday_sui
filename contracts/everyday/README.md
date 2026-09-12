@@ -1,35 +1,61 @@
 # Everyday Move package
 
-Validated with Sui CLI `testnet-v1.79.0`, which resolves implicit Sui framework dependencies.
-The marketplace uses `market.move`: Creator, shared Listing with a policy-controlled SUI
-treasury, non-transferable License, GiftProduct and GiftReceipt. Character transfer below
-is retained for the old direct-creation client, not for market sales.
-See [market architecture and trust boundaries](../../docs/MARKET_PIVOT.md).
-Use this same CLI version for reproducible validation. Publication emitted `Move.lock`;
-it is checked in with portable forward-slash dependency paths and was retested.
+The marketplace uses `market.move`: Creator registration, shared Listing objects,
+non-transferable personal License objects, purchase settlement, GiftProduct and GiftReceipt.
+Each Listing holds its character's SUI treasury. Move enforces the operator, allowed gifts,
+per-gift and daily spending limits, and one execution per intent. An ordinary operator
+wallet balance is not policy-controlled character spending money.
+
+Character settings are immutable after publication; a new edition is a new Listing.
+Delisting stops purchases without removing existing buyer access. Private conversations
+and memories are not part of a Listing or License. Seal approval checks the exact Listing
+identity and the creator, operator or recorded buyer.
+
+`character.move` and `vault.move` remain legacy modules. Their transferable Character and
+owner-bound UserVault objects are separate from marketplace licenses; the current app uses
+Spring for private character records and MemWal for approved personal memories.
+See [market architecture](../../docs/MARKET_PIVOT.md) for the complete application boundary.
+
+## Storage boundary
+
+Move records the blob ID, ciphertext hash and Walrus retention epoch. It validates their
+shape, not storage certification or availability. Walrus and Sui epochs are different
+clocks; `extend_retention` updates metadata and does not pay for or prove storage renewal.
+
+The API verifies canonical Walrus Blob/BlobCertified receipts, non-deletable storage,
+ciphertext download/hash and Seal decryption. Non-deletable storage still has a retention
+period. Renewal remains an operational task. Seal grants access; it does not prevent copying.
+
+## Validation and deployment
+
+Use the pinned Sui CLI `testnet-v1.79.0`. Root scripts select `SUI_BIN`, the local pinned
+Windows binary, or `sui` on PATH. `Move.lock` retains portable dependency paths.
 
 ```powershell
-.local-tools/sui-1.79.0/sui.exe move test --path contracts/everyday
-.local-tools/sui-1.79.0/sui.exe move build --path contracts/everyday
+npm.cmd run test:move
+npm.cmd run build:move
 ```
 
-`Character` is address owned and externally transferable. Mutation takes an owned
-object plus expected revision. `UserVault` lacks `store`, has no transfer function,
-and approves only its exact 32-byte object ID and original owner for Seal. It may
-remain readable after a Character transfer; private history is never part of the
-Character object. Multiple vaults per wallet are supported by the client.
+The [current testnet deployment](deployments/testnet.json) is v2, published on 2026-09-12.
+Admin/UpgradeCap ownership and package binding were verified. Further evidence is separate:
 
-The contract validates reference sizes, not Walrus certification or storage expiry.
-The client checks a publisher certification receipt and downloaded content hash.
-This is not an on-chain proof of storage. Publish only after reviewing this trust boundary.
+- [Purchase/storage verification](deployments/testnet-verification.json): actual testnet
+  purchase, creator/treasury settlement, Walrus storage, operator/buyer Seal decryption,
+  and a Move gift-policy transaction. This does not prove an LLM gift decision or fulfillment.
+- [Memory verification](deployments/memory-verification.json): actual MemWal remember/recall,
+  owner rejection and character namespace isolation using fictional approved data.
+- [API verification](deployments/api-verification.json): actual chain/storage/memory adapters
+  through two authenticated Origins, with an isolated database and no browser/UI test.
+- [Seed publications](deployments/market-seed.json): ten fictional characters and original
+  images stored on Walrus. Production catalog registration is a separate deployment step.
 
-Published to testnet on 2026-09-11. See [verified deployment](deployments/testnet.json)
-and the [deployment review](../../infra/DEPLOYMENT_REVIEW.md). Publication, Admin ownership,
-UpgradeCap ownership and its package link were verified through the testnet gRPC client.
-This does not prove purchase settlement or Walrus/Seal/MemWal integration.
+To reconcile the saved v2 publication, run from the repository root:
 
-Use `node infra/deploy-testnet.mjs --execute` from the repository root to reverify the
-saved publication. It validates source identity and reuses the exact saved transaction;
-it does not automatically publish a new package after source changes. This reviewed
-entry point replaces the earlier `npm run deploy:testnet` bootstrap for this deployment.
-Do not place private keys or recovery phrases in the web env.
+```powershell
+node infra/deploy-testnet.mjs --execute --deployment-state market-testnet-v2
+```
+
+The script checks the source identity and reuses the saved signed transaction. Source
+changes do not automatically create another package. Keep signing keys and saved signed
+transactions in private storage. See the [deployment review](../../infra/DEPLOYMENT_REVIEW.md)
+for current application checks, external dependencies and unfinished work.

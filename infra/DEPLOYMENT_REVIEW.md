@@ -73,6 +73,10 @@ Spring은 Flyway V1–V11을 everyday schema에 적용하고 Hibernate는 valida
 
 ## 공식 대조
 
-[Sui SDK](https://sdk.mystenlabs.com/sui), [Seal](https://sdk.mystenlabs.com/seal), [Walrus 저장 API](https://docs.wal.app/docs/http-api/storing-blobs), [Walrus epoch](https://docs.wal.app/docs/system-overview/operations), [testnet type origin](https://github.com/MystenLabs/walrus/blob/main/testnet-contracts/walrus/Published.toml), [MemWal TypeScript](https://docs.wal.app/walrus-memory/sdk/api-reference), [Claude Messages](https://platform.claude.com/docs/en/api/messages/create).
+문서 정리 시점에 Git 관리 Markdown 23개를 확인했다. 현재 실행·기획 문서와 과거 기록을 분리하고, 원본 참고 문서는 당시 기록임을 표시했다. 중복 전환 안내인 루트 REFACTOR_PLAN.md는 제거했으며 현재 진입점은 루트 README다. 파일·문서 링크·UTF-8·충돌 표시는 `node infra/check-docs.mjs`로 재검사한다. API 경로·DTO·Compose 환경 주입·Flyway 목록과 공개 증거 JSON의 package ID, Move 소스 hash, 시드 수, MIST 분배 합계를 코드와 대조했다.
+
+문서가 참조하는 외부 HTTPS 주소 27개 중 Walrus 주소 6개는 기존 경로가 404였다. 공식 본문이 응답하는 `.html` 경로로 수정했다. HTTP 응답과 문서 제목 확인은 링크 접근성 검사이며 그 문서의 모든 주장이나 미래 가용성을 보증하지 않는다.
+
+[Sui SDK](https://sdk.mystenlabs.com/sui), [Seal](https://sdk.mystenlabs.com/seal), [Walrus 저장 API](https://docs.wal.app/docs/http-api/storing-blobs.html), [Walrus epoch](https://docs.wal.app/docs/system-overview/operations.html), [testnet type origin](https://github.com/MystenLabs/walrus/blob/main/testnet-contracts/walrus/Published.toml), [MemWal TypeScript](https://docs.wal.app/walrus-memory/sdk/api-reference.html), [Claude Messages](https://platform.claude.com/docs/en/api/messages/create).
 
 MemWal은 실제 relayer /config와 registry 타입을 추가 확인했다. Claude는 top-level system과 text block 응답을 처리하여 기존 키를 마켓에서도 재사용한다.

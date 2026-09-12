@@ -1,5 +1,7 @@
 # 마켓 기반 검증·코드리뷰 — 2026-09-10
 
+> 초기 기반의 과거 리뷰다. 이후 실제 배포·복호화·기억 검증과 기존 화면/Spring 복구가 진행됐다. 현재 기준은 [기획](../MARKET_PIVOT.md), [배포 리뷰](../../infra/DEPLOYMENT_REVIEW.md)다. 아래 미완료 목록과 테스트 수는 당시 시점에 한정한다.
+
 범위: 기존 npm 모노레포 위의 마켓 API, 체인 어댑터, 기억 참조,
 market.move 정산/권한/선물 정책, 실행 설정. 자체 리뷰이며 별도 외부 보안 감사는 아니다.
 
@@ -47,5 +49,5 @@ Postgres Compose, 새 마켓 브라우저 흐름, Walrus/Seal/MemWal 외부 호�
 SDK의 network 옵션은 임의 endpoint가 testnet임을 증명하지 않는다.
 Walrus 저장 증명/갱신 검증, UpgradeCap 관리, delegate 철회와 평문 처리 범위도 별도 점검 대상이다.
 
-다음 실행 순서는 [피봇 문서](MARKET_PIVOT.md)에 있다. 이번 결과는
+다음 실행 순서는 [피봇 문서](../MARKET_PIVOT.md)에 있다. 이번 결과는
 **백엔드·컨트랙트 기반 세팅 완료**이며 P0 전체 데모 완료로 표시하지 않는다.

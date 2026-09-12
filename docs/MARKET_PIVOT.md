@@ -1,132 +1,69 @@
-# everyday × Blockthon 2026: 백엔드·컨트랙트 기준
+# everyday × Blockthon 2026 — 캐릭터 마켓 기획 기준
 
-## 목표
+2026-09-12 사용자 제공 기획을 기준으로 한다. 이 문서는 요구사항과 현재 구현 경계를 정리한다. 실행 방법은 [실행 가이드](MARKET_RUNBOOK.md), 날짜와 환경이 붙은 검증 결과는 [배포 리뷰](../infra/DEPLOYMENT_REVIEW.md)를 따른다. `history/`의 기존 Web3 전환 계획은 현재 구현 지시가 아니다.
 
-잘 설계된 AI 캐릭터의 **개인용 비독점 이용권**을 판매한다. 캐릭터 상품은
-거래되지만 사용자 대화·취향·관계 기억은 거래되지 않는다.
+## 제품과 우선순위
 
-- P0: 미리보기 → 구매 → 권한 변화, 제작자/캐릭터 정산, 사용자 기억 분리와 두 클라이언트 복원.
-- P1: 대화 맥락에 따른 선물 제안 → Move 정책 검증 → 실제 테스트넷 결제.
-- 제외: 재판매, 기억 승계, 토큰 발행, 음성, 자체 모델 학습.
+크리에이터가 설계한 대화 경험을 판매하고, 사용자는 같은 캐릭터로 자신만의 관계와 기억을 쌓는다. 무료 직접 생성·대화가 기본 제품이며 마켓을 기존 제품 위에 추가한다.
 
-새 마켓 작업은 이 문서를 기준으로 한다. 기존 WEB3_NATIVE_PLAN.md 등은 이전 구현 기록이다.
-기존 Character 객체 양도 기능을 마켓 이용권 판매로 사용하지 않는다.
-
-## 모노레포
-
-| 경로 | 책임 |
+| 우선순위 | 기획의 완료 조건 |
 | --- | --- |
-| apps/web | 제작·마켓·지갑 서명 UI |
-| apps/api | 인증, 카탈로그, 체인 권한 검증, AI gateway, 본인 기억 참조 |
-| packages/contracts | 공통 API 타입. DB 모델·키 제외 |
-| contracts/everyday | Move 자산, 이용권, 정산, Seal 정책, 캐릭터 금고 |
-| infra | Postgres/API 배포 설정 |
-| legacy | 이전 Spring/프론트 비교용, 신규 마켓 의존 금지 |
+| P0 씬 1 | 생성 → 시험 대화·수정 → 등록 → 구매 전 N턴 미리보기 → 이용권 구매 후 실제 접근 권한 변화 |
+| P0 씬 2 | 구매 대금이 제작자와 캐릭터 자금으로 규칙대로 분배되는 실제 testnet 거래 |
+| P0 씬 3 | 다른 사용자의 기억은 따라오지 않고, 본인이 승인한 기억은 별도 지원 환경에서 이어짐 |
+| P1 씬 4 | 대화 맥락으로 선물을 제안하고 Move 정책이 지출을 제한하며 실제 상품과 채팅 영수증이 사용자에게 도착 |
 
-루트 npm workspace와 lockfile 하나를 사용한다. Move도 루트 test:move/build:move로 검증한다.
-API 소스를 웹에서 직접 import하지 않는다. 웹과 API의 Sui 로직이 공유될 때 packages/sui로 추출한다.
+Memory는 사용자별 승인 기억, Agency는 정책 안에서 집행하는 캐릭터 지출, Ownership은 이용권과 접근 권한에 대응한다. P0를 먼저 완성한다.
 
-## 구현 상태
+판매 단위는 **개인 사용용 비독점 이용권 1종**이다. 기본 패키지에는 작가가 작성한 성격·말투·배경·외형·가상 예시 대화·시나리오만 담는다. 구매자의 호칭·대화·취향·관계 진행·개인 기억은 상품에서 제외한다. 이용권 대금과 AI 추론 비용은 분리한다.
 
-| 영역 | 상태 |
+## 기존 기능과 신규 연동
+
+| 영역 | 구현 책임 |
 | --- | --- |
-| Creator, Listing 게시, License, 정산 | Move 구현·로컬 검증 |
-| 선물 허용 상품, 건별/UTC 일별 한도, intent 재실행 차단 | Move 구현·로컬 검증 |
-| 카탈로그, 구매 transaction 생성 | API 구현·로컬 검증 |
-| 온체인 이용권 검증 | gRPC 어댑터 구현, fixture 검증; 실배포 객체 미검증 |
-| 개인 기억 | 기존 참조 레지스트리와 별도로 사용자 계정 기반 MemWal 저장·검색 API 연결 |
-| 미리보기 N턴 / 구매 후 서버 채팅 | 연결 완료. 원자적 한도·서버 패키지 사용·구매 권한 검증 통합 테스트 통과 |
-| Walrus + Seal 마켓 패키지 왕복 | 서버 암호화·업로드·해시 검증·복호화 경로 구현. 실제 저장 왕복은 미검증 |
-| MemWal SDK, 사용자 delegate, 두 번째 클라이언트 | SDK 0.1.6 연동, 사용자 계정/위임 검증, remember/job/recall, /viewer 구현. 실제 기억 쓰기는 미검증 |
-| LLM 선물 트리거·worker | 정책 금고 지출 연결 및 불확실한 거래 복구 구현. 현재 실행키는 서버 operator 공용, 금고는 캐릭터별 |
-| zkLogin | 미구현. 인증은 일반 지갑 서명만 지원 |
-| 실제 테스트넷 배포·결제·가스 후원 | 전용 지갑 생성 후 faucet HTTP 429로 배포 중단. 테스트넷/SDK health 실호출 성공 |
+| 기존 화면·디자인 | `apps/web`: 원래 컴포넌트·토큰·레이아웃을 사용한다. 신규 요소도 기존 디자인 시스템 안에서 보수적으로 결정한다. |
+| 생성·대화·이미지 | `apps/api/spring`: 기존 인터뷰·few-shot 컴파일·일반/에피소드 대화·Higgsfield·포토부스를 재사용한다. |
+| 마켓·인증 | `apps/api/src`: 지갑 서명 세션, 카탈로그, 미리보기 한도, 구매 권한, 패키지 복호화, 개인 기억, Spring gateway |
+| 거래·정책 | Sui Move: Creator/Listing/License, 비독점 이용권, 수익 분배, 구매자 접근 및 캐릭터 금고의 지출 정책 |
+| 상품 저장 | Walrus: 암호화된 캐릭터 패키지와 이미지 바이트. Seal: 패키지 접근 제어. 개인 대화 원문을 공개 업로드하지 않는다. |
+| 기억 | MemWal SDK: 사용자 계정·delegate 검증, 승인 항목 저장·검색, 캐릭터별 namespace |
+| DB·공통 계약 | PostgreSQL: Spring `everyday` schema와 Node `public` schema. 공통 API DTO는 `packages/contracts`. |
+| 로그인 | Slush/zkLogin을 포함한 Sui 서명을 API가 검증한다. 사용자에게는 기존 ‘로그인’ 흐름을 제공하며 성공 후 홈으로 이동한다. |
 
-최신 실행 방법·추가 API·검증 범위는 [마켓 실행 가이드](MARKET_RUNBOOK.md)와
-[구현·리뷰 기록](MARKET_IMPLEMENTATION.md)을 기준으로 한다. 아래 '다음 구현'은 최초 계획이다.
+온체인 이용권을 확인한 뒤 Spring에 구매자별 캐릭터를 생성한다. 상품 설정은 불변 사본이고 개인 대화·에피소드 진행·호칭은 새로 시작한다. DB의 카탈로그나 거래 digest만으로 이용권을 인정하지 않는다.
 
-## Move 자금·권한 모델
+## 자금·권한·프라이버시 불변 조건
 
-1. register_creator → create_listing으로 공유 Listing을 먼저 만든다.
-2. Seal identity = Listing ID의 32바이트 BCS. 캐릭터 패키지만 암호화해 Walrus에 저장한다.
-3. publish에 blob ID, **암호문** SHA-256, 종료 epoch를 기록한다.
-4. purchase는 price와 정확히 같은 Coin<SUI>를 받는다. 캐릭터 몫은
-   floor(price × agent_bps / 10000), 나머지는 creator에게 보낸다. 금액은 MIST 정수.
-5. 양도 불가능한 License를 구매자에게 지급한다. 구매자 테이블은 Seal 승인에 사용한다.
-6. send_gift는 operator만 호출하고 구매자에게만 보낸다. merchant·가격은 Admin이 만든
-   GiftProduct에서 읽는다. 호출자가 merchant·가격을 바꿀 수 없다.
+1. 인증된 지갑에서 사용자 식별자를 결정한다. 설정된 정확한 Move package, 객체 타입·소유자·buyer·listing을 확인한다. 체인·공급자 장애 시 권한 검증을 생략하지 않는다.
+2. 가격과 Move `u64`는 MIST 기준 십진 문자열이다. `floor(price × agentBps / 10000)`을 캐릭터 금고로, 나머지를 제작자에게 보낸다. 현재 80:20은 **초안**이며 확정된 사업 조건이 아니다.
+3. 기획의 ‘캐릭터 지갑’ 중 정책 적용 자금은 Listing 내부 `Balance<SUI>` 금고다. 공유 operator 주소는 실행·가스용이며 그 일반 잔액에는 Move 지출 제한이 적용되지 않는다. 캐릭터별 실행키 관리는 후속 과제다.
+4. Move가 수신자의 구매 권한, 활성 상품·merchant·가격, allowlist, 건별·UTC 일별 한도, 잔액, intent 중복을 강제한다. LLM은 제안하고 백엔드가 실행한다. 완전 자율로 소개하지 않는다.
+5. 게시된 패키지는 불변이며 개정판은 별도 Listing이다. 판매 중지는 기존 구매자의 접근을 취소하지 않는다. Walrus 보관 만료와 Sui epoch는 서로 다른 기준이다.
+6. Walrus의 `permanent` 저장도 요청한 epoch 기간의 삭제 불가를 뜻하며 영구 보관 약속이 아니다. `extend_retention` 값 변경만으로 실제 보관 갱신을 증명할 수 없다. Seal은 접근 제어이며 복제 방지 DRM이 아니다.
+7. 기억은 계정 소유자·실제 delegate·활성/격리 상태를 검사하고 package+listing으로 namespace를 정한다. namespace는 검색 범위이며 delegate의 보안 권한은 계정 전체다. 캐릭터 구매가 타인 기억 접근 권한을 주지 않는다.
+8. 사용자가 확인한 기억만 저장한다. API 활용 중지는 DB 설정이며 온체인 위임 철회·분산 사본 삭제와 다르다. 중계 서버·AI가 처리하는 평문을 숨기거나 운영자도 절대 볼 수 없다고 약속하지 않는다.
+9. signing key·delegate key·대화 원문은 공개 환경변수나 공통 계약에 넣지 않는다. 불확실한 유료 호출·서명 거래는 새로운 요청으로 자동 재실행하지 않는다.
 
-**기획 조정:** 일반 주소 지갑에 SUI를 두면 백엔드 키가 정책 밖으로 송금할 수 있다.
-지출 제한 대상 자금은 Listing 내부 Balance<SUI> 금고에 둔다. operator 주소의 일반 잔액과
-캐릭터 금고 잔액을 UI에서도 구분한다. 캐릭터별 키는 P1에서 실행·가스 지불용으로 연결한다.
+## 현재 상태와 남은 완료 조건
 
-일별 한도는 Clock 기준 UTC 자정에 초기화된다. intent는 32바이트이며 Listing 안에서
-중복을 영구 거절한다. 실패 거래는 정산 전체가 롤백된다. 판매 중지는 기존 구매자 접근을 취소하지 않는다.
-게시된 패키지는 불변이며 새 버전은 새 Listing이다. extend_retention은 종료 epoch만 늘린다.
-실제 Walrus 갱신이나 저장 증명은 아니다. blob·해시 길이 검증은 보관 보장이 아니다.
+| 요구사항 | 2026-09-12 확인 범위 | 남은 작업 |
+| --- | --- | --- |
+| 기존 제작·대화 흐름 | 원래 화면/Spring 복구, 실제 PostgreSQL·인증 gateway 통합 검사 | 운영 Claude/Higgsfield 키 설정과 실제 유료 공급자 호출 검증 |
+| 구매·접근·정산 | 실제 testnet 구매, 정확한 이용권 확인, 80:20 분배, 운영 API에서 구매자별 import/타인 거절 | 미리보기 AI를 포함한 전체 사용자 시연 |
+| Walrus·Seal | 패키지 업로드·재다운로드·해시·실제 복호화, 시드 이미지 저장 | 일반 생성 이미지의 외부 URL 의존 해소, 보관 갱신 |
+| MemWal·이식성 | 실제 remember/job/recall, 새 SDK 인스턴스와 두 Origin API, 사용자/캐릭터 격리 | 기존 웹을 두 환경에서 실행한 전체 UI 시연. 별도 `/viewer` 화면은 없다. |
+| 로그인 | 과거 실제 Slush zkLogin 인증 기록과 현재 서명/재사용 방지 검사 | 현재 수정본에서 Google 신규 계정부터의 전체 UI는 재검증하지 않음 |
+| 초기 마켓 | 실제 시드 10명 게시·운영 등록, 생성 완료 추천, 대화수·재방문 집계 코드 | 실제 사용자 유료 선택·재방문 가설 검증 |
+| P1 선물 | Move 금고·allowlist·한도 집행은 실제 거래로 확인, Node 실행/복구 코드 | Spring 채팅 트리거·상품 제공/소진·채팅 영수증. 기본 비활성이며 일반 상품 한도 0. |
+| 추론 비용 | 이용권 정산과 별도 공급자 계정, 일일 요청 한도 | 토큰 원가 회계·별도 대화료 청구는 미구현 |
 
-현 코드에는 한도 상향·자유 출금 함수가 없다. UpgradeCap으로 업그레이드할 수 있으므로
-운영 전 업그레이드 권한 정책을 정해야 한다. Seal은 접근 제어이며 복제 방지 DRM이 아니다.
+증거 파일과 실제 서비스 상태는 [배포 리뷰](../infra/DEPLOYMENT_REVIEW.md)에 모은다. fixture 성공, 포인터 등록, health 200은 실제 AI·저장·정산·기억 왕복의 증거를 대신하지 않는다.
 
-## API
+## 해커톤 범위와 결정 대기
 
-인증 요청은 허용 Origin과 Bearer 세션이 필요하다. 사용자는 세션 주소에서만 결정한다.
-두 번째 클라이언트는 WEB_ORIGINS에 추가하고 해당 Origin에서 새로 로그인한다.
+기획 일정은 9/14 온라인 예선 마감, 9/16 본선팀 발표, 9/19 서울 Demo Day다. 행사 일정·배점은 사용자가 제공한 기획의 기록이며 이 문서에서 재확인한 공지가 아니다.
 
-| 경로 | 의미 |
-| --- | --- |
-| POST /v1/market/listings | {listingId}. 게시 후 체인 creator만 카탈로그 등록 |
-| GET /v1/market/listings?after=…&limit=10 | ID 순 커서 페이지, 최대 20개 |
-| GET /v1/market/listings/:listingId | 최신 체인 Listing |
-| POST /v1/market/listings/:listingId/purchase-transaction | 사용자 서명 전 transaction JSON |
-| GET /v1/market/listings/:listingId/access?licenseId=… | creator 또는 실제 이용권 소유자의 접근 확인 |
-| POST /v1/me/relationships/:listingId/memory | 본인 공간 참조 등록·revision 비교 갱신 |
-| GET /v1/me/relationships/:listingId/memory | 본인 참조만 조회, 다른 사용자 주소 인자 없음 |
+시드 라인업·생성 완료 추천·구매 전 미리보기는 프로토타입 범위다. 확장 콘텐츠의 구매자 공동 제작·수익 분배와 자캐 커뮤니티 유입은 후속 로드맵이다. 음성 통화·실시간 아바타·자체 학습·재판매·토큰 발행·기억 승계 거래는 이번 범위에서 제외한다. 시연은 가상 성인 캐릭터와 가상 데이터로 진행한다.
 
-구매 transaction은 Transaction.from(response.transaction)으로 복원하여 사용자 지갑이
-서명·전송한다. 성공 후 생성된 License ID로 접근한다. transaction digest만으로 권한을 주지 않는다.
-타입의 package ID·실제 객체 소유자·buyer·listing을 모두 검사한다. RPC 장애 시 503으로 실패한다.
-중복 구매·만료는 Move가 최종 거절한다. 카탈로그는 비활성 상품도 포함하므로 UI에 상태를 표시한다.
-공개 Listing의 암호문 참조는 공개 정보다. 실제 평문 접근 경계는 Seal이다.
-
-기억 참조 body:
-
-```json
-{
-  "provider": "memwal",
-  "spaceId": "opaque-provider-space-id",
-  "expectedRevision": 0,
-  "consent": true,
-  "licenseId": "0x..."
-}
-```
-
-최초 생성은 제작자/구매 권한을 확인한다. 본인 참조의 이후 조회·갱신은 판매 상태와 독립적이다.
-동시 갱신은 현재 revision이 맞는 요청 하나만 성공하고 나머지는 409다.
-대화·delegate 비밀키·복호화 키를 넣지 않는다. space ID의 소유권·암호화·provider 권한은
-아직 검증하지 않는다. 이 참조만 믿고 서버가 provider 데이터를 자동 복호화하면 안 된다.
-
-## 다음 구현과 통과 조건
-
-1. 전용 testnet 계정으로 Move 배포, Walrus 암호문 업로드/다운로드, MemWal SDK 공간 생성·쓰기·검색을
-   각각 1회 실행하고 패키지·blob·거래 ID를 기록한다.
-2. 서버 operator의 Seal 패키지 loader를 연결한다. 공개 프리뷰/유료 패키지를 분리하고
-   사용자×Listing별 N턴을 DB에서 원자적으로 차감한다. 유료 채팅은 requireMarketAccess를 호출한다.
-   가격·상품 프롬프트를 클라이언트 입력으로 대체하지 않는다.
-3. 확인한 기억만 provider에 저장하고 사용자별 공간·delegate 권한과 철회를 검증한다.
-   A의 공간을 B가 못 읽고 A가 별도 Origin에서 이어 읽는 데모가 통과 조건이다.
-4. P1: 비밀 저장소의 실행키, DB intent 상태, LLM 상품 제안, Move 실행 worker를 연결한다.
-   응답이 불확실하면 intent/거래를 확인한다. GiftSent 확인 후 선물 영수증을 표시한다.
-
-Sui testnet도 테스트 SUI로 가스를 소비한다. faucet 또는 후원이 필요하다.
-가스 0·완전 자율·운영자도 평문을 볼 수 없음·복제 불가로 설명하지 않는다.
-
-## 공식 참고
-
-- [Sui SDK 객체 조회·BCS](https://sdk.mystenlabs.com/sui/clients/querying)
-- [Seal 접근 제어](https://www.sui.io/blog/seal-programmable-access-control)
-- [Walrus Memory 개념 참고](https://docs.wal.app/walrus-memory/python-sdk/usage/memwal)
-
-현재 SDK는 @mysten-incubation/memwal 0.1.6이다. [TypeScript API](https://docs.wal.app/walrus-memory/sdk/api-reference)를 확인했다.
-2026-09-10 실제 중계 서버 /config와 공식 문서의 package ID가 달랐다. 환경 설정에는
-probe:testnet으로 확인한 package/registry를 넣고 서버가 일치 여부를 재검사한다.
+- 제작자와 캐릭터 금고의 수익 분배 비율 확정은 대기 중이다.
+- 최초 기술 스파이크의 실제 Sui/Walrus/MemWal 왕복 증거는 확보했다. 원래 D1 착수 대기 항목을 현재 미착수로 표시하지 않는다.
