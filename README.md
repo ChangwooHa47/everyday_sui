@@ -2,7 +2,7 @@
 
 AI 캐릭터를 만들고 대화하며, 작가가 설계한 캐릭터의 **개인 사용용 비독점 이용권**을 거래하는 서비스다. 캐릭터 설정은 판매하지만 사용자별 대화·관계·기억은 판매하지 않는다.
 
-기존 Next.js 화면과 Spring 제품 기능을 사용하고, Fastify API가 지갑 인증과 Sui·Walrus·Seal·MemWal 연동을 맡는다. Railway에는 web, api, 비공개 spring을 별도 서비스로 배포하고 PostgreSQL을 공유한다.
+기존 Next.js 화면과 Spring 제품 기능을 사용하고, Fastify API가 지갑 인증과 Sui·Walrus·Seal·MemWal 연동을 맡는다. 배포 구성은 web과 통합 api 두 앱 서비스 및 PostgreSQL이다. api 이미지 안에서 Node와 Spring을 함께 실행한다. 기존 운영의 별도 Spring 서비스 전환은 아직 실행하지 않았다.
 
 ## 문서 안내
 
@@ -10,7 +10,7 @@ AI 캐릭터를 만들고 대화하며, 작가가 설계한 캐릭터의 **개�
 | --- | --- |
 | [기획과 구현 경계](docs/MARKET_PIVOT.md) | P0/P1 요구사항, 온체인·오프체인 분담, 미완료 범위 |
 | [로컬 실행·검증](docs/MARKET_RUNBOOK.md) | 설정, 기존 화면의 흐름, 검증 명령과 실행 범위 |
-| [Railway 배포](infra/DEPLOYMENT.md) | 세 서비스, 환경변수, 내부 연결, 헬스체크 |
+| [Railway 배포](infra/DEPLOYMENT.md) | 웹·통합 백엔드, 환경변수, 내부 연결, 헬스체크 |
 | [배포·코드 리뷰](infra/DEPLOYMENT_REVIEW.md) | DB 검토, 실제 검증 증거와 그 한계 |
 | [프론트 기준](apps/web/README.md) | 원래 컴포넌트·디자인 유지 원칙 |
 | [Move 계약](contracts/everyday/README.md) | 이용권·정산·금고 정책과 배포 기록 |
@@ -25,7 +25,7 @@ AI 캐릭터를 만들고 대화하며, 작가가 설계한 캐릭터의 **개�
 
 ## 시작하기
 
-Node 24, npm 11과 Docker를 사용한다. 원래 제품 기능까지 실행하려면 PostgreSQL·API·Spring을 함께 실행한다.
+Node 24, npm 11과 Docker를 사용한다. Compose가 PostgreSQL과 Node·Spring을 포함한 통합 백엔드를 실행한다.
 
 ```powershell
 npm.cmd ci --ignore-scripts
@@ -40,6 +40,7 @@ docker compose --env-file apps/api/.env.local -f infra/compose.yaml up --build
 
 ```powershell
 node infra/check-docs.mjs
+node --test infra/start-backend.test.mjs
 npm.cmd run check:backend
 npm.cmd run test:unit --workspace @everyday/web
 npm.cmd run build

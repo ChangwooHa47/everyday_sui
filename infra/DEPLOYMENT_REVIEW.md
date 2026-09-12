@@ -92,3 +92,16 @@ Spring은 Flyway V1–V11을 everyday schema에 적용하고 Hibernate는 valida
 [Sui SDK](https://sdk.mystenlabs.com/sui), [Seal](https://sdk.mystenlabs.com/seal), [Walrus 저장 API](https://docs.wal.app/docs/http-api/storing-blobs.html), [Walrus epoch](https://docs.wal.app/docs/system-overview/operations.html), [testnet type origin](https://github.com/MystenLabs/walrus/blob/main/testnet-contracts/walrus/Published.toml), [MemWal TypeScript](https://docs.wal.app/walrus-memory/sdk/api-reference.html), [Claude Messages](https://platform.claude.com/docs/en/api/messages/create).
 
 MemWal은 실제 relayer /config와 registry 타입을 추가 확인했다. Claude는 top-level system과 text block 응답을 처리하여 기존 키를 마켓에서도 재사용한다.
+
+## 배포 통합과 추가 최적화 — 2026-09-12
+
+저장소의 앱 배포 구성을 web·api·spring 세 개에서 web·통합 api 두 개로 변경했다. PostgreSQL은 별도이며 같은 DB와 스키마를 유지한다. Node의 Web3 SDK와 Spring의 기존 제품 기능을 보존하고, 한 백엔드 이미지에서 두 프로세스를 실행한다. 현재 제품 요청은 Spring에서 Node의 인증·이용권·기억 기능을 다시 호출하므로 독립 배포의 이점이 제한적이다. 이번 변경은 배포 관리와 내부 연결을 단순화하며, 단일 런타임으로의 전면 이관이나 실제 운영 비용 절감을 증명하지 않는다. 기존 Railway 환경에는 아직 적용하지 않았다.
+
+- Spring은 loopback에서만 수신한다. supervisor가 양쪽 포트·주소를 연결하고 예상치 못한 종료를 전체 실패로 처리한다. 정상 종료는 Spring의 callback 처리를 위해 Spring 다음 Node 순서로 수행한다. readiness는 두 런타임의 DB 연결을 확인한다.
+- 마켓 목록의 최대 20개 개별 체인 RPC를 한 번의 SDK 배치 조회로 바꿨다. 빈 목록은 RPC를 생략하고, 매 요청마다 현재 체인을 조회한다. 패키지·타입·소유권·객체 ID·BCS 및 배치 누락·순서 검증을 유지한다.
+- 요청 제한 플러그인보다 라우트가 먼저 등록되어 120회 한도가 적용되지 않던 문제를 고쳤다. 인증 결과는 같은 요청 안에서만 재사용하며 다음 요청은 세션을 다시 검증한다. Spring 인증 callback의 429와 유효한 Retry-After를 JSON으로 전달하여 재시도 안내가 502로 바뀌지 않게 했다.
+- 각 Docker 빌드는 필요한 npm workspace만 설치한다. Java 변경이 Node 소스 빌드 캐시를 무효화하지 않도록 복사 범위를 줄였고, Gradle 의존성 캐시를 재사용한다. Spring 테스트는 `docker build --target spring-test -f infra/Dockerfile.api .`로 별도 실행할 수 있다.
+
+로컬 검증: API 타입 검사·37개 테스트, supervisor 8개 테스트, 전체 앱 빌드, Spring 전체 테스트, 두 Docker 이미지 빌드, 실제 PostgreSQL 제품 통합 검사가 통과했다. 통합 이미지에서는 실제 지갑 서명·Spring gateway·내부 인증, Spring 포트 비공개, DB 중단과 복구, 정상 종료·재시작, Spring 강제 종료 시 전체 실패를 확인했다. 추가 supervisor·통합 이미지 검사는 로컬에서 실행했으며 기존 CI 설정은 유지한다.
+
+제품 통합 검사의 AI·이미지·마켓 응답은 fixture다. 이번 검사가 실제 공급자 호출·온체인 정산·운영 비용 검증을 추가한 것은 아니다. Move 코드는 변경하지 않았고 이번 로컬 Move 검사는 실행하지 못했다. 위쪽의 운영·testnet 증거는 해당 시점의 기록으로 보존한다.

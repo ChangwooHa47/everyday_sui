@@ -13,6 +13,11 @@ export function failure(statusCode: number, message: string) {
   return Object.assign(new Error(message), { statusCode });
 }
 export interface AuthConfig { origins: string[]; audience: string; network: 'testnet'; }
+// Share a successful validation only within this HTTP request. A later request
+// must query again so session revocation and expiry remain effective immediately.
+const authenticatedRequests = new WeakMap<FastifyRequest, {
+  db: Database; config: AuthConfig; token: string; origin: string; address: string;
+}>();
 export function getOrigin(req: FastifyRequest, config: AuthConfig) {
   const origin = req.headers.origin;
   if (!origin || !config.origins.includes(origin)) throw failure(403, 'ORIGIN_NOT_ALLOWED');
@@ -22,9 +27,12 @@ export async function authenticate(req: FastifyRequest, db: Database, config: Au
   const origin = getOrigin(req, config);
   const token = req.headers.authorization?.match(/^Bearer ([A-Za-z0-9_-]{43})$/)?.[1];
   if (!token) throw failure(401, 'LOGIN_REQUIRED');
+  const cached = authenticatedRequests.get(req);
+  if (cached?.db === db && cached.config === config && cached.token === token && cached.origin === origin) return cached.address;
   const { rows } = await db.query<{ address: string }>(
     'SELECT address FROM wallet_sessions WHERE token_hash=$1 AND origin=$2 AND expires_at>now()', [hash(token), origin]);
   if (!rows[0]) throw failure(401, 'SESSION_EXPIRED');
+  authenticatedRequests.set(req, { db, config, token, origin, address: rows[0].address });
   return rows[0].address;
 }
 

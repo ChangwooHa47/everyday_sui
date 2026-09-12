@@ -89,9 +89,20 @@ async function ready(url, logs) {
   throw Error(`Not ready: ${url}\n${logs()}`);
 }
 async function request(path, token, method = 'GET', body) {
-  const response = await fetch(api + path, { method, headers: { Origin: origin, 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const json = response.status === 204 ? null : await response.json();
-  return { status: response.status, json };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await fetch(api + path, { method, headers: { Origin: origin, 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
+    const json = response.status === 204 ? null : await response.json();
+    const retryAfter = response.headers.get('retry-after');
+    // Run the full product suite against the real production request limit.
+    // Only the pre-handler HTTP quota has this header; never retry AI budgets,
+    // uncertain provider calls, or a request that reached the product handler.
+    if (response.status === 429 && retryAfter && /^\d+$/.test(retryAfter) && Number(retryAfter) <= 60 && attempt < 2) {
+      console.log('Pacing product integration requests for the HTTP quota window.');
+      await new Promise(resolve => setTimeout(resolve, (Number(retryAfter) + 1) * 1000));
+      continue;
+    }
+    return { status: response.status, json };
+  }
 }
 async function login() {
   const key = new Ed25519Keypair();
@@ -119,7 +130,7 @@ try {
     SPRING_API_URL: spring, SUI_MARKET_PACKAGE_ID: '', SUI_OPERATOR_KEY: '', MEMWAL_DELEGATE_MASTER_KEY: '',
     AI_API_KEY: '', AI_ENDPOINT: '', AI_MODEL: '', AGENT_GIFTS_ENABLED: '0',
   });
-  await ready(api + '/health/ready', nodeLogs);
+  await ready(api + '/health/live', nodeLogs);
   const localJava = resolve(root, '.local-tools/jdk-21.0.12.1+1/bin/java.exe');
   const java = process.env.JAVA_HOME ? resolve(process.env.JAVA_HOME, 'bin', process.platform === 'win32' ? 'java.exe' : 'java') : existsSync(localJava) ? localJava : 'java';
   const springLogs = run(java, ['-jar', 'apps/api/spring/build/libs/everyday.jar'], {
@@ -130,6 +141,7 @@ try {
     APP_MARKET_API_URL: `http://127.0.0.1:${fixturePort}`,
   });
   await ready(spring + '/health/ready', springLogs);
+  await ready(api + '/health/ready', nodeLogs);
   assert.ok((await pool.query('SELECT version FROM everyday.flyway_schema_history WHERE success=true')).rows.some(row => row.version === '11'));
   const a = await login(), b = await login();
   assert.equal((await request('/api/characters/%69nterview', a, 'POST', { relationshipType: 'FRIEND', gender: 'MALE' })).status, 400);

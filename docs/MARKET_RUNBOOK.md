@@ -1,6 +1,6 @@
 # 로컬 실행과 검증
 
-기존 Next.js 화면 → Fastify 인증/gateway → private Spring → PostgreSQL이 제품의 기본 흐름이다. 마켓 화면은 `/community`, 제작은 `/create`, 구매 후 개인 대화는 `/chat`, 설정·기억은 `/character`를 사용한다. 새 `/market`·`/viewer` 화면은 현재 코드에 없다. 기획 범위는 [MARKET_PIVOT.md](MARKET_PIVOT.md), 실제 완료/미완료와 증거는 [배포 리뷰](../infra/DEPLOYMENT_REVIEW.md)를 따른다.
+기존 Next.js 화면 → 통합 백엔드(Fastify 인증/gateway → 내부 Spring) → PostgreSQL이 제품의 기본 흐름이다. 마켓 화면은 `/community`, 제작은 `/create`, 구매 후 개인 대화는 `/chat`, 설정·기억은 `/character`를 사용한다. 새 `/market`·`/viewer` 화면은 현재 코드에 없다. 기획 범위는 [MARKET_PIVOT.md](MARKET_PIVOT.md), 실제 완료/미완료와 증거는 [배포 리뷰](../infra/DEPLOYMENT_REVIEW.md)를 따른다.
 
 ## 제품 전체 로컬 실행
 
@@ -18,7 +18,7 @@ API 파일에는 아래 서버 설정을 입력한다. Compose가 참조할 값�
 docker compose --env-file apps/api/.env.local -f infra/compose.yaml up --build
 ```
 
-다른 터미널에서 `npm.cmd run dev:web`을 실행한다. 웹은 `http://127.0.0.1:3000`, API는 `http://127.0.0.1:3001`이다. `localhost`는 별도 Origin이므로 혼용하지 않는다. Spring은 Compose 내부 `spring:8080`에서만 열고 별도 공개 포트는 만들지 않는다. DB는 PostgreSQL 17의 named volume에 보존한다.
+다른 터미널에서 `npm.cmd run dev:web`을 실행한다. 웹은 `http://127.0.0.1:3000`, API는 `http://127.0.0.1:3001`이다. `localhost`는 별도 Origin이므로 혼용하지 않는다. Spring은 API 컨테이너 내부 `127.0.0.1:18080`에서만 열고 별도 공개 포트는 만들지 않는다. DB는 PostgreSQL 17의 named volume에 보존한다.
 
 API와 Spring이 같은 PostgreSQL을 사용해야 지갑 사용자·공통 AI 한도·원래 제품 흐름을 함께 검증할 수 있다. API는 `public` schema의 멱등 DDL, Spring은 `everyday` schema의 Flyway와 Hibernate validate를 사용한다. 이미 적용된 migration은 수정하지 않는다.
 
@@ -27,8 +27,8 @@ API와 Spring이 같은 PostgreSQL을 사용해야 지갑 사용자·공통 AI �
 | 설정 | 필요한 기능 |
 | --- | --- |
 | `DATABASE_URL`, `WEB_ORIGINS`, `API_AUDIENCE` | 운영 API의 DB·인증. Compose는 내부 DB URL과 로컬 Origin 기본값을 제공한다. |
-| `SPRING_API_URL`, Spring DB 변수·`WALLET_AUTH_URL` | 원래 제품 기능. Compose는 내부 주소로 연결하며 Railway 설정은 [배포 가이드](../infra/DEPLOYMENT.md)를 따른다. |
-| `ANTHROPIC_API_KEY` | 원래 생성·대화 및 Node 마켓 미리보기. Compose는 두 서비스에 전달한다. |
+| `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` | 원래 제품 기능. Compose가 같은 DB 설정을 제공하고 supervisor가 양방향 loopback 주소를 지정한다. Railway 설정은 [배포 가이드](../infra/DEPLOYMENT.md)를 따른다. |
+| `ANTHROPIC_API_KEY` | 원래 생성·대화 및 Node 마켓 미리보기. 통합 백엔드의 두 프로세스에서 사용한다. |
 | `HIGGSFIELD_API_KEY`, `HIGGSFIELD_API_SECRET` | Spring 초상·사진·Soul 연동. 서버 전용이며 웹에 전달하지 않는다. |
 | `AI_ENDPOINT`, `AI_MODEL`, `AI_API_KEY` | Node에서 별도 Chat Completions 호환 제공자를 선택할 때만 세 값 모두 사용한다. Spring Claude 설정을 대체하지 않는다. |
 | `SUI_MARKET_PACKAGE_ID`, 웹 `NEXT_PUBLIC_SUI_PACKAGE_ID` | 같은 실제 testnet 배포를 가리켜야 한다. 현재 ID는 [배포 기록](../contracts/everyday/deployments/testnet.json)에 있다. |

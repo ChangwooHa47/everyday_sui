@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import { Transaction } from '@mysten/sui/transactions';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
 import type { MarketListing } from '@everyday/contracts';
 import { buildApp } from '../src/app.js';
 import { hash } from '../src/auth.js';
 import { migration } from '../src/database.js';
 import { packageSchema } from '../src/market-package.js';
+import { createMarketChain, listingBcs } from '../src/market-chain.js';
 
 const id = normalizeSuiAddress;
 const origin = 'http://127.0.0.1:3000';
@@ -101,4 +103,54 @@ test('catalog upgrades retain legacy rows but discover only listings verified fo
   assert.equal(first.json().previews[listing.id].summary, 'Preview');
   assert.deepEqual((await app.inject({ url: `/v1/market/listings?after=${first.json().nextCursor}` })).json().listings, []);
   assert.equal((await db.query<{ count: number }>('SELECT count(*)::integer AS count FROM market_catalog')).rows[0].count, 3);
+});
+
+test('live catalog uses one native RPC batch for 20 listings, no RPC for empty pages, and no cached chain state', async t => {
+  const db = new PGlite(); await db.exec(migration);
+  const pkg = id('0x99');
+  const ids = Array.from({ length: 20 }, (_, index) => id(`0x${(256 + index).toString(16)}`));
+  const client = new SuiGrpcClient({ network: 'testnet', baseUrl: 'https://unused.example' });
+  let singles = 0, batches = 0, active = true;
+  let incomplete = false;
+  client.getObject = async () => { singles++; throw Error('catalog must use native batch'); };
+  // Exercise the installed SDK getObjects → ledgerService.batchGetObjects path.
+  client.ledgerService.batchGetObjects = (async (request: Parameters<typeof client.ledgerService.batchGetObjects>[0]) => {
+    batches++;
+    assert.deepEqual(request.requests.map(item => item.objectId), ids);
+    assert.ok(request.readMask?.paths.includes('contents'));
+    const objects = ids.map(objectId => ({ result: { oneofKind: 'object', object: {
+      objectId, objectType: `${pkg}::market::Listing`, owner: { kind: 3, version: 1n }, version: 1n, digest: 'fixture',
+      contents: { value: listingBcs.serialize({ id: objectId, creator: listing.creator, operator: listing.operator, title: listing.title,
+        price: '18446744073709551615', agent_bps: listing.agentBps, blob_id: listing.package.blobId,
+        content_hash: Array(32).fill(0), end_epoch: '18446744073709551615', published: true, active,
+        buyers: { id: id('0x30'), size: 0 }, treasury: '9007199254740993', per_gift_limit: '100', daily_limit: '200',
+        day: 0, spent: 0, allowed_gifts: [], intents: { id: id('0x31'), size: 0 } }).toBytes() },
+    } } }));
+    return { response: { objects: incomplete ? objects.slice(0, -1) : objects } };
+  }) as unknown as typeof client.ledgerService.batchGetObjects;
+  const app = buildApp(false, { db, auth, market: createMarketChain(pkg, client) });
+  t.after(async () => { await app.close(); await db.close(); });
+  const empty = await app.inject('/v1/market/listings?limit=20');
+  assert.equal(empty.statusCode, 200);
+  assert.deepEqual(empty.json().listings, []);
+  assert.equal(batches, 0); assert.equal(singles, 0);
+  for (const listingId of ids) await db.query('INSERT INTO market_catalog(listing_id,creator,package_id) VALUES($1,$2,$3)', [listingId, listing.creator, pkg]);
+  const first = await app.inject('/v1/market/listings?limit=20');
+  assert.equal(first.statusCode, 200);
+  assert.deepEqual(first.json().listings.map((item: MarketListing) => item.id), ids);
+  assert.equal(first.json().listings[0].priceMist, '18446744073709551615');
+  assert.equal(first.json().listings[0].treasuryMist, '9007199254740993');
+  assert.equal(first.json().listings[0].package.endEpoch, '18446744073709551615');
+  assert.equal(first.json().nextCursor, ids.at(-1));
+  assert.equal(batches, 1); assert.equal(singles, 0);
+  active = false;
+  const changed = await app.inject('/v1/market/listings?limit=20');
+  assert.equal(changed.statusCode, 200);
+  assert.ok(changed.json().listings.every((item: MarketListing) => item.active === false));
+  assert.equal(batches, 2); assert.equal(singles, 0);
+  incomplete = true;
+  const failed = await app.inject('/v1/market/listings?limit=20');
+  assert.equal(failed.statusCode, 503);
+  assert.deepEqual(failed.json(), { error: 'SERVICE_UNAVAILABLE' });
+  assert.equal(batches, 3); assert.equal(singles, 0);
 });

@@ -6,6 +6,12 @@ import { createMarketChain, licenseBcs, listingBcs } from '../src/market-chain.j
 
 const id = normalizeSuiAddress;
 const pkg = id('0x99'), actor = id('0xb'), listingId = id('0x10'), licenseId = id('0x20');
+const listingData = (listingId: string) => ({ id: listingId, creator: id('0xa'), operator: id('0xc'), title: 'Fixture',
+  price: '18446744073709551615', agent_bps: 2000, blob_id: 'a'.repeat(43), content_hash: Array(32).fill(0),
+  end_epoch: 100, published: true, active: true, buyers: { id: id('0x30'), size: 1 }, treasury: '9007199254740993',
+  per_gift_limit: 100, daily_limit: 200, day: 0, spent: 0, allowed_gifts: [], intents: { id: id('0x31'), size: 0 } });
+const listingObject = (listingId: string) => ({ objectId: listingId, type: `${pkg}::market::Listing`,
+  owner: { $kind: 'Shared' }, content: listingBcs.serialize(listingData(listingId)).toBytes() });
 test('license verification rejects spoofed package, owner, buyer, listing and object identity', async () => {
   const valid = { objectId: licenseId, type: `${pkg}::market::License`, owner: { $kind: 'AddressOwner', AddressOwner: actor },
     content: licenseBcs.serialize({ id: licenseId, listing: listingId, buyer: actor }).toBytes() };
@@ -26,10 +32,7 @@ test('license verification rejects spoofed package, owner, buyer, listing and ob
   }
 });
 test('BCS listing parser preserves u64 prices and treasury without floating point loss', async () => {
-  const data = { id: listingId, creator: id('0xa'), operator: id('0xc'), title: 'Fixture',
-    price: '18446744073709551615', agent_bps: 2000, blob_id: 'a'.repeat(43), content_hash: Array(32).fill(0),
-    end_epoch: 100, published: true, active: true, buyers: { id: id('0x30'), size: 1 }, treasury: '9007199254740993',
-    per_gift_limit: 100, daily_limit: 200, day: 0, spent: 0, allowed_gifts: [], intents: { id: id('0x31'), size: 0 } };
+  const data = listingData(listingId);
   const client = { getObject: async () => ({ object: { objectId: listingId, type: `${pkg}::market::Listing`,
     owner: { $kind: 'Shared' }, content: listingBcs.serialize(data).toBytes() } }) } as unknown as Pick<SuiGrpcClient, 'getObject'>;
   const result = await createMarketChain(pkg, client).listing(listingId);
@@ -39,4 +42,56 @@ test('BCS listing parser preserves u64 prices and treasury without floating poin
 test('RPC errors fail closed', async () => {
   const client = { getObject: async () => { throw Error('rpc offline'); } } as unknown as Pick<SuiGrpcClient, 'getObject'>;
   await assert.rejects(createMarketChain(pkg, client).hasLicense(actor, listingId, licenseId), { statusCode: 503 });
+});
+
+test('single and batch listings share exact package, owner, identity and canonical BCS validation', async () => {
+  const valid = listingObject(listingId);
+  let object: unknown = valid;
+  const client = {
+    getObject: async () => ({ object }),
+    getObjects: async () => ({ objects: [listingObject(id('0x11')), object] }),
+  } as unknown as Pick<SuiGrpcClient, 'getObject' | 'getObjects'>;
+  const chain = createMarketChain(pkg, client);
+  const validBatch = await chain.listings!([id('0x11'), listingId]);
+  assert.equal(validBatch[1].priceMist, '18446744073709551615');
+  assert.equal(validBatch[1].treasuryMist, '9007199254740993');
+  assert.equal(validBatch[1].package.endEpoch, '100');
+  for (const [change, statusCode] of [
+    [{ type: `${id('0x98')}::market::Listing` }, 404],
+    [{ type: `${pkg}::market::License` }, 404],
+    [{ owner: { $kind: 'AddressOwner', AddressOwner: actor } }, 404],
+    [{ objectId: id('0x12') }, 503],
+    [{ content: listingBcs.serialize(listingData(id('0x12'))).toBytes() }, 503],
+    [{ content: valid.content.slice(0, -1) }, 503],
+    [{ content: Uint8Array.from([...valid.content, 0]) }, 503],
+    [{ content: undefined }, 503],
+  ] as const) {
+    object = { ...valid, ...change };
+    await assert.rejects(chain.listing(listingId), { statusCode });
+    await assert.rejects(chain.listings!([id('0x11'), listingId]), { statusCode });
+  }
+});
+
+test('batch listing reads reject partial, duplicated, reordered, failed and malformed object results', async () => {
+  const ids = [listingId, id('0x11')];
+  const valid = ids.map(listingObject);
+  let objects: unknown = valid;
+  let singles = 0;
+  let batches = 0;
+  const client = {
+    getObject: async () => { singles++; throw Error('single read must not replace a failed batch'); },
+    getObjects: async () => { batches++; return { objects }; },
+  } as unknown as Pick<SuiGrpcClient, 'getObject' | 'getObjects'>;
+  const chain = createMarketChain(pkg, client);
+  assert.deepEqual(await chain.listings!([]), []);
+  assert.equal(batches, 0);
+  for (objects of [
+    [], [valid[0]], [...valid, valid[0]], [valid[0], valid[0]], [...valid].reverse(),
+    [valid[0], Error('private provider failure')], [valid[0], null], [valid[0], {}], undefined,
+  ]) {
+    await assert.rejects(chain.listings!(ids), { statusCode: 503 });
+  }
+  client.getObjects = async () => { throw Error('private RPC failure'); };
+  await assert.rejects(chain.listings!(ids), { statusCode: 503, message: 'CHAIN_UNAVAILABLE' });
+  assert.equal(singles, 0);
 });

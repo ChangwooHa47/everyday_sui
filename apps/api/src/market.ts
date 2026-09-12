@@ -39,7 +39,8 @@ export function registerMarket(app: FastifyInstance, db: Database, auth: AuthCon
     const service = chain();
     const query = z.object({ after: addressSchema.optional(), limit: z.coerce.number().int().min(1).max(20).default(10) }).strict().parse(req.query);
     const { rows } = await db.query<{ listing_id: string }>('SELECT listing_id FROM market_catalog WHERE package_id=$1 AND listing_id>$2 ORDER BY listing_id LIMIT $3', [service.packageId, query.after ?? '', query.limit]);
-    const listings = await Promise.all(rows.map(row => service.listing(row.listing_id)));
+    const ids = rows.map(row => row.listing_id);
+    const listings = service.listings ? await service.listings(ids) : await Promise.all(ids.map(id => service.listing(id)));
     const previewRows = await db.query<{ listing_id: string; content_hash: string; summary: string; image_url: string | null }>(
       'SELECT listing_id,content_hash,summary,image_url FROM market_previews WHERE listing_id=ANY($1::text[])', [listings.map(l => l.id)]);
     const previews = Object.fromEntries(previewRows.rows.filter(p => listings.some(l => l.id === p.listing_id && l.package.contentHash === p.content_hash))

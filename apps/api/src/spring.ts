@@ -28,6 +28,10 @@ export function registerSpring(app: FastifyInstance, db: Database, auth: AuthCon
     // Bound even error bodies, and never relay internal HTML/stack traces to the browser.
     const bytes = await readBytes(new Response(result.body, { status: 200, headers: result.headers }), 4 * 1024 * 1024);
     if (!result.headers.get('content-type')?.includes('application/json')) throw failure(502, 'PRODUCT_SERVICE_UNAVAILABLE');
+    const retryAfter = result.headers.get('retry-after');
+    if (result.status === 429 && retryAfter && /^[1-9][0-9]?$/.test(retryAfter) && Number(retryAfter) <= 60) {
+      reply.header('Retry-After', retryAfter);
+    }
     return reply.code(result.status).type('application/json').send(Buffer.from(bytes));
   } });
 }
