@@ -137,4 +137,16 @@ Anthropic and Higgsfield keys were already empty in production. Live generation/
 
 로컬 검증은 단일 Node 제품 통합 검사, API 단위/회귀 검사, 타입 검사, 웹 13개 테스트 및 전체 앱 빌드를 포함한다. 이전 Spring/Flyway Docker 이미지가 만든 DB를 새 Node 이미지로 열어 전체 제품 테이블 데이터와 migration history가 변하지 않는지 확인했다. 실제 지갑 서명 로그인·제품 조회, DB 중단/복구, 정상 종료/재시작, Node 서버 프로세스 1개와 Java 실행 파일 부재를 검사했다.
 
-독립 리뷰는 캐릭터/이미지와 대화/에피소드 담당을 교차 배정했고, 별도로 인증·이용권·개인 기억·DB 전환·종료 동작을 검토했다. 발견한 종료 순서·날짜 표현·기존 이메일 검증 차이를 수정했다. AI·이미지·마켓 어댑터 fixture 검사는 실제 유료 공급자 호출이나 신규 온체인 거래의 증거가 아니다. 운영 전환 결과와 커밋·CI는 검증 후 아래에 기록한다.
+독립 리뷰는 캐릭터/이미지와 대화/에피소드 담당을 교차 배정했고, 별도로 인증·이용권·개인 기억·DB 전환·종료 동작을 검토했다. 발견한 종료 순서·날짜 표현·기존 이메일 검증 차이를 수정했다. AI·이미지·마켓 어댑터 fixture 검사는 실제 유료 공급자 호출이나 신규 온체인 거래의 증거가 아니다.
+
+### 운영 전환 검증 — 2026-09-12
+
+앞선 Node/Spring 병행 실행 기록은 이전 단계다. 현재 배포 코드는 `b9fb67f38b97ed91a396f43973d5b64307131537`이며 API는 단일 TypeScript/Node 런타임이다.
+
+- API 배포 `80f2e7ae-2c13-431c-9d5d-c9d89f772245`, 웹 배포 `3ab61113-812d-48cc-8085-75f42412f413` 모두 SUCCESS를 확인했다.
+- 기존 Postgres 배포 `686878b4-6274-40f7-be74-44f2b3ac5dc4`와 볼륨·공개 도메인을 유지했다. 이번 언어 통합에서는 Git 자동 배포 외에 Railway 리소스·설정·환경변수를 변경하지 않았다.
+- `2026-09-12T08:07:39.097Z` 운영 검사 12개가 통과했다. liveness/readiness, 정확한 testnet 패키지, 상품 10개와 문자열 금액, 실제 서명 기반 challenge/session/identity, 개인 캐릭터·프로필 조회, 익명 거부, 로그아웃과 폐기 세션 거부를 확인했다. 임시 인증·빈 사용자 레코드 외 제품 생성·유료 공급자 호출·온체인 거래는 수행하지 않았다.
+- 구현 커밋은 171개 파일에서 3,182줄 추가·5,820줄 삭제했다. 운영 Java/Gradle과 중복 연결 코드를 제거했고 웹 UI와 Move 소스는 변경하지 않았다.
+- [구현 커밋 CI](https://github.com/ChangwooHa47/everyday_sui/actions/runs/34682376163)에서 Move와 실제 PostgreSQL/컨테이너 제품 통합 검사가 통과했다. 문서 검사에서 삭제된 Spring 디렉터리를 가리키는 보관 문서 링크를 발견해 현재 제품 API 경로로 수정했다. 이후 전체 결과는 [main CI 실행 기록](https://github.com/ChangwooHa47/everyday_sui/actions/workflows/ci.yml?query=branch%3Amain)에서 확인한다.
+
+운영 Anthropic·Higgsfield 키는 기존부터 비어 있어 실제 AI 대화·이미지 생성과 비용 절감은 검증하지 않았다.
