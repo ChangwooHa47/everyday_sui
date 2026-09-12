@@ -67,8 +67,8 @@ export default function CommunityPage() {
             <div
               key={c.key}
               role="link" tabIndex={0}
-              onClick={() => router.push(`/community/${c.key}`)}
-              onKeyDown={e => { if (e.key === "Enter") router.push(`/community/${c.key}`); }}
+              onClick={() => router.push(`/community/detail?listing=${encodeURIComponent(c.key)}`)}
+              onKeyDown={e => { if (e.key === "Enter") router.push(`/community/detail?listing=${encodeURIComponent(c.key)}`); }}
               style={{
                 flexShrink: 0,
                 width: 132,
@@ -148,8 +148,8 @@ export default function CommunityPage() {
             <div
               key={p.id}
               role="link" tabIndex={0}
-              onClick={() => router.push(`/community/${p.id}`)}
-              onKeyDown={e => { if (e.key === "Enter") router.push(`/community/${p.id}`); }}
+              onClick={() => router.push(`/community/detail?listing=${encodeURIComponent(p.id)}`)}
+              onKeyDown={e => { if (e.key === "Enter") router.push(`/community/detail?listing=${encodeURIComponent(p.id)}`); }}
               style={{
                 borderRadius: 14,
                 padding: "14px 14px 16px",

@@ -1,20 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { MarketPreview } from "@everyday/contracts";
 import { formatPrice, market } from "@/lib/market";
 import { Icon } from "../../icons";
 
-export default function MarketCharacterPage() {
+function MarketCharacterDetail() {
   const router = useRouter();
-  const params = useParams<{ listingId: string }>();
-  const listingId = params.listingId;
+  const params = useSearchParams();
+  const listingId = params.get("listing") ?? "";
   const [preview, setPreview] = useState<MarketPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
+    if (!listingId) {
+      setError("캐릭터 정보를 찾을 수 없어요.");
+      return () => { active = false; };
+    }
     void market.preview(listingId)
       .then((result) => { if (active) setPreview(result); })
       .catch((reason) => {
@@ -119,5 +123,13 @@ export default function MarketCharacterPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function MarketCharacterPage() {
+  return (
+    <Suspense fallback={null}>
+      <MarketCharacterDetail />
+    </Suspense>
   );
 }
