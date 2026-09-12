@@ -63,7 +63,7 @@ export function registerMarketFlow(app: FastifyInstance, db: Database, auth: Aut
       ...(interests ? { interests } : {}),
       ...(source.character.speechStyles?.length ? { speechStyles: source.character.speechStyles.map(cleanProfileText).filter((value): value is string => Boolean(value)).slice(0, 5) } : {}),
       ...(source.character.gender ? { gender: source.character.gender } : {}),
-      ...(source.character.relationshipType ? { relationshipType: source.character.relationshipType } : {}),
+      relationshipType: source.character.relationshipType ?? '친구',
       ...(source.preview.imageUrl ? { imageUrl: source.preview.imageUrl } : {}),
     }, previewTurns: current.previewTurns };
   });

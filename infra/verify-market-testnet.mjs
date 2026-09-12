@@ -196,7 +196,8 @@ if (process.argv.includes('--seed-market')) {
     const seededId = object(await execute(`${name}-listing`, creator, create), 'Listing');
     const imageUrl = `${aggregator}/v1/blobs/${imageRef.blobId}`;
     const data = { schemaVersion: 1, network: 'testnet', packageId: pkg, listingId: seededId,
-      character: { name: seed.name, personality: seed.personality, summary: seed.summary, speechStyles: [seed.style], imageUrl,
+      character: { name: seed.name, personality: seed.personality, summary: seed.summary,
+        relationshipType: seed.relationshipType, speechStyles: [seed.style], imageUrl,
         background: `관심사: ${seed.interest}.` },
       preview: { name: seed.name, personality: seed.summary, summary: seed.summary, imageUrl },
       examples: [{ role: 'user', content: '오늘 조금 지쳤어.' }, { role: 'assistant', content: '많이 애썼겠다. 무슨 일이 있었는지 천천히 말해줘.' },
