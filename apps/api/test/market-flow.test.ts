@@ -22,7 +22,7 @@ test('P0 preview to purchase, server persona, consented memories and second-orig
     package: { blobId: 'a'.repeat(43), contentHash: '0'.repeat(64), endEpoch: '2000' },
     policy: { perGiftLimitMist: '100', dailyLimitMist: '200', allowedGiftIds: [] } };
   const content = packageSchema.parse({ schemaVersion: 1, network: 'testnet', packageId: id('0x99'), listingId: listing.id,
-    character: { name: 'Fixture', personality: 'PRIVATE_PAID_PERSONA' },
+    character: { name: 'Fixture', personality: '첫 문장입니다. 두 번째 문장입니다. 숨길 세 번째 문장입니다.', appearance: '단정한 인상입니다.', speechStyles: ['짧은 답장', '차분한 말투'] },
     preview: { name: 'Fixture', personality: 'PUBLIC_PREVIEW_PERSONA' },
     examples: [{ role: 'assistant', content: 'PAID_EXAMPLE' }] });
   const providerInputs: string[] = [];
@@ -56,11 +56,14 @@ test('P0 preview to purchase, server persona, consented memories and second-orig
   assert.equal((await app.inject({ method: 'POST', url, headers: headers(), payload: { ...turn, character: content.character } })).statusCode, 400);
   const previews = await Promise.all([turn, turn, { ...turn, requestId: randomUUID() }, { ...turn, requestId: randomUUID() }].map(payload => app.inject({ method: 'POST', url, headers: headers(), payload })));
   assert.deepEqual(previews.map(r => r.statusCode).sort(), [200, 200, 403, 409]);
-  assert.ok(providerInputs.every(p => p.includes('PRIVATE_PAID_PERSONA') && p.includes('PAID_EXAMPLE')));
-  assert.ok(previews.every(response => !response.body.includes('PRIVATE_PAID_PERSONA') && !response.body.includes('PAID_EXAMPLE') && !response.body.includes('characterPackage')));
+  assert.ok(providerInputs.every(p => p.includes('숨길 세 번째 문장') && p.includes('PAID_EXAMPLE')));
+  assert.ok(previews.every(response => !response.body.includes('숨길 세 번째 문장') && !response.body.includes('PAID_EXAMPLE') && !response.body.includes('characterPackage')));
   const publicPreview = await app.inject({ url: `/v1/market/listings/${listing.id}/preview`, headers: headers() });
-  assert.equal(publicPreview.statusCode, 200); assert.equal(publicPreview.json().character.personality, 'PUBLIC_PREVIEW_PERSONA');
-  assert.ok(!publicPreview.body.includes('PRIVATE_PAID_PERSONA') && !publicPreview.body.includes('PAID_EXAMPLE'));
+  assert.equal(publicPreview.statusCode, 200);
+  assert.equal(publicPreview.json().character.personality, '첫 문장입니다. 두 번째 문장입니다.');
+  assert.equal(publicPreview.json().character.appearance, '단정한 인상입니다.');
+  assert.deepEqual(publicPreview.json().character.speechStyles, ['짧은 답장', '차분한 말투']);
+  assert.ok(!publicPreview.body.includes('숨길 세 번째 문장') && !publicPreview.body.includes('PAID_EXAMPLE'));
   for (const forbidden of [{ useMemory: true }, { episodeId: 'private-episode' }]) {
     const blocked = await app.inject({ method: 'POST', url, headers: headers('a'), payload: { ...turn, requestId: randomUUID(), ...forbidden } });
     assert.equal(blocked.statusCode, 400);
@@ -68,7 +71,7 @@ test('P0 preview to purchase, server persona, consented memories and second-orig
   owned = true;
   const paid = { ...turn, mode: 'licensed', requestId: randomUUID(), licenseId: id('0x20') };
   assert.equal((await app.inject({ method: 'POST', url, headers: headers(), payload: paid })).statusCode, 200);
-  assert.ok(providerInputs.at(-1)!.includes('PRIVATE_PAID_PERSONA'));
+  assert.ok(providerInputs.at(-1)!.includes('숨길 세 번째 문장'));
   assert.ok(providerInputs.at(-1)!.includes('PAID_EXAMPLE'));
   assert.equal((await app.inject({ method: 'POST', url: '/v1/me/memory-account', headers: headers(), payload: { accountId: id('0xee'), consent: true } })).statusCode, 403);
   assert.equal((await app.inject({ method: 'POST', url: '/v1/me/memory-account', headers: headers(), payload: { accountId: id('0xbb'), consent: true } })).statusCode, 200);

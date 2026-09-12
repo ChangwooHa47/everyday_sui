@@ -39,7 +39,24 @@ export function registerMarketFlow(app: FastifyInstance, db: Database, auth: Aut
     const current = service(); const { listingId } = params.parse(req.params);
     const listing = await current.chain.listing(listingId);
     if (!listing.active || !listing.published) throw failure(409, 'LISTING_NOT_LIVE');
-    return { listing, character: (await current.packages.load(listing)).preview, previewTurns: current.previewTurns };
+    const source = await current.packages.load(listing);
+    const concise = (value?: string) => {
+      if (!value) return undefined;
+      const sentences = value.trim().split(/(?<=[.!?。！？])\s+/).slice(0, 2).join(' ');
+      return sentences.length > 180 ? `${sentences.slice(0, 177).trimEnd()}…` : sentences;
+    };
+    const summary = concise(source.character.summary ?? source.preview.summary);
+    const appearance = concise(source.character.appearance);
+    const background = concise(source.character.background);
+    return { listing, character: {
+      name: source.preview.name,
+      personality: concise(source.character.personality) ?? source.preview.personality,
+      ...(summary ? { summary } : {}), ...(appearance ? { appearance } : {}), ...(background ? { background } : {}),
+      ...(source.character.speechStyles?.length ? { speechStyles: source.character.speechStyles.slice(0, 5) } : {}),
+      ...(source.character.gender ? { gender: source.character.gender } : {}),
+      ...(source.character.relationshipType ? { relationshipType: source.character.relationshipType } : {}),
+      ...(source.preview.imageUrl ? { imageUrl: source.preview.imageUrl } : {}),
+    }, previewTurns: current.previewTurns };
   });
   app.post('/v1/market/creator-transaction', async req => {
     const owner = await authenticate(req, db, auth); const current = service();

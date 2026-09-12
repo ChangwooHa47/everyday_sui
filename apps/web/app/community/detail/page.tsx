@@ -92,28 +92,43 @@ function MarketCharacterDetail() {
             <p className="body1" style={{ margin: "20px 0 0", color: "var(--gray-700)" }}>{character.summary}</p>
           )}
 
+          {character.background && (
+            <div style={{ marginTop: 28 }}>
+              <h2 className="label1" style={{ margin: "0 0 8px" }}>평소에는</h2>
+              <p className="body2" style={{ margin: 0, color: "var(--gray-700)", whiteSpace: "pre-wrap" }}>{character.background}</p>
+            </div>
+          )}
+
+          {character.relationshipType && (
+            <div style={{ marginTop: 24 }}>
+              <h2 className="label1" style={{ margin: "0 0 8px" }}>우리 관계</h2>
+              <p className="body2" style={{ margin: 0, color: "var(--gray-700)" }}>{character.relationshipType}</p>
+            </div>
+          )}
+
           {character.personality && (
             <div style={{ marginTop: 28 }}>
-              <h2 className="label1" style={{ margin: "0 0 8px" }}>성격</h2>
+              <h2 className="label1" style={{ margin: "0 0 8px" }}>알아갈수록</h2>
               <p className="body2" style={{ margin: 0, color: "var(--gray-700)", whiteSpace: "pre-wrap" }}>{character.personality}</p>
             </div>
           )}
 
           {character.appearance && (
             <div style={{ marginTop: 24 }}>
-              <h2 className="label1" style={{ margin: "0 0 8px" }}>외모</h2>
+              <h2 className="label1" style={{ margin: "0 0 8px" }}>첫인상</h2>
               <p className="body2" style={{ margin: 0, color: "var(--gray-700)", whiteSpace: "pre-wrap" }}>{character.appearance}</p>
             </div>
           )}
 
           {character.speechStyles && character.speechStyles.length > 0 && (
             <div style={{ marginTop: 24 }}>
-              <h2 className="label1" style={{ margin: "0 0 10px" }}>말투</h2>
+              <h2 className="label1" style={{ margin: "0 0 10px" }}>대화할 때 나는</h2>
               <div className="chip-row">
                 {character.speechStyles.map((style) => <span className="chip" key={style}>{style}</span>)}
               </div>
             </div>
           )}
+
         </section>
       </main>
 
