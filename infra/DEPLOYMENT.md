@@ -2,7 +2,7 @@
 
 배포 대상은 `web`, 통합 백엔드 `api`, PostgreSQL이다. `infra/Dockerfile.api`는 Fastify와 Spring을 한 이미지에 포함하며 Spring은 컨테이너 내부에서만 접근한다. 각 앱 서비스의 Root Directory는 `/`다. Node와 Java 런타임은 유지하므로 서비스 수 감소가 CPU·메모리 사용량이나 요금 감소를 보장하지 않는다.
 
-이 문서는 저장소의 통합 배포 구성을 설명한다. 기존 운영의 `web`·`api`·private `spring` 배포는 별도로 승인된 전환 전까지 유지된다. 현재 변경만으로 Railway 서비스·변수·도메인·DB를 수정하거나 재배포하지 않는다. 과거 배포의 완료/미완료 범위와 증거는 [리뷰](DEPLOYMENT_REVIEW.md)에 보존한다.
+2026-09-12 사용자 승인으로 기존 `everyday_api`를 통합 이미지로 전환하고 `everyday_spring`을 제거했다. 운영에는 `everyday_web`, `everyday_api`, 기존 `Postgres`가 남아 있다. 웹/API 공개 주소와 DB 볼륨은 유지했다. 이후 provider 변경도 대상과 효과가 승인된 범위에서만 진행한다. 배포와 검증 근거는 [리뷰](DEPLOYMENT_REVIEW.md)에 보존한다.
 
 ## 서비스 설정
 

@@ -95,7 +95,7 @@ MemWal은 실제 relayer /config와 registry 타입을 추가 확인했다. Clau
 
 ## 배포 통합과 추가 최적화 — 2026-09-12
 
-저장소의 앱 배포 구성을 web·api·spring 세 개에서 web·통합 api 두 개로 변경했다. PostgreSQL은 별도이며 같은 DB와 스키마를 유지한다. Node의 Web3 SDK와 Spring의 기존 제품 기능을 보존하고, 한 백엔드 이미지에서 두 프로세스를 실행한다. 현재 제품 요청은 Spring에서 Node의 인증·이용권·기억 기능을 다시 호출하므로 독립 배포의 이점이 제한적이다. 이번 변경은 배포 관리와 내부 연결을 단순화하며, 단일 런타임으로의 전면 이관이나 실제 운영 비용 절감을 증명하지 않는다. 기존 Railway 환경에는 아직 적용하지 않았다.
+저장소의 앱 배포 구성을 web·api·spring 세 개에서 web·통합 api 두 개로 변경했다. PostgreSQL은 별도이며 같은 DB와 스키마를 유지한다. Node의 Web3 SDK와 Spring의 기존 제품 기능을 보존하고, 한 백엔드 이미지에서 두 프로세스를 실행한다. 현재 제품 요청은 Spring에서 Node의 인증·이용권·기억 기능을 다시 호출하므로 독립 배포의 이점이 제한적이다. 이번 변경은 배포 관리와 내부 연결을 단순화하며, 단일 런타임으로의 전면 이관이나 실제 운영 비용 절감을 증명하지 않는다. Production transition completed after local validation; see the record below.
 
 - Spring은 loopback에서만 수신한다. supervisor가 양쪽 포트·주소를 연결하고 예상치 못한 종료를 전체 실패로 처리한다. 정상 종료는 Spring의 callback 처리를 위해 Spring 다음 Node 순서로 수행한다. readiness는 두 런타임의 DB 연결을 확인한다.
 - 마켓 목록의 최대 20개 개별 체인 RPC를 한 번의 SDK 배치 조회로 바꿨다. 빈 목록은 RPC를 생략하고, 매 요청마다 현재 체인을 조회한다. 패키지·타입·소유권·객체 ID·BCS 및 배치 누락·순서 검증을 유지한다.
@@ -105,3 +105,19 @@ MemWal은 실제 relayer /config와 registry 타입을 추가 확인했다. Clau
 로컬 검증: API 타입 검사·37개 테스트, supervisor 8개 테스트, 전체 앱 빌드, Spring 전체 테스트, 두 Docker 이미지 빌드, 실제 PostgreSQL 제품 통합 검사가 통과했다. 통합 이미지에서는 실제 지갑 서명·Spring gateway·내부 인증, Spring 포트 비공개, DB 중단과 복구, 정상 종료·재시작, Spring 강제 종료 시 전체 실패를 확인했다. 추가 supervisor·통합 이미지 검사는 로컬에서 실행했으며 기존 CI 설정은 유지한다.
 
 제품 통합 검사의 AI·이미지·마켓 응답은 fixture다. 이번 검사가 실제 공급자 호출·온체인 정산·운영 비용 검증을 추가한 것은 아니다. Move 코드는 변경하지 않았고 이번 로컬 Move 검사는 실행하지 못했다. 위쪽의 운영·testnet 증거는 해당 시점의 기록으로 보존한다.
+
+
+## Production consolidation verified: 2026-09-12
+
+The user authorized the Railway transition. The existing API now runs both Node and Spring; the standalone everyday_spring service was deleted after verification. Only everyday_web, everyday_api and the original Postgres remain. Public domains, the database deployment and its volume were retained.
+
+- API code: 087f490ee3738aa674218d1d3c073573ee059b8b. Successful deployment: 524c6601-98f2-41ca-bf67-49da0c8c1431. Logs confirm Spring on internal port 18080 in the same API container and aggregate readiness 200.
+- Web deployment: 354a5320-9752-4299-a7b7-491d7d522a67, SUCCESS.
+- Removed service: everyday_spring, 4dabfc2d-7528-4a63-9cec-6ee0579bd7aa.
+- Existing JDBC and provider variable references were transferred and checked without recording secret values. Only the obsolete SPRING_API_URL reference was removed.
+- Post-removal checks at 2026-09-12T07:33:31Z: health, catalog with 10 listings, exact Move package, signed wallet login, identity and empty product/profile reads, anonymous rejection, logout and revoked-session rejection all passed. Verification created disposable authentication/empty-user records; it did not create products or call AI, payments or chain uploads.
+- [Deployed-code CI](https://github.com/ChangwooHa47/everyday_sui/actions/runs/34680889944): API 37, web 13, Move 20, typecheck, builds, Docker, Spring and real PostgreSQL integration passed.
+
+The first API build did not complete with the generic cache ID; the previous healthy deployment continued serving. Commit 087f490 uses Railway's required service-scoped cache ID and passed build, deployment and CI. Other Railway services need their own ID, following the [official cache mount format](https://docs.railway.com/builds/dockerfiles#cache-mounts).
+
+Anthropic and Higgsfield keys were already empty in production. Live generation/chat/image-provider calls and operating cost savings remain unverified.

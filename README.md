@@ -2,7 +2,7 @@
 
 AI 캐릭터를 만들고 대화하며, 작가가 설계한 캐릭터의 **개인 사용용 비독점 이용권**을 거래하는 서비스다. 캐릭터 설정은 판매하지만 사용자별 대화·관계·기억은 판매하지 않는다.
 
-기존 Next.js 화면과 Spring 제품 기능을 사용하고, Fastify API가 지갑 인증과 Sui·Walrus·Seal·MemWal 연동을 맡는다. 배포 구성은 web과 통합 api 두 앱 서비스 및 PostgreSQL이다. api 이미지 안에서 Node와 Spring을 함께 실행한다. 기존 운영의 별도 Spring 서비스 전환은 아직 실행하지 않았다.
+기존 Next.js 화면과 Spring 제품 기능을 사용하고, Fastify API가 지갑 인증과 Sui·Walrus·Seal·MemWal 연동을 맡는다. 배포 구성은 web과 통합 api 두 앱 서비스 및 PostgreSQL이다. api 이미지 안에서 Node와 Spring을 함께 실행한다. Railway 운영도 통합 API로 전환했고 별도 Spring 서비스는 제거했다.
 
 ## 문서 안내
 
