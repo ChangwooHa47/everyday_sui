@@ -46,7 +46,8 @@ Spring은 Flyway V1–V11을 everyday schema에 적용하고 Hibernate는 valida
 - [testnet 검증](../contracts/everyday/deployments/testnet-verification.json): 실제 10,000,000 MIST 구매 → 제작자 8,000,000 / 금고 2,000,000. Walrus 보관 등록·재다운로드·Seal operator 및 구매자 복호화·Move 선물 집행 확인.
 - [MemWal 검증](../contracts/everyday/deployments/memory-verification.json): 실제 계정/위임/기억 작업과 새 SDK 인스턴스 recall. 다른 소유자는 거절하고 다른 캐릭터 namespace는 빈 결과. 가상 대화만 사용했다.
 - [API 실연동 검증](../contracts/everyday/deployments/api-verification.json): 두 Origin에서 실제 지갑 서명으로 별도 로그인하고 실제 Sui/Seal 패키지와 본인 MemWal 기억을 동일하게 읽었다. 다른 소유자 거절, 캐릭터 namespace 분리, 기억 활용 중지 후 접근 거절도 확인했다. DB는 별도 PGlite이며 운영 DB 검증과 구분한다.
-- [시드 10명](../contracts/everyday/deployments/market-seed.json): 원래 PNG 자산을 Walrus에 저장하고 가상 성인 캐릭터 10명의 암호화 패키지와 이용권 상품을 실제 testnet에 게시했다. 운영 카탈로그 등록은 별도 배포 단계다.
+- [운영 실연동 검증](../contracts/everyday/deployments/railway-verification.json): 실제 Railway API/private Spring/PostgreSQL에서 가상 전용 계정으로 로그인, Seal 패키지 접근, 이용권 import와 재시도, 타인 캐릭터 접근 거절, 빈 개인 대화, MemWal 검색·소유자·캐릭터 격리를 확인했다. AI/이미지 호출과 브라우저는 제외했다.
+- [시드 10명](../contracts/everyday/deployments/market-seed.json): 원래 PNG 자산을 Walrus에 저장하고 가상 성인 캐릭터 10명의 암호화 패키지와 이용권 상품을 실제 testnet에 게시했다. 운영 카탈로그 등록과 공개 목록 조회도 확인했다.
 - 검증 명령: npm run check:backend, npm run build, npm run test:unit --workspace @everyday/web, Spring test bootJar, node infra/test-spring.mjs.
 - 최종 코드 검사: API 24개, Move 20개, 웹 단위 12개, Spring test/bootJar, 실제 PostgreSQL 통합 검사, web/api/spring Docker 이미지 빌드 통과. PostgreSQL에서는 별도 연결 20개의 전체 한도 경쟁과 6개의 무료 미리보기 경쟁도 검사했다.
 - `npm audit --omit=dev`는 2026-09-12 공개 npm 운영 의존성 취약점 0건을 반환했다. 모든 종류의 취약점 부재를 보장하는 결과는 아니다.
@@ -57,16 +58,18 @@ Spring은 Flyway V1–V11을 everyday schema에 적용하고 Hibernate는 valida
 
 | 우선순위 | 남은 항목 |
 | --- | --- |
-| P0 배포 | private Spring 서비스 `4dabfc2d-7528-4a63-9cec-6ee0579bd7aa`, 배포 `5073cc55-8e2f-41ba-bf77-9168142c33a3`는 DB migration/readiness를 통과했다. Node 연결과 v2 운영 변수도 준비했다. 운영에 Claude/Higgsfield 키가 없어 실제 생성·대화·사진 공급자 왕복은 미검증이다. main 반영은 사용자가 승인했으며 코드 검증과 운영 공급자 검증을 구분해 보고한다. |
+| P0 배포 | 코드 `252cf07`의 web 배포 `6b97a342-3e6b-40e0-9326-73939e4c1fc0`, API `133925e4-2062-4bdf-919e-1d964e2a9a2d`, private Spring `f191a723-148c-4326-873c-dace94295c3e`는 성공했다. DB migration/readiness뿐 아니라 위 실제 운영 API 흐름도 확인했다. 운영에 Claude/Higgsfield 키가 없어 실제 생성·대화·사진 공급자 왕복은 미검증이다. |
 | P0 시연 | 두 Origin의 실제 API 권한/기억 연속성은 검증했다. 브라우저 전체 시연은 사용자 지시로 미실행이다. 두 번째 환경도 기존 웹을 그대로 사용한다. |
 | 상품 | 생성한 가상 few-shot 예시·기존 시나리오를 상품에 포함한다. 별도 작가용 예시/에피소드 편집 UI는 만들지 않았다. 시드 이미지는 Walrus에 있지만 일반 생성 이미지 imageUrl은 아직 공급자 외부 참조다. |
-| 초기 마켓 | 실제 10명 게시, 생성 완료 시 공개 설정 기반 유사 추천, 실제 대화수/재방문율 집계 코드가 있다. 운영 카탈로그 등록 및 운영 데이터 발생 전 집계 검증은 남아 있다. 임의 인기 수치는 사용하지 않는다. |
+| 초기 마켓 | 실제 10명 게시와 운영 카탈로그 등록, 생성 완료 시 공개 설정 기반 유사 추천, 실제 대화수/재방문율 집계 코드가 있다. 집계는 PostgreSQL 가상 대화로 확인했고 운영 대화는 아직 발생시키지 않았다. 임의 인기 수치는 사용하지 않는다. |
 | P1 | 실제 LLM 판단 → 선물 구매 → 상품 제공/채팅 영수증 미완료. 금고 집행은 검증했지만 Spring 구매자 채팅에는 선물 트리거를 붙이지 않았다. 일반 등록 상품은 선물 한도 0이다. |
 | 운영 | 테스트넷도 테스트 SUI 가스를 소비한다. key 복구/교체, 보관 기간 갱신, UpgradeCap 운영 정책, 공급자 과금 계정 유효성은 배포 전 확인해야 한다. |
 
 제작자 80%/캐릭터 금고 20%는 초안이며 기획의 결정 대기 사항이 확정됐다고 취급하지 않는다. `AI_DAILY_LIMIT=50`, `AI_GLOBAL_DAILY_LIMIT=100`은 기본 요청 횟수 한도다. 달러 기준 지출 상한을 보장하지 않으며 한 생성 요청이 여러 사진을 만들 수 있다. 공급자 과금 설정도 별도다. 확장 콘텐츠 공동 정산·재판매 등 명시적 후속 로드맵은 P0 완료 조건에 넣지 않는다.
 
 데모 추론 비용은 플랫폼 공급자 계정이 부담하고 이용권 정산과 분리한다. 토큰 원가 회계·별도 대화 사용료 청구는 구현하지 않았다. 기획의 확장 콘텐츠 공동 판매/정산은 후속 로드맵이며, P1 선물 제공의 미완료와는 구분한다.
+
+배포 검사에서 Windows stdin 전달 시 붙은 UTF-8 BOM과 Spring의 내부 인증 URL 포트 누락을 발견해 변수 값을 수정했다. 현재 운영 변수는 원본과 정확히 대조했고 실제 import까지 다시 통과했다. DB readiness만으로 공급자·내부 서비스 연동 완료를 판단하지 않았다.
 
 ## 공식 대조
 

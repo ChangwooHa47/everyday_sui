@@ -42,10 +42,13 @@ API는 시작 시 실제 Postgres에 연결해 스키마를 적용한 후 listen
 - `SPRING_DATASOURCE_URL=jdbc:postgresql://<Postgres private host>:5432/<database>`
 - `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`: 같은 PostgreSQL의 Railway 변수 참조.
 - `WALLET_AUTH_URL=http://<api private domain>:<api PORT>`, `WEB_ORIGINS`: 공개 web Origin.
+- 현재 API의 Railway 자동 포트는 8080이다. 자동 주입된 `PORT`는 다른 서비스의 `${{everyday_api.PORT}}` 참조에서 빈 값이 될 수 있으므로, 현재 Spring에는 `http://${{everyday_api.RAILWAY_PRIVATE_DOMAIN}}:8080`을 설정하고 해석된 값을 확인했다.
 - `ANTHROPIC_API_KEY`, `HIGGSFIELD_API_KEY`, `HIGGSFIELD_API_SECRET`: 비공개 서비스 변수. 실제 키가 없으면 생성·대화·사진 검증을 완료할 수 없다.
 - Node에 `SPRING_API_URL=http://<spring private domain>:<spring PORT>` 설정. 운영에서 baseline profile을 켜지 않는다.
 - Spring은 시작할 때 Flyway V1–V11을 별도 everyday schema에 적용하고 Hibernate validate를 실행한다. Node의 public schema와 분리한다. 기존 사용자 데이터를 추정해 합치지 않는다.
 - 순서: private Spring 구성/빌드/DB 검사 → 실제 공급자 호출 검증 → API gateway 연결 및 v2 package 설정 → 같은 package ID로 web 재빌드. 공급자 확인 전 공개 서비스 전환을 완료로 보고하지 않는다.
+- 비밀/JSON 변수를 stdin으로 전달할 때 UTF-8 BOM을 붙이지 않는다. 시작 전 실제 해석된 값과 원본을 프로그램 안에서 비교하고, 값 자체를 로그로 남기지 않는다.
+- 서비스별 Watch Paths를 설정했다. web은 apps/web 및 공통 npm/DTO 설정, api는 apps/api/src·tsconfig·공통 npm/DTO 설정, Spring은 apps/api/spring을 감시한다. 각 Dockerfile과 .dockerignore도 포함한다. 문서·공개 검증 기록만 바뀌면 불필요하게 세 서비스를 다시 빌드하지 않는다.
 
 ## 헬스체크와 오류 진단
 
