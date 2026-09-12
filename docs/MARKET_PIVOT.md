@@ -22,15 +22,15 @@ Memory는 사용자별 승인 기억, Agency는 정책 안에서 집행하는 �
 | 영역 | 구현 책임 |
 | --- | --- |
 | 기존 화면·디자인 | `apps/web`: 원래 컴포넌트·토큰·레이아웃을 사용한다. 신규 요소도 기존 디자인 시스템 안에서 보수적으로 결정한다. |
-| 생성·대화·이미지 | `apps/api/spring`: 기존 인터뷰·few-shot 컴파일·일반/에피소드 대화·Higgsfield·포토부스를 재사용한다. |
-| 마켓·인증 | `apps/api/src`: 지갑 서명 세션, 카탈로그, 미리보기 한도, 구매 권한, 패키지 복호화, 개인 기억, Spring gateway |
+| 생성·대화·이미지 | `apps/api/src/product`: 기존 인터뷰·few-shot 컴파일·일반/에피소드 대화·Higgsfield·포토부스를 TypeScript로 이전했다. 기존 DTO·작업 큐·권한과 데이터 경계를 유지한다. |
+| 마켓·인증 | `apps/api/src`: 지갑 서명 세션, 카탈로그, 미리보기 한도, 구매 권한, 패키지 복호화, 개인 기억. 제품 기능과 같은 Node 프로세스에서 실행한다. |
 | 거래·정책 | Sui Move: Creator/Listing/License, 비독점 이용권, 수익 분배, 구매자 접근 및 캐릭터 금고의 지출 정책 |
 | 상품 저장 | Walrus: 암호화된 캐릭터 패키지와 이미지 바이트. Seal: 패키지 접근 제어. 개인 대화 원문을 공개 업로드하지 않는다. |
 | 기억 | MemWal SDK: 사용자 계정·delegate 검증, 승인 항목 저장·검색, 캐릭터별 namespace |
-| DB·공통 계약 | PostgreSQL: Spring `everyday` schema와 Node `public` schema. 공통 API DTO는 `packages/contracts`. |
+| DB·공통 계약 | PostgreSQL의 기존 `everyday`·`public` schema를 단일 API가 사용한다. `apps/api/migrations`의 SQL V1–V11과 기존 적용 이력을 유지한다. 공통 API DTO는 `packages/contracts`. |
 | 로그인 | Slush/zkLogin을 포함한 Sui 서명을 API가 검증한다. 사용자에게는 기존 ‘로그인’ 흐름을 제공하며 성공 후 홈으로 이동한다. |
 
-온체인 이용권을 확인한 뒤 Spring에 구매자별 캐릭터를 생성한다. 상품 설정은 불변 사본이고 개인 대화·에피소드 진행·호칭은 새로 시작한다. DB의 카탈로그나 거래 digest만으로 이용권을 인정하지 않는다.
+온체인 이용권을 확인한 뒤 API가 PostgreSQL에 구매자별 캐릭터를 생성한다. 상품 설정은 불변 사본이고 개인 대화·에피소드 진행·호칭은 새로 시작한다. DB의 카탈로그나 거래 digest만으로 이용권을 인정하지 않는다.
 
 ## 자금·권한·프라이버시 불변 조건
 
@@ -48,13 +48,13 @@ Memory는 사용자별 승인 기억, Agency는 정책 안에서 집행하는 �
 
 | 요구사항 | 2026-09-12 확인 범위 | 남은 작업 |
 | --- | --- | --- |
-| 기존 제작·대화 흐름 | 원래 화면/Spring 복구, 실제 PostgreSQL·인증 gateway 통합 검사 | 운영 Claude/Higgsfield 키 설정과 실제 유료 공급자 호출 검증 |
+| 기존 제작·대화 흐름 | 원래 화면 유지, 제품 기능 TypeScript 이전, 실제 PostgreSQL·지갑 인증 통합 검사. 기존 Spring/Flyway 데이터·이력을 새 Node 컨테이너에서 보존한 로컬 전환 검사 | 새 런타임의 Railway 반영 확인은 배포 리뷰를 따름. 운영 Claude/Higgsfield 키 설정과 실제 유료 공급자 호출 검증 |
 | 구매·접근·정산 | 실제 testnet 구매, 정확한 이용권 확인, 80:20 분배, 운영 API에서 구매자별 import/타인 거절 | 미리보기 AI를 포함한 전체 사용자 시연 |
 | Walrus·Seal | 패키지 업로드·재다운로드·해시·실제 복호화, 시드 이미지 저장 | 일반 생성 이미지의 외부 URL 의존 해소, 보관 갱신 |
 | MemWal·이식성 | 실제 remember/job/recall, 새 SDK 인스턴스와 두 Origin API, 사용자/캐릭터 격리 | 기존 웹을 두 환경에서 실행한 전체 UI 시연. 별도 `/viewer` 화면은 없다. |
 | 로그인 | 과거 실제 Slush zkLogin 인증 기록과 현재 서명/재사용 방지 검사 | 현재 수정본에서 Google 신규 계정부터의 전체 UI는 재검증하지 않음 |
 | 초기 마켓 | 실제 시드 10명 게시·운영 등록, 생성 완료 추천, 대화수·재방문 집계 코드 | 실제 사용자 유료 선택·재방문 가설 검증 |
-| P1 선물 | Move 금고·allowlist·한도 집행은 실제 거래로 확인, Node 실행/복구 코드 | Spring 채팅 트리거·상품 제공/소진·채팅 영수증. 기본 비활성이며 일반 상품 한도 0. |
+| P1 선물 | Move 금고·allowlist·한도 집행은 실제 거래로 확인, 마켓 실행/복구 코드 | 기존 제품 채팅 트리거·상품 제공/소진·채팅 영수증. 기본 비활성이며 일반 상품 한도 0. |
 | 추론 비용 | 이용권 정산과 별도 공급자 계정, 일일 요청 한도 | 토큰 원가 회계·별도 대화료 청구는 미구현 |
 
 증거 파일과 실제 서비스 상태는 [배포 리뷰](../infra/DEPLOYMENT_REVIEW.md)에 모은다. fixture 성공, 포인터 등록, health 200은 실제 AI·저장·정산·기억 왕복의 증거를 대신하지 않는다.

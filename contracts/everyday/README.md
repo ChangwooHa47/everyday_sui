@@ -13,7 +13,7 @@ identity and the creator, operator or recorded buyer.
 
 `character.move` and `vault.move` remain legacy modules. Their transferable Character and
 owner-bound UserVault objects are separate from marketplace licenses; the current app uses
-Spring for private character records and MemWal for approved personal memories.
+the TypeScript API and PostgreSQL for private character records, and MemWal for approved personal memories.
 See [market architecture](../../docs/MARKET_PIVOT.md) for the complete application boundary.
 
 ## Storage boundary

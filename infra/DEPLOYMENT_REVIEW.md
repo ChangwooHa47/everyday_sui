@@ -1,5 +1,7 @@
 # 코드·명세 대조 및 검증 — 2026-09-12
 
+현재 구현은 아래의 **단일 TypeScript 백엔드 전환** 기록을 따른다. 앞부분의 Spring·gateway·Gradle 설명은 이전 배포의 이력을 보존한 것이다.
+
 사용자가 대화에 제공한 **everyday × Blockthon 2026 캐릭터 마켓 피봇 기획**을 기준으로 한다. 이전 문서의 Notion 접근 실패, 임시 personal_characters, testnet 미배포 기록은 현재 상태가 아니다. 프론트, Spring/DB, Node/Move를 별도 에이전트가 검토하고 담당 에이전트가 통합 검증한다. 외부 보안 감사는 아니다.
 
 ## 원본 재사용
@@ -121,3 +123,18 @@ The user authorized the Railway transition. The existing API now runs both Node 
 The first API build did not complete with the generic cache ID; the previous healthy deployment continued serving. Commit 087f490 uses Railway's required service-scoped cache ID and passed build, deployment and CI. Other Railway services need their own ID, following the [official cache mount format](https://docs.railway.com/builds/dockerfiles#cache-mounts).
 
 Anthropic and Higgsfield keys were already empty in production. Live generation/chat/image-provider calls and operating cost savings remain unverified.
+
+## 단일 TypeScript 백엔드 전환
+
+사용자는 기능 추가 없이 백엔드를 한 언어로 통합하고, 불필요한 코드 제거와 변경 전체의 코드 리뷰를 요청했다. Sui·Seal·MemWal의 현재 TypeScript 구현을 유지하고 기존 Spring 제품 기능을 `apps/api/src/product`로 이전했다. 웹 동작·공개 API 경로·DTO·Move 계약·기존 PostgreSQL 스키마와 데이터를 유지한다.
+
+- 생성·인터뷰·컴파일·호칭·프로필·갤러리, 일반 대화·에피소드, 초상·사진 작업·얼굴 학습, 구매자 사본과 개인 기억 연동을 Node 내부 함수로 연결했다.
+- 운영 Spring 소스·Gradle·Java 이미지·gateway·두 프로세스 supervisor와 전용 검사를 제거했다. SQL V1–V11은 바이트를 그대로 보존해 `apps/api/migrations`로 이동했다. `legacy/spring`은 기존 비교 자료이며 npm workspace·배포·CI에 포함되지 않는다.
+- 기존 Flyway checksum과 적용 이력을 검증하고 이미 적용된 SQL을 다시 실행하지 않는다. 새 DB는 동일 SQL로 구성하며 제품 컬럼 검증 실패 시 서버를 열지 않는다. DB 연결 풀은 Node의 최대 10개만 사용한다.
+- 동일 요청의 재사용·불확실한 유료 호출 재실행 금지·사진 포인트 차감/환불·구매자의 설정 변경 금지·개인 기억 격리를 기존 코드와 대조했다. 실제 Java/Jackson으로 확인한 컴파일 요청 hash와 이메일 검증 예시를 회귀 검사에 반영했다.
+- 리뷰에서 발견한 종료 순서 문제를 수정했다. `preClose`에서 작업을 정리한 다음 HTTP 요청 종료와 DB 해제를 진행한다. 20초 안에 작업이 끝나지 않으면 공급자 호출을 취소하고, 정리 실패는 성공 종료로 처리하지 않는다. 프로세스의 기존 35초 종료 제한을 유지한다.
+- PostgreSQL의 날짜/시간을 JavaScript UTC 변환으로 이동시키지 않도록 보존했다. 인증·제품 요청 제한은 동일 요청 안에서만 인증 결과를 재사용하며 이후 요청은 세션을 다시 확인한다.
+
+로컬 검증은 단일 Node 제품 통합 검사, API 단위/회귀 검사, 타입 검사, 웹 13개 테스트 및 전체 앱 빌드를 포함한다. 이전 Spring/Flyway Docker 이미지가 만든 DB를 새 Node 이미지로 열어 전체 제품 테이블 데이터와 migration history가 변하지 않는지 확인했다. 실제 지갑 서명 로그인·제품 조회, DB 중단/복구, 정상 종료/재시작, Node 서버 프로세스 1개와 Java 실행 파일 부재를 검사했다.
+
+독립 리뷰는 캐릭터/이미지와 대화/에피소드 담당을 교차 배정했고, 별도로 인증·이용권·개인 기억·DB 전환·종료 동작을 검토했다. 발견한 종료 순서·날짜 표현·기존 이메일 검증 차이를 수정했다. AI·이미지·마켓 어댑터 fixture 검사는 실제 유료 공급자 호출이나 신규 온체인 거래의 증거가 아니다. 운영 전환 결과와 커밋·CI는 검증 후 아래에 기록한다.

@@ -43,7 +43,7 @@ jobs:
       - run: npm run build
       - run: npm run build:static
       - run: docker build -f infra/Dockerfile.api -t everyday-api:ci .
-  spring-integration:
+  product-integration:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -52,14 +52,12 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - uses: actions/setup-java@v4
-        with:
-          distribution: microsoft
-          java-version: '21'
       - run: npm ci --ignore-scripts
       - run: npm run build --workspace @everyday/contracts
-      - run: chmod +x apps/api/spring/gradlew
-      - name: Test and build current Spring application
-        run: ./apps/api/spring/gradlew -p apps/api/spring test bootJar --no-daemon --max-workers=1
       - name: Verify PostgreSQL migrations and authenticated API flows
-        run: node infra/test-spring.mjs
+        run: node --import tsx infra/test-product.mjs
+      - name: Verify single-process container and graceful shutdown
+        run: |
+          docker build -f infra/Dockerfile.api -t everyday-api:deployment-review .
+          docker build --build-arg NEXT_PUBLIC_API_BASE=https://api.example.com -f infra/Dockerfile.web -t everyday-web:deployment-review .
+          node infra/smoke-deployment.mjs

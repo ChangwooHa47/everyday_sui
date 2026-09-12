@@ -9,11 +9,15 @@ import { hash } from '../src/auth.js';
 import { reserveAiBudget } from '../src/ai-budget.js';
 import { createGiftService, type GiftTransport } from '../src/gifts.js';
 import type { MarketListing } from '@everyday/contracts';
+import { migrateProduct } from '../src/product/migrations.js';
 
-test('one atomic daily cap covers different wallets, Node turns, Spring generation and gift decisions', async t => {
-  const db = new PGlite(); await db.exec(migration);
+test('one atomic daily cap covers different wallets, AI turns, product generation and gift decisions', async t => {
+  const db = new PGlite(); await db.exec(migration); await migrateProduct(db);
   const origin = 'http://127.0.0.1:3000';
-  for (const token of ['a', 'b', 'c', 'd']) await db.query("INSERT INTO wallet_sessions VALUES($1,$2,$3,now()+interval '30 minutes')", [hash(token.repeat(43)), token, origin]);
+  const address = (token: string) => `0x${token.repeat(64)}`;
+  for (const token of ['a', 'b', 'c', 'd']) await db.query("INSERT INTO wallet_sessions VALUES($1,$2,$3,now()+interval '30 minutes')", [hash(token.repeat(43)), address(token), origin]);
+  const owner = (await db.query<{ id: string }>('INSERT INTO everyday.users(wallet_address,points) VALUES($1,1200) RETURNING id', [address('c')])).rows[0].id;
+  await db.query("INSERT INTO everyday.characters(id,user_id,name,relationship_type,gender,system_prompt) VALUES(42,$1,'Fixture','FRIEND','OTHER','Fictional companion')", [owner]);
   let generations = 0;
   const provider = createServer((req, res) => {
     req.resume(); if (req.method === 'POST') generations++;
@@ -22,7 +26,11 @@ test('one atomic daily cap covers different wallets, Node turns, Spring generati
   });
   await new Promise<void>(resolve => provider.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${(provider.address() as { port: number }).port}`;
-  const app = buildApp(false, { db, auth: { origins: [origin], audience: 'test', network: 'testnet' }, springUrl: base,
+  const app = buildApp(false, { db, auth: { origins: [origin], audience: 'test', network: 'testnet' },
+    product: { workers: false, llm: { requireConfigured() {}, async chat(system) {
+      generations++;
+      return system.includes('imagePrompt') ? JSON.stringify({ summary: 'Fixture', appearance: '', personality: '', speechStyles: [], imagePrompt: 'Fictional portrait' }) : 'Fictional greeting';
+    } }, image: { requireConfigured() {}, async generateImages() { throw Error('must not generate images'); }, async trainSoul() { throw Error('must not train'); }, async soulReady() { return false; } } },
     ai: { apiKey: 'fixture', endpoint: `${base}/completion`, model: 'fixture', dailyLimit: 2, globalDailyLimit: 3 } });
   t.after(async () => { await app.close(); await db.close(); await new Promise<void>(resolve => provider.close(() => resolve())); });
   const headers = (token: string) => ({ origin, authorization: `Bearer ${token.repeat(43)}` });
@@ -33,15 +41,15 @@ test('one atomic daily cap covers different wallets, Node turns, Spring generati
   assert.equal((await db.query<{ used: number }>('SELECT used FROM ai_global_daily_budget')).rows[0].used, 2);
   assert.equal((await db.query('SELECT * FROM ai_requests WHERE request_id=$1', [rejectedPayload.requestId])).rows.length, 0);
   const race = await Promise.all([nodeTurn('b'), app.inject({ method: 'POST', url: '/api/characters/42/greeting', headers: headers('c'), payload: {} }),
-    app.inject({ method: 'POST', url: '/api/characters/compile', headers: headers('d'), payload: {} })]);
+    app.inject({ method: 'POST', url: '/api/characters/compile', headers: headers('d'), payload: { requestId: randomUUID(), name: 'Fixture', gender: '기타', relationshipType: '친구', deferPortraitGeneration: true } })]);
   assert.deepEqual(race.map(result => result.statusCode).sort(), [200, 429, 429]);
   assert.equal(generations, 3);
-  assert.equal((await app.inject({ url: '/api/characters/42/messages', headers: headers('a') })).statusCode, 200);
+  assert.equal((await app.inject({ url: '/api/characters/42/messages', headers: headers('c') })).statusCode, 200);
   let giftDecisions = 0, giftSignatures = 0;
   const transport: GiftTransport = { products: async () => [{ id: 'gift', title: 'Gift', priceMist: '1' }],
     prepare: async () => { giftSignatures++; throw Error('must not sign'); }, execute: async () => 'confirmed' };
   const gifts = createGiftService(db, transport, async () => { giftDecisions++; return 'gift'; }, owner => reserveAiBudget(db, owner, 2, 3));
-  await gifts.propose('b', { id: 'listing' } as MarketListing, 'turn', []);
+  await gifts.propose(address('b'), { id: 'listing' } as MarketListing, 'turn', []);
   assert.equal(giftDecisions, 0); assert.equal(giftSignatures, 0);
   assert.equal((await db.query<{ used: number }>('SELECT used FROM ai_global_daily_budget')).rows[0].used, 3);
 });

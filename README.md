@@ -2,7 +2,9 @@
 
 AI 캐릭터를 만들고 대화하며, 작가가 설계한 캐릭터의 **개인 사용용 비독점 이용권**을 거래하는 서비스다. 캐릭터 설정은 판매하지만 사용자별 대화·관계·기억은 판매하지 않는다.
 
-기존 Next.js 화면과 Spring 제품 기능을 사용하고, Fastify API가 지갑 인증과 Sui·Walrus·Seal·MemWal 연동을 맡는다. 배포 구성은 web과 통합 api 두 앱 서비스 및 PostgreSQL이다. api 이미지 안에서 Node와 Spring을 함께 실행한다. Railway 운영도 통합 API로 전환했고 별도 Spring 서비스는 제거했다.
+기존 Next.js 화면과 단일 TypeScript/Fastify 백엔드를 사용한다. API가 생성·대화·사진·사용자 기능과 지갑 인증, Sui·Walrus·Seal·MemWal 연동을 함께 담당한다. 배포 구성은 web과 api 두 앱 서비스 및 PostgreSQL이며, API 이미지에는 Node 실행환경만 포함한다.
+
+현재 코드는 기존 Spring 기능의 TypeScript 이전과 로컬 검증을 마쳤다. 기존 Spring/Flyway DB를 새 Node 이미지로 전환하는 검사에서도 데이터와 migration 이력을 유지했다. Railway의 새 런타임 반영 여부는 [배포 리뷰](infra/DEPLOYMENT_REVIEW.md)의 최신 확인을 따른다.
 
 ## 문서 안내
 
@@ -25,7 +27,7 @@ AI 캐릭터를 만들고 대화하며, 작가가 설계한 캐릭터의 **개�
 
 ## 시작하기
 
-Node 24, npm 11과 Docker를 사용한다. Compose가 PostgreSQL과 Node·Spring을 포함한 통합 백엔드를 실행한다.
+Node 24, npm 11과 Docker를 사용한다. Compose가 PostgreSQL과 Node 백엔드를 실행한다. Java·Gradle은 현재 앱의 실행이나 빌드에 필요하지 않다.
 
 ```powershell
 npm.cmd ci --ignore-scripts
@@ -40,21 +42,22 @@ docker compose --env-file apps/api/.env.local -f infra/compose.yaml up --build
 
 ```powershell
 node infra/check-docs.mjs
-node --test infra/start-backend.test.mjs
 npm.cmd run check:backend
 npm.cmd run test:unit --workspace @everyday/web
 npm.cmd run build
+node --import tsx infra/test-product.mjs
 ```
 
-Spring 변경은 Java 21에서 `apps/api/spring/gradlew.bat -p apps/api/spring test bootJar --no-daemon`도 실행한다. 이후 `node infra/test-spring.mjs`는 별도 Docker PostgreSQL과 실제 인증·gateway로 제품 흐름을 검사한다. AI·이미지 응답은 fixture이며 실제 공급자 왕복을 증명하지 않는다. 추가 검증의 범위는 [실행 가이드](docs/MARKET_RUNBOOK.md)에 있다.
+`test-product.mjs`는 별도 Docker PostgreSQL과 실제 지갑 인증으로 제품 흐름을 검사한다. AI·이미지·마켓 응답은 fixture이며 실제 공급자 왕복을 증명하지 않는다. 단일 Node 컨테이너와 DB 장애·종료 검사는 [실행 가이드](docs/MARKET_RUNBOOK.md)를 따른다.
 
 ## 저장소 구조
 
 | 경로 | 역할 |
 | --- | --- |
 | `apps/web` | 기존 Next.js 제품 화면, 로그인·이용권·개인 기억 클라이언트 |
-| `apps/api/src` | Fastify 인증·마켓·AI 한도·체인/저장/기억 어댑터·Spring gateway |
-| `apps/api/spring` | 기존 생성·대화·에피소드·사진·사용자 기능, JPA/Flyway |
+| `apps/api/src` | Fastify 인증·마켓·AI 한도·체인/저장/기억 어댑터 |
+| `apps/api/src/product` | TypeScript 생성·대화·에피소드·사진·사용자 기능과 작업 큐 |
+| `apps/api/migrations` | 기존 제품 SQL V1–V11. 적용 이력·checksum을 확인하고 기존 데이터를 유지한다. |
 | `packages/contracts` | 웹/API 공통 DTO 타입 |
 | `contracts/everyday` | Move 이용권·정산·캐릭터 금고, 공개 testnet 증거 |
 | `infra` | Docker/Compose, 배포 가이드, 검증 도구 |

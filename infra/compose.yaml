@@ -29,9 +29,6 @@ services:
       DATABASE_URL: postgresql://everyday:${POSTGRES_PASSWORD:-everyday-local-only}@postgres:5432/everyday
       WEB_ORIGINS: ${WEB_ORIGINS:-http://127.0.0.1:3000,http://127.0.0.1:3002}
       API_AUDIENCE: ${API_AUDIENCE:-http://127.0.0.1:3001}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/everyday
-      SPRING_DATASOURCE_USERNAME: everyday
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-everyday-local-only}
       HIGGSFIELD_API_KEY: ${HIGGSFIELD_API_KEY:-}
       HIGGSFIELD_API_SECRET: ${HIGGSFIELD_API_SECRET:-}
       HIGGSFIELD_BASE_URL: ${HIGGSFIELD_BASE_URL:-https://platform.higgsfield.ai}
@@ -62,6 +59,6 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
-      start_period: 90s
+      start_period: 30s
 volumes:
   postgres-data:

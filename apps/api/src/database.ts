@@ -1,5 +1,10 @@
 import pg from 'pg';
 
+// Product DATE/LocalDateTime values have no timezone. Preserve calendar values and
+// PostgreSQL microseconds instead of converting them through JavaScript Date.
+pg.types.setTypeParser(1082, value => value);
+pg.types.setTypeParser(1114, value => value);
+
 export interface Database {
   query<T extends Record<string, unknown> = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
 }
