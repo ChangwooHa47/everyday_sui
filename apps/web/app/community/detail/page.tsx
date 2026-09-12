@@ -111,8 +111,10 @@ function MarketCharacterDetail() {
 
           {character.relationshipType && (
             <div style={{ marginTop: 24 }}>
-              <h2 className="label1" style={{ margin: "0 0 8px" }}>원하는 관계</h2>
-              <p className="body2" style={{ margin: 0, color: "var(--gray-700)" }}>{character.relationshipType}</p>
+              <h2 className="label1" style={{ margin: "0 0 10px" }}>원하는 관계</h2>
+              <div className="chip-row">
+                <span className="chip">{character.relationshipType}</span>
+              </div>
             </div>
           )}
 
