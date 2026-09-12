@@ -1,7 +1,7 @@
 {
   "network": "testnet",
   "packageId": "0x3ff2bfc626a8b26ca76eb13045009f642103a7a623188794f5b534882d210023",
-  "note": "Fictional seed characters using original image assets. Onchain publications; API catalog registration is separate.",
+  "note": "Seed profiles using original image assets. Onchain publications; API catalog registration is separate.",
   "listings": [
     {
       "listingId": "0x613f640927593391837c505f40547417454200652307b2b878828a4da2acd0aa",

@@ -22,7 +22,8 @@ test('P0 preview to purchase, server persona, consented memories and second-orig
     package: { blobId: 'a'.repeat(43), contentHash: '0'.repeat(64), endEpoch: '2000' },
     policy: { perGiftLimitMist: '100', dailyLimitMist: '200', allowedGiftIds: [] } };
   const content = packageSchema.parse({ schemaVersion: 1, network: 'testnet', packageId: id('0x99'), listingId: listing.id,
-    character: { name: 'Fixture', personality: '첫 문장입니다. 두 번째 문장입니다. 숨길 세 번째 문장입니다.', appearance: '단정한 인상입니다.', speechStyles: ['짧은 답장', '차분한 말투'] },
+    character: { name: 'Fixture', personality: '첫 문장입니다. 두 번째 문장입니다. 숨길 세 번째 문장입니다.', appearance: '단정한 인상입니다.',
+      background: '성인 가상 캐릭터. 관심사: 기타와 공연.', relationshipType: '연인', speechStyles: ['짧은 답장', '차분한 말투'] },
     preview: { name: 'Fixture', personality: 'PUBLIC_PREVIEW_PERSONA' },
     examples: [{ role: 'assistant', content: 'PAID_EXAMPLE' }] });
   const providerInputs: string[] = [];
@@ -62,6 +63,10 @@ test('P0 preview to purchase, server persona, consented memories and second-orig
   assert.equal(publicPreview.statusCode, 200);
   assert.equal(publicPreview.json().character.personality, '첫 문장입니다. 두 번째 문장입니다.');
   assert.equal(publicPreview.json().character.appearance, '단정한 인상입니다.');
+  assert.equal(publicPreview.json().character.interests, '기타와 공연');
+  assert.equal(publicPreview.json().character.background, undefined);
+  assert.equal(publicPreview.json().character.relationshipType, '연인');
+  assert.equal(publicPreview.body.includes('가상 캐릭터'), false);
   assert.deepEqual(publicPreview.json().character.speechStyles, ['짧은 답장', '차분한 말투']);
   assert.ok(!publicPreview.body.includes('숨길 세 번째 문장') && !publicPreview.body.includes('PAID_EXAMPLE'));
   for (const forbidden of [{ useMemory: true }, { episodeId: 'private-episode' }]) {

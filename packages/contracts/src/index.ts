@@ -62,6 +62,7 @@ export interface ProductCharacter {
   summary?: string;
   appearance?: string;
   background?: string;
+  interests?: string;
   speechStyles?: string[];
   imageUrl?: string;
 }

@@ -16,7 +16,7 @@
 | [verify-market-testnet.mjs](verify-market-testnet.mjs) | 실제 거래·유료 저장·기억 검증. `--execute` 필수이며 일반 회귀 테스트에 포함하지 않는다. |
 | [verify-market-api.mjs](verify-market-api.mjs) | 별도 PGlite와 실제 Sui/Seal/MemWal 조회를 두 Origin에서 확인. 기존 전용 계정/검증 데이터가 필요하다. |
 | [register-market-seed.mjs](register-market-seed.mjs) | 이미 게시된 시드 상품을 지정 API 카탈로그에 등록. `--execute`로 DB를 변경하며 새 결제·업로드는 하지 않는다. |
-| [market-seed.json](market-seed.json) | 원래 이미지 자산을 사용하는 가상 성인 캐릭터 10명의 작가 설정 |
+| [market-seed.json](market-seed.json) | 원래 이미지 자산을 사용하는 시드 캐릭터 10명의 작가 설정 |
 
 Compose의 기본 DB 암호는 로컬 개발용이다. 운영 키는 서비스 비밀 변수에 두고, 개인 키·서명·복구 상태는 공개 기록에 넣지 않는다. PostgreSQL은 named volume을 사용하므로 데이터 삭제 목적이 아니면 `down --volumes`를 실행하지 않는다.
 

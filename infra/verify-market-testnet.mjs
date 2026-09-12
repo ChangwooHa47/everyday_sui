@@ -197,7 +197,7 @@ if (process.argv.includes('--seed-market')) {
     const imageUrl = `${aggregator}/v1/blobs/${imageRef.blobId}`;
     const data = { schemaVersion: 1, network: 'testnet', packageId: pkg, listingId: seededId,
       character: { name: seed.name, personality: seed.personality, summary: seed.summary, speechStyles: [seed.style], imageUrl,
-        background: `성인 가상 캐릭터. 관심사: ${seed.interest}.` },
+        background: `관심사: ${seed.interest}.` },
       preview: { name: seed.name, personality: seed.summary, summary: seed.summary, imageUrl },
       examples: [{ role: 'user', content: '오늘 조금 지쳤어.' }, { role: 'assistant', content: '많이 애썼겠다. 무슨 일이 있었는지 천천히 말해줘.' },
         { role: 'user', content: '좋아하는 게 있어?' }, { role: 'assistant', content: `${seed.interest}에 관심이 있어. 너는 어떤 걸 좋아해?` }],

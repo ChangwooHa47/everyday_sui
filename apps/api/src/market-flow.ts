@@ -40,19 +40,28 @@ export function registerMarketFlow(app: FastifyInstance, db: Database, auth: Aut
     const listing = await current.chain.listing(listingId);
     if (!listing.active || !listing.published) throw failure(409, 'LISTING_NOT_LIVE');
     const source = await current.packages.load(listing);
+    const cleanProfileText = (value?: string) => value
+      ?.replace(/(?:성인\s*가상|가상\s*성인)\s*캐릭터[.。]?\s*/g, '')
+      .replace(/(?:가상|AI|인공지능)\s*캐릭터[.。]?\s*/gi, '')
+      .trim();
     const concise = (value?: string) => {
+      value = cleanProfileText(value);
       if (!value) return undefined;
       const sentences = value.trim().split(/(?<=[.!?。！？])\s+/).slice(0, 2).join(' ');
       return sentences.length > 180 ? `${sentences.slice(0, 177).trimEnd()}…` : sentences;
     };
     const summary = concise(source.character.summary ?? source.preview.summary);
     const appearance = concise(source.character.appearance);
-    const background = concise(source.character.background);
+    const rawBackground = cleanProfileText(source.character.background);
+    const interestMatch = rawBackground?.match(/^관심사:\s*(.+?)[.。]?$/);
+    const interests = interestMatch?.[1]?.trim();
+    const background = interests ? undefined : concise(rawBackground);
     return { listing, character: {
       name: source.preview.name,
-      personality: concise(source.character.personality) ?? source.preview.personality,
+      personality: concise(source.character.personality) ?? concise(source.preview.personality) ?? '',
       ...(summary ? { summary } : {}), ...(appearance ? { appearance } : {}), ...(background ? { background } : {}),
-      ...(source.character.speechStyles?.length ? { speechStyles: source.character.speechStyles.slice(0, 5) } : {}),
+      ...(interests ? { interests } : {}),
+      ...(source.character.speechStyles?.length ? { speechStyles: source.character.speechStyles.map(cleanProfileText).filter((value): value is string => Boolean(value)).slice(0, 5) } : {}),
       ...(source.character.gender ? { gender: source.character.gender } : {}),
       ...(source.character.relationshipType ? { relationshipType: source.character.relationshipType } : {}),
       ...(source.preview.imageUrl ? { imageUrl: source.preview.imageUrl } : {}),

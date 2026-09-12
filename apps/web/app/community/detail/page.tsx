@@ -16,13 +16,13 @@ function MarketCharacterDetail() {
   useEffect(() => {
     let active = true;
     if (!listingId) {
-      setError("캐릭터 정보를 찾을 수 없어요.");
+      setError("프로필을 찾을 수 없어요.");
       return () => { active = false; };
     }
     void market.preview(listingId)
       .then((result) => { if (active) setPreview(result); })
       .catch((reason) => {
-        if (active) setError(reason instanceof Error ? reason.message : "캐릭터 정보를 불러오지 못했어요.");
+        if (active) setError(reason instanceof Error ? reason.message : "프로필을 불러오지 못했어요.");
       });
     return () => { active = false; };
   }, [listingId]);
@@ -34,7 +34,7 @@ function MarketCharacterDetail() {
           <button className="nav-btn nav-prev" onClick={() => router.back()} aria-label="이전">
             <Icon name="chevron-left" size={24} />
           </button>
-          <span className="headline1">캐릭터 정보</span>
+          <span className="headline1">프로필</span>
           <span style={{ width: 24 }} />
         </header>
         <div className="body2" role="alert" style={{ flex: 1, display: "grid", placeItems: "center", padding: 24, color: "var(--gray-500)", textAlign: "center" }}>
@@ -54,7 +54,7 @@ function MarketCharacterDetail() {
         <button className="nav-btn nav-prev" onClick={() => router.back()} aria-label="이전">
           <Icon name="chevron-left" size={24} />
         </button>
-        <span className="headline1">캐릭터 정보</span>
+        <span className="headline1">프로필</span>
         <span style={{ width: 24 }} />
       </header>
 
@@ -89,26 +89,36 @@ function MarketCharacterDetail() {
           </div>
 
           {character.summary && (
-            <p className="body1" style={{ margin: "20px 0 0", color: "var(--gray-700)" }}>{character.summary}</p>
+            <div style={{ marginTop: 20 }}>
+              <h2 className="label1" style={{ margin: "0 0 8px" }}>한 줄 소개</h2>
+              <p className="body1" style={{ margin: 0, color: "var(--gray-700)" }}>{character.summary}</p>
+            </div>
           )}
 
           {character.background && (
             <div style={{ marginTop: 28 }}>
-              <h2 className="label1" style={{ margin: "0 0 8px" }}>평소에는</h2>
+              <h2 className="label1" style={{ margin: "0 0 8px" }}>나에 대해</h2>
               <p className="body2" style={{ margin: 0, color: "var(--gray-700)", whiteSpace: "pre-wrap" }}>{character.background}</p>
+            </div>
+          )}
+
+          {character.interests && (
+            <div style={{ marginTop: 28 }}>
+              <h2 className="label1" style={{ margin: "0 0 8px" }}>요즘 빠진 것</h2>
+              <p className="body2" style={{ margin: 0, color: "var(--gray-700)" }}>{character.interests}</p>
             </div>
           )}
 
           {character.relationshipType && (
             <div style={{ marginTop: 24 }}>
-              <h2 className="label1" style={{ margin: "0 0 8px" }}>우리 관계</h2>
+              <h2 className="label1" style={{ margin: "0 0 8px" }}>원하는 관계</h2>
               <p className="body2" style={{ margin: 0, color: "var(--gray-700)" }}>{character.relationshipType}</p>
             </div>
           )}
 
           {character.personality && (
             <div style={{ marginTop: 28 }}>
-              <h2 className="label1" style={{ margin: "0 0 8px" }}>알아갈수록</h2>
+              <h2 className="label1" style={{ margin: "0 0 8px" }}>이런 사람이에요</h2>
               <p className="body2" style={{ margin: 0, color: "var(--gray-700)", whiteSpace: "pre-wrap" }}>{character.personality}</p>
             </div>
           )}
@@ -122,7 +132,7 @@ function MarketCharacterDetail() {
 
           {character.speechStyles && character.speechStyles.length > 0 && (
             <div style={{ marginTop: 24 }}>
-              <h2 className="label1" style={{ margin: "0 0 10px" }}>대화할 때 나는</h2>
+              <h2 className="label1" style={{ margin: "0 0 10px" }}>대화 스타일</h2>
               <div className="chip-row">
                 {character.speechStyles.map((style) => <span className="chip" key={style}>{style}</span>)}
               </div>

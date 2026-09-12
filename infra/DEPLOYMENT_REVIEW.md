@@ -49,7 +49,7 @@ Spring은 Flyway V1–V11을 everyday schema에 적용하고 Hibernate는 valida
 - [MemWal 검증](../contracts/everyday/deployments/memory-verification.json): 실제 계정/위임/기억 작업과 새 SDK 인스턴스 recall. 다른 소유자는 거절하고 다른 캐릭터 namespace는 빈 결과. 가상 대화만 사용했다.
 - [API 실연동 검증](../contracts/everyday/deployments/api-verification.json): 두 Origin에서 실제 지갑 서명으로 별도 로그인하고 실제 Sui/Seal 패키지와 본인 MemWal 기억을 동일하게 읽었다. 다른 소유자 거절, 캐릭터 namespace 분리, 기억 활용 중지 후 접근 거절도 확인했다. DB는 별도 PGlite이며 운영 DB 검증과 구분한다.
 - [운영 실연동 검증](../contracts/everyday/deployments/railway-verification.json): 실제 Railway API/private Spring/PostgreSQL에서 가상 전용 계정으로 로그인, Seal 패키지 접근, 이용권 import와 재시도, 타인 캐릭터 접근 거절, 빈 개인 대화, MemWal 검색·소유자·캐릭터 격리를 확인했다. AI/이미지 호출과 브라우저는 제외했다.
-- [시드 10명](../contracts/everyday/deployments/market-seed.json): 원래 PNG 자산을 Walrus에 저장하고 가상 성인 캐릭터 10명의 암호화 패키지와 이용권 상품을 실제 testnet에 게시했다. 운영 카탈로그 등록과 공개 목록 조회도 확인했다.
+- [시드 10명](../contracts/everyday/deployments/market-seed.json): 원래 PNG 자산을 Walrus에 저장하고 시드 캐릭터 10명의 암호화 패키지와 이용권 상품을 실제 testnet에 게시했다. 운영 카탈로그 등록과 공개 목록 조회도 확인했다.
 - 검증 명령: npm run check:backend, npm run build, npm run test:unit --workspace @everyday/web, Spring test bootJar, node infra/test-spring.mjs.
 - 최종 코드 검사: API 24개, Move 20개, 웹 단위 12개, Spring test/bootJar, 실제 PostgreSQL 통합 검사, web/api/spring Docker 이미지 빌드 통과. PostgreSQL에서는 별도 연결 20개의 전체 한도 경쟁과 6개의 무료 미리보기 경쟁도 검사했다.
 - `npm audit --omit=dev`는 2026-09-12 공개 npm 운영 의존성 취약점 0건을 반환했다. 모든 종류의 취약점 부재를 보장하는 결과는 아니다.
