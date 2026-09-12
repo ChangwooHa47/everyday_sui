@@ -16,8 +16,9 @@ export async function requireMarketAccess(chain: MarketChain, actor: string, lis
   if (listing.creator !== actor && !(licenseId && await chain.hasLicense(actor, listingId, licenseId))) throw failure(403, 'LICENSE_REQUIRED');
   return listing;
 }
-export function registerMarket(app: FastifyInstance, db: Database, auth: AuthConfig, configured?: MarketChain, packages?: PackageStore, productMetrics = false) {
+export function registerMarket(app: FastifyInstance, db: Database, auth: AuthConfig, configured?: MarketChain, packages?: PackageStore, productMetrics = false, configuredGifts?: MarketChain) {
   const chain = () => { if (!configured) throw failure(503, 'MARKET_NOT_CONFIGURED'); return configured; };
+  const giftChain = () => { const service = configuredGifts ?? configured; if (!service) throw failure(503, 'NFT_GIFTS_NOT_CONFIGURED'); return service; };
   app.post('/v1/market/listings', async req => {
     const actor = await authenticate(req, db, auth);
     const { listingId } = paramsSchema.strict().parse(req.body);
@@ -57,14 +58,14 @@ export function registerMarket(app: FastifyInstance, db: Database, auth: AuthCon
     return { listing: await chain().listing(listingId) };
   });
   app.get('/v1/nft-gifts', async () => {
-    const service = chain();
+    const service = giftChain();
     const ids = service.nftGiftProductIds ?? [];
     if (!service.nftGiftProducts) throw failure(503, 'NFT_GIFTS_NOT_CONFIGURED');
     return { gifts: await service.nftGiftProducts(ids) };
   });
   app.get('/v1/nft-gifts/:productId', async req => {
     const { productId } = giftParamsSchema.parse(req.params);
-    const service = chain();
+    const service = giftChain();
     if (!(service.nftGiftProductIds ?? []).includes(productId)) throw failure(404, 'NFT_GIFT_NOT_FOUND');
     if (!service.nftGiftProduct) throw failure(503, 'NFT_GIFTS_NOT_CONFIGURED');
     return { gift: await service.nftGiftProduct(productId) };
@@ -73,7 +74,7 @@ export function registerMarket(app: FastifyInstance, db: Database, auth: AuthCon
     const actor = await authenticate(req, db, auth);
     const { productId } = giftParamsSchema.parse(req.params);
     z.object({}).strict().parse(req.body ?? {});
-    const service = chain();
+    const service = giftChain();
     if (!(service.nftGiftProductIds ?? []).includes(productId)) throw failure(404, 'NFT_GIFT_NOT_FOUND');
     if (!service.nftGiftProduct) throw failure(503, 'NFT_GIFTS_NOT_CONFIGURED');
     const gift = await service.nftGiftProduct(productId);
@@ -86,7 +87,7 @@ export function registerMarket(app: FastifyInstance, db: Database, auth: AuthCon
   });
   app.get('/v1/me/nft-gifts', async req => {
     const actor = await authenticate(req, db, auth);
-    const service = chain();
+    const service = giftChain();
     if (!service.ownedNftGifts) throw failure(503, 'NFT_GIFTS_NOT_CONFIGURED');
     return { gifts: await service.ownedNftGifts(actor) };
   });

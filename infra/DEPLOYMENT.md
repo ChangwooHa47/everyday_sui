@@ -77,6 +77,7 @@ API는 시작 시 실제 Postgres에 연결해 `public` schema의 멱등 DDL과 
 API/웹 호스팅 성공과 온체인 결제 성공은 별도 검증이다.
 
 - testnet에 실제 배포한 package ID를 api의 `SUI_MARKET_PACKAGE_ID`와 web의 `NEXT_PUBLIC_SUI_PACKAGE_ID`에 동일하게 설정한다.
+- testnet에서 NFT 계약을 별도 package로 검증하는 동안에는 api의 `NFT_GIFT_PACKAGE_ID`와 `NFT_GIFT_PRODUCT_IDS`만 새 NFT 배포값으로 설정한다. 기존 캐릭터 Listing·기억을 유지하려면 `SUI_MARKET_PACKAGE_ID`와 web package ID를 바꾸지 않는다.
 - 마켓 AI는 api의 `ANTHROPIC_API_KEY`로 기존 Claude 계정을 재사용할 수 있다. 별도 OpenAI 호환 공급자를 쓸 때만 `AI_ENDPOINT`, `AI_MODEL`, `AI_API_KEY` 세 변수를 함께 설정한다.
 - `AI_DAILY_LIMIT` 기본 50, `AI_GLOBAL_DAILY_LIMIT` 기본 100은 사용자별/서버 전체 일일 요청 한도다. 제품·마켓·선물 판단에 같은 DB 예약 함수를 사용한다. 요청 수 제한이며 공급자 청구액 상한은 아니다. 읽기 요청은 AI를 생성하지 않고 첫 인사는 별도 제한된 POST 요청이다.
 - Seal/Walrus/operator 및 MemWal의 필수 변수 그룹은 [API 환경 예시](../apps/api/.env.example)와 [마켓 실행 가이드](../docs/MARKET_RUNBOOK.md)를 따른다.

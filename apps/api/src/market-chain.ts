@@ -172,3 +172,12 @@ export function marketChainFromEnv(env: NodeJS.ProcessEnv = process.env): Market
   const giftIds = (env.NFT_GIFT_PRODUCT_IDS ?? '').split(',').map(value => value.trim()).filter(Boolean);
   return createMarketChain(env.SUI_MARKET_PACKAGE_ID, new SuiGrpcClient({ network: 'testnet', baseUrl }), giftIds);
 }
+
+/** Optional NFT catalog package, kept separate while testnet character listings remain on the prior package. */
+export function nftGiftChainFromEnv(env: NodeJS.ProcessEnv = process.env): MarketChain | undefined {
+  if (!env.NFT_GIFT_PACKAGE_ID) return undefined;
+  const baseUrl = env.SUI_GRPC_URL ?? 'https://fullnode.testnet.sui.io:443';
+  if (new URL(baseUrl).protocol !== 'https:') throw Error('SUI_GRPC_URL must use HTTPS');
+  const giftIds = (env.NFT_GIFT_PRODUCT_IDS ?? '').split(',').map(value => value.trim()).filter(Boolean);
+  return createMarketChain(env.NFT_GIFT_PACKAGE_ID, new SuiGrpcClient({ network: 'testnet', baseUrl }), giftIds);
+}

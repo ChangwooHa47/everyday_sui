@@ -87,8 +87,9 @@ test('NFT gift catalog builds exact wallet purchase and exposes only authenticat
     imageHash: '00'.repeat(32), merchant: id('0xd'), priceMist: '10000001', maxSupply: '10', minted: '1', active: true };
   const owned = [{ id: id('0x41'), productId, title: gift.title, description: gift.description,
     imageUrl: gift.imageUrl, imageHash: gift.imageHash, edition: '1' }];
-  const app = buildApp(false, { db, auth, market: { packageId: id('0x99'), nftGiftProductIds: [productId],
-    listing: async () => listing, hasLicense: async () => false, nftGiftProduct: async () => gift,
+  const giftPackage = id('0x97');
+  const app = buildApp(false, { db, auth, market: { packageId: id('0x99'), listing: async () => listing, hasLicense: async () => false },
+    giftMarket: { packageId: giftPackage, nftGiftProductIds: [productId], listing: async () => { throw Error('gift package has no character catalog'); }, hasLicense: async () => false, nftGiftProduct: async () => gift,
     nftGiftProducts: async ids => ids.map(() => gift), ownedNftGifts: async actor => actor === buyer ? owned : [] } });
   t.after(async () => { await app.close(); await db.close(); });
   assert.deepEqual((await app.inject('/v1/nft-gifts')).json().gifts, [gift]);
@@ -98,6 +99,7 @@ test('NFT gift catalog builds exact wallet purchase and exposes only authenticat
   assert.equal(purchase.statusCode, 200);
   const tx = Transaction.from(purchase.json().transaction).getData();
   assert.equal(tx.sender, buyer);
+  assert.equal(tx.commands[1].MoveCall?.package, giftPackage);
   assert.equal(tx.commands[1].MoveCall?.function, 'purchase_nft_gift');
   assert.equal(purchase.json().priceMist, gift.priceMist);
   assert.equal((await app.inject({ url: '/v1/me/nft-gifts', headers: { origin } })).statusCode, 401);
