@@ -101,6 +101,75 @@ export default function Home() {
   }
   if (!chars) return null;
 
+  if (chars.length === 0) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100dvh",
+          background: "linear-gradient(180deg, var(--orange-50) 0%, #fffdf7 55%, var(--orange-100) 100%)",
+        }}
+      >
+        <header className="topbar">
+          <span className="logo" style={{ fontSize: 22, color: "var(--gray-800)" }}>
+            everyday
+          </span>
+          <Icon name="bell" size={22} style={{ color: "var(--gray-700)" }} />
+        </header>
+
+        <main
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            alignItems: "center",
+            padding: "20px",
+          }}
+        >
+          <section
+            style={{
+              width: "100%",
+              padding: "36px 24px 24px",
+              borderRadius: 24,
+              background: "rgba(255,255,255,0.82)",
+              border: "1px solid var(--orange-200)",
+              boxShadow: "0 12px 36px rgba(82, 64, 42, 0.08)",
+              textAlign: "center",
+            }}
+          >
+            <div
+              aria-hidden
+              style={{
+                width: 72,
+                height: 72,
+                margin: "0 auto 24px",
+                borderRadius: 24,
+                display: "grid",
+                placeItems: "center",
+                color: "var(--gray-800)",
+                background: "var(--orange-100)",
+              }}
+            >
+              <Icon name="plus" size={34} />
+            </div>
+            <h1 className="h2" style={{ margin: 0 }}>
+              첫 캐릭터를 만들어보세요
+            </h1>
+            <p className="body2" style={{ margin: "12px 0 28px", color: "var(--gray-600)" }}>
+              원하는 관계와 성격을 알려주면<br />나만의 캐릭터를 함께 만들어요.
+            </p>
+            <Link href="/create?new=1" className="cta" style={{ display: "block", textDecoration: "none" }}>
+              새 캐릭터 만들기
+            </Link>
+          </section>
+        </main>
+
+        <BottomNav active="home" />
+      </div>
+    );
+  }
+
   const divider = (
     <span style={{ opacity: 0.45, margin: "0 8px", fontWeight: 400 }}>|</span>
   );

@@ -13,7 +13,7 @@ test('market prices preserve a single MIST and u64 maximum without floating poin
   assert.equal(priceToMist('0.000000001'), '1');
   assert.equal(priceToMist('18446744073.709551615'), '18446744073709551615');
   for (const value of ['0', '-1', '1e3', '01', '0.0000000001', '18446744073.709551616']) assert.throws(() => priceToMist(value));
-  assert.equal(formatPrice('18446744073709551615'), '18446744073.709551615 테스트 SUI');
+  assert.equal(formatPrice('18446744073709551615'), '18446744073.709551615 SUI');
 });
 
 test('active character selection is isolated between authenticated wallet accounts', () => {

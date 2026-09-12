@@ -8,7 +8,7 @@ import { apiUrl, requirePackage } from './web3/config';
 
 export function formatPrice(mist: string) {
   const value = BigInt(mist); const fraction = (value % 1_000_000_000n).toString().padStart(9, '0').replace(/0+$/, '');
-  return `${value / 1_000_000_000n}${fraction ? `.${fraction}` : ''} 테스트 SUI`;
+  return `${value / 1_000_000_000n}${fraction ? `.${fraction}` : ''} SUI`;
 }
 
 /** Deterministic text similarity over authored settings; no personal conversations are submitted. */

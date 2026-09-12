@@ -198,7 +198,7 @@ function ChatInner() {
       <header className="topbar" style={{ borderBottom: "1px solid var(--gray-100)" }}>
         <button
           className="nav-btn nav-prev"
-          onClick={() => router.push(preview ? '/community' : episodeId ? "/episode" : "/home")}
+          onClick={() => router.push(preview ? `/community/${preview.listing.id}` : episodeId ? "/episode" : "/home")}
         >
           <Icon name="chevron-left" size={24} />
         </button>

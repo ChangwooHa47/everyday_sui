@@ -358,7 +358,7 @@ export default function CharacterPage() {
               {!char.readOnlySettings && <section style={{ marginTop: 24 }}>
                 <button className="cp-btnGhost" type="button" onClick={() => setShowPublish(v => !v)}>마켓에 등록</button>
                 {showPublish && <div className="cp-callBox">
-                  <label className="label1" htmlFor="publish-price">판매 가격 (테스트 SUI)</label>
+                  <label className="label1" htmlFor="publish-price">판매 가격 (SUI)</label>
                   <input id="publish-price" className="input" inputMode="decimal" value={publishPrice}
                     onChange={e => setPublishPrice(e.target.value)} disabled={publishing} />
                   <p className="caption">개인 이용권 · 제작자 80% / 캐릭터 20%</p>

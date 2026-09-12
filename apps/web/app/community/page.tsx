@@ -67,8 +67,8 @@ export default function CommunityPage() {
             <div
               key={c.key}
               role="link" tabIndex={0}
-              onClick={() => router.push(`/chat?listing=${c.key}`)}
-              onKeyDown={e => { if (e.key === "Enter") router.push(`/chat?listing=${c.key}`); }}
+              onClick={() => router.push(`/community/${c.key}`)}
+              onKeyDown={e => { if (e.key === "Enter") router.push(`/community/${c.key}`); }}
               style={{
                 flexShrink: 0,
                 width: 132,
@@ -105,7 +105,20 @@ export default function CommunityPage() {
                   gap: 6,
                 }}
               >
-                <span style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>{c.name}</span>
+                <span
+                  title={c.name}
+                  style={{
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    color: "#fff",
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
+                  {c.name}
+                </span>
                 <span
                   className="point-badge"
                   style={{ padding: "3px 8px", fontSize: 11 }}
@@ -135,8 +148,8 @@ export default function CommunityPage() {
             <div
               key={p.id}
               role="link" tabIndex={0}
-              onClick={() => router.push(`/chat?listing=${p.id}`)}
-              onKeyDown={e => { if (e.key === "Enter") router.push(`/chat?listing=${p.id}`); }}
+              onClick={() => router.push(`/community/${p.id}`)}
+              onKeyDown={e => { if (e.key === "Enter") router.push(`/community/${p.id}`); }}
               style={{
                 borderRadius: 14,
                 padding: "14px 14px 16px",
