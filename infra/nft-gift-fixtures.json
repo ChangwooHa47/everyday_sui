@@ -1,28 +1,28 @@
 [
   {
-    "key": "warm-heart",
-    "title": "따뜻한 마음",
-    "description": "마음을 전하는 첫 번째 테스트 NFT 선물",
-    "imagePath": "/gifts/warm-heart.svg",
-    "imageSha256": "546ec914e9ccf1dfa265ce10e8ba151fc1064c5e9713ab1931f392267080491d",
+    "key": "warm-cafe-latte",
+    "title": "따뜻한 카페라테",
+    "description": "잠깐 쉬어가라는 마음을 담은 Everyday Gifts 에디션 작품",
+    "imagePath": "/gifts/warm-cafe-latte.webp",
+    "imageSha256": "651b718bd3d4d67a3d907fdf9a07e988516a7f8ecc4f148499cc97cb4c92751b",
     "priceMist": "10000000",
     "maxSupply": "100"
   },
   {
-    "key": "star-letter",
-    "title": "별빛 편지",
-    "description": "기억에 남는 말을 담는 테스트 NFT 선물",
-    "imagePath": "/gifts/star-letter.svg",
-    "imageSha256": "03712f7e36256dd96827c347cc6c843673409a7153018a5edb5b36d691b7de23",
+    "key": "yellow-tulip-bouquet",
+    "title": "노란 튤립 꽃다발",
+    "description": "새로운 시작과 응원을 전하는 Everyday Gifts 에디션 작품",
+    "imagePath": "/gifts/yellow-tulip-bouquet.webp",
+    "imageSha256": "12436dca5c5571696187fd100dd7055b2e1b3975af0507476930d15fc85b701a",
     "priceMist": "20000000",
     "maxSupply": "50"
   },
   {
-    "key": "sunny-bouquet",
-    "title": "햇살 꽃다발",
-    "description": "응원하는 순간을 위한 테스트 NFT 선물",
-    "imagePath": "/gifts/sunny-bouquet.svg",
-    "imageSha256": "0d61c0ab06326cfc5b7d77a185116cff8372296ebf13e2f5b908e470cb9658e1",
+    "key": "strawberry-birthday-cake",
+    "title": "딸기 생일 케이크",
+    "description": "생일과 특별한 날을 축하하는 Everyday Gifts 에디션 작품",
+    "imagePath": "/gifts/strawberry-birthday-cake.webp",
+    "imageSha256": "fbe2343acf1e026bdc604a6e360973b409d44456b7cc5cb34ceb6ca6dd80e77a",
     "priceMist": "30000000",
     "maxSupply": "30"
   }
