@@ -130,38 +130,48 @@ export default function Home() {
           <section
             style={{
               width: "100%",
-              padding: "36px 24px 24px",
               borderRadius: 24,
               background: "rgba(255,255,255,0.82)",
               border: "1px solid var(--orange-200)",
               boxShadow: "0 12px 36px rgba(82, 64, 42, 0.08)",
               textAlign: "center",
+              overflow: "hidden",
             }}
           >
             <div
               aria-hidden
               style={{
-                width: 72,
-                height: 72,
-                margin: "0 auto 24px",
-                borderRadius: 24,
-                display: "grid",
-                placeItems: "center",
-                color: "var(--gray-800)",
+                position: "relative",
+                height: 220,
                 background: "var(--orange-100)",
               }}
             >
-              <Icon name="plus" size={34} />
+              {/* 기존 첫 화면의 대표 프로필 이미지를 생성 인트로에도 이어서 사용한다. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/portraits/wangja-profile-0.png"
+                alt=""
+                style={{ width: "100%", height: "100%", display: "block", objectFit: "cover", objectPosition: "center 28%" }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "linear-gradient(180deg, transparent 62%, rgba(30,30,30,0.18))",
+                }}
+              />
             </div>
-            <h1 className="h2" style={{ margin: 0 }}>
-              첫 캐릭터를 만들어보세요
-            </h1>
-            <p className="body2" style={{ margin: "12px 0 28px", color: "var(--gray-600)" }}>
-              원하는 관계와 성격을 알려주면<br />나만의 캐릭터를 함께 만들어요.
-            </p>
-            <Link href="/create?new=1" className="cta" style={{ display: "block", textDecoration: "none" }}>
-              새 캐릭터 만들기
-            </Link>
+            <div style={{ padding: "28px 24px 24px" }}>
+              <h1 className="h2" style={{ margin: 0 }}>
+                첫 캐릭터를 만들어보세요
+              </h1>
+              <p className="body2" style={{ margin: "12px 0 28px", color: "var(--gray-600)" }}>
+                원하는 관계와 성격을 알려주면<br />나만의 캐릭터를 함께 만들어요.
+              </p>
+              <Link href="/create?new=1" className="cta" style={{ display: "block", textDecoration: "none" }}>
+                새 캐릭터 만들기
+              </Link>
+            </div>
           </section>
         </main>
 
