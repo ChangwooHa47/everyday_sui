@@ -46,7 +46,7 @@ function MarketCharacterDetail() {
 
   if (!preview) return null;
   const { character, listing } = preview;
-  const metadata = [character.relationshipType, character.gender].filter(Boolean);
+  const metadata = [character.gender].filter(Boolean);
 
   return (
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", background: "var(--gray-50)" }}>
