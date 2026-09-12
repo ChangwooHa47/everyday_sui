@@ -1,11 +1,12 @@
 FROM eclipse-temurin:21-jdk-jammy AS spring-build
 WORKDIR /build
 COPY apps/api/spring/ .
-RUN --mount=type=cache,id=everyday-gradle,target=/root/.gradle,sharing=locked \
+# Railway requires cache IDs scoped to the destination service; variables are unsupported here.
+RUN --mount=type=cache,id=s/f072158e-6d6b-45e7-8463-9bc50eae499e-/root/.gradle,target=/root/.gradle,sharing=locked \
     sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew bootJar --no-daemon --max-workers=1
 
 FROM spring-build AS spring-test
-RUN --mount=type=cache,id=everyday-gradle,target=/root/.gradle,sharing=locked \
+RUN --mount=type=cache,id=s/f072158e-6d6b-45e7-8463-9bc50eae499e-/root/.gradle,target=/root/.gradle,sharing=locked \
     ./gradlew test --no-daemon --max-workers=1
 
 FROM eclipse-temurin:21-jre-jammy AS java-runtime
