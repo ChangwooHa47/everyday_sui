@@ -29,6 +29,31 @@ export interface MarketListing {
   policy: { perGiftLimitMist: string; dailyLimitMist: string; allowedGiftIds: string[] };
 }
 
+/** On-chain limited-edition gift product; SUI amounts remain decimal MIST strings. */
+export interface NftGiftProduct {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  imageHash: string;
+  merchant: string;
+  priceMist: string;
+  maxSupply: string;
+  minted: string;
+  active: boolean;
+}
+
+/** NFT gift currently owned by the authenticated wallet. */
+export interface OwnedNftGift {
+  id: string;
+  productId: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  imageHash: string;
+  edition: string;
+}
+
 export interface ProductCharacter {
   name: string;
   gender?: '남성' | '여성' | '기타';
@@ -82,6 +107,7 @@ export interface ChatMessage {
   sender: "USER" | "AI";
   content: string;
   createdAt: string;
+  gift?: { status: string; productId?: string; digest?: string };
 }
 
 export interface InterviewQuestion {

@@ -1,4 +1,3 @@
-import { bcs } from '@mysten/sui/bcs';
 import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { TransactionError, type SuiClientTypes } from '@mysten/sui/client';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
@@ -9,13 +8,14 @@ import type { MarketListing } from '@everyday/contracts';
 import type { Database } from './database.js';
 import { requestCompletion, type AiConfig, type ChatMessage } from './turn-service.js';
 import { failure, hash, addressSchema } from './auth.js';
+import { nftGiftProductBcs } from './market-chain.js';
 
 export interface GiftResult { status: string; digest?: string; productId?: string; }
 export interface GiftService {
   propose(owner: string, listing: MarketListing, turnId: string, messages: ChatMessage[]): Promise<GiftResult>;
   recover(): Promise<void>;
 }
-export interface GiftProduct { id: string; title: string; priceMist: string; }
+export interface GiftProduct { id: string; title: string; description?: string; priceMist: string; }
 export interface GiftTransport {
   products(listing: MarketListing): Promise<GiftProduct[]>;
   prepare(listingId: string, productId: string, recipient: string, intent: string): Promise<{ bytes: string; signature: string; digest: string }>;
@@ -24,22 +24,23 @@ export interface GiftTransport {
 export function createGiftTransport(packageId: string, rpcUrl: string, operatorKey: string,
   client = new SuiGrpcClient({ network: 'testnet', baseUrl: rpcUrl })): GiftTransport {
   const key = Ed25519Keypair.fromSecretKey(operatorKey);
-  const productBcs = bcs.struct('GiftProduct', { id: bcs.Address, title: bcs.string(), merchant: bcs.Address, price: bcs.u64(), active: bcs.bool() });
   return {
     async products(listing) {
       if (listing.operator !== key.toSuiAddress()) throw failure(503, 'OPERATOR_NOT_CONFIGURED');
       const candidates = await Promise.all(listing.policy.allowedGiftIds.map(async objectId => {
         const { object } = await client.getObject({ objectId, include: { content: true }, signal: AbortSignal.timeout(10000) });
-        if (normalizeStructTag(object.type) !== `${packageId}::market::GiftProduct` || object.owner.$kind !== 'Shared') return null;
-        const p = productBcs.parse(object.content);
-        if (p.id !== objectId || !p.active || BigInt(p.price) > BigInt(listing.policy.perGiftLimitMist) || BigInt(p.price) > BigInt(listing.treasuryMist)) return null;
-        return { id: p.id, title: p.title, priceMist: p.price };
+        if (normalizeStructTag(object.type) !== `${packageId}::market::NftGiftProduct` || object.owner.$kind !== 'Shared') return null;
+        const p = nftGiftProductBcs.parse(object.content);
+        if (p.id !== objectId || !Buffer.from(nftGiftProductBcs.serialize(p).toBytes()).equals(Buffer.from(object.content))
+          || !p.active || BigInt(p.minted) >= BigInt(p.max_supply)
+          || BigInt(p.price) > BigInt(listing.policy.perGiftLimitMist) || BigInt(p.price) > BigInt(listing.treasuryMist)) return null;
+        return { id: p.id, title: p.title, description: p.description, priceMist: p.price };
       }));
-      return candidates.filter((p): p is GiftProduct => p !== null);
+      return candidates.filter((p): p is NonNullable<typeof p> => p !== null);
     },
     async prepare(listingId, productId, recipient, intent) {
       const tx = new Transaction(); tx.setSender(key.toSuiAddress());
-      tx.moveCall({ target: `${packageId}::market::send_gift`, arguments: [tx.object(listingId), tx.object(productId), tx.pure.address(recipient), tx.pure.vector('u8', fromHex(intent)), tx.object('0x6')] });
+      tx.moveCall({ target: `${packageId}::market::send_nft_gift`, arguments: [tx.object(listingId), tx.object(productId), tx.pure.address(recipient), tx.pure.vector('u8', fromHex(intent)), tx.object('0x6')] });
       const signed = await key.signTransaction(await tx.build({ client }));
       const digest = await Transaction.from(signed.bytes).getDigest({ client });
       return { bytes: signed.bytes, signature: signed.signature, digest };

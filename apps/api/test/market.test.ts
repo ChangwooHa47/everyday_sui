@@ -79,6 +79,31 @@ test('missing market configuration is unavailable, never simulated ownership', a
   assert.equal(response.statusCode, 503);
 });
 
+test('NFT gift catalog builds exact wallet purchase and exposes only authenticated ownership', async t => {
+  const db = new PGlite(); await db.exec(migration);
+  const productId = id('0x40'), buyer = id('0xb');
+  await db.query("INSERT INTO wallet_sessions VALUES($1,$2,$3,now()+interval '30 minutes')", [hash('b'.repeat(43)), buyer, origin]);
+  const gift = { id: productId, title: 'Warm heart', description: 'Test gift', imageUrl: 'https://example.com/gifts/warm-heart.svg',
+    imageHash: '00'.repeat(32), merchant: id('0xd'), priceMist: '10000001', maxSupply: '10', minted: '1', active: true };
+  const owned = [{ id: id('0x41'), productId, title: gift.title, description: gift.description,
+    imageUrl: gift.imageUrl, imageHash: gift.imageHash, edition: '1' }];
+  const app = buildApp(false, { db, auth, market: { packageId: id('0x99'), nftGiftProductIds: [productId],
+    listing: async () => listing, hasLicense: async () => false, nftGiftProduct: async () => gift,
+    nftGiftProducts: async ids => ids.map(() => gift), ownedNftGifts: async actor => actor === buyer ? owned : [] } });
+  t.after(async () => { await app.close(); await db.close(); });
+  assert.deepEqual((await app.inject('/v1/nft-gifts')).json().gifts, [gift]);
+  assert.equal((await app.inject(`/v1/nft-gifts/${id('0x42')}`)).statusCode, 404);
+  const headers = { origin, authorization: `Bearer ${'b'.repeat(43)}` };
+  const purchase = await app.inject({ method: 'POST', url: `/v1/nft-gifts/${productId}/purchase-transaction`, headers });
+  assert.equal(purchase.statusCode, 200);
+  const tx = Transaction.from(purchase.json().transaction).getData();
+  assert.equal(tx.sender, buyer);
+  assert.equal(tx.commands[1].MoveCall?.function, 'purchase_nft_gift');
+  assert.equal(purchase.json().priceMist, gift.priceMist);
+  assert.equal((await app.inject({ url: '/v1/me/nft-gifts', headers: { origin } })).statusCode, 401);
+  assert.deepEqual((await app.inject({ url: '/v1/me/nft-gifts', headers })).json().gifts, owned);
+});
+
 test('catalog upgrades retain legacy rows but discover only listings verified for the configured package', async t => {
   const db = new PGlite();
   await db.exec(`CREATE TABLE market_catalog(listing_id text PRIMARY KEY,creator text NOT NULL,created_at timestamptz NOT NULL DEFAULT now());`);

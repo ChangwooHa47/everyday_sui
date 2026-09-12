@@ -45,6 +45,27 @@ public struct Listing has key {
 public struct GiftProduct has key {
     id: UID, title: String, merchant: address, price: u64, active: bool,
 }
+public struct NftGiftProduct has key {
+    id: UID,
+    title: String,
+    description: String,
+    image_url: String,
+    image_hash: vector<u8>,
+    merchant: address,
+    price: u64,
+    max_supply: u64,
+    minted: u64,
+    active: bool,
+}
+public struct GiftNft has key, store {
+    id: UID,
+    product: ID,
+    title: String,
+    description: String,
+    image_url: String,
+    image_hash: vector<u8>,
+    edition: u64,
+}
 public struct GiftReceipt has key {
     id: UID, listing: ID, product: ID, recipient: address, price: u64,
 }
@@ -56,6 +77,8 @@ public struct Purchased has copy, drop {
 public struct GiftSent has copy, drop {
     listing: ID, product: ID, recipient: address, receipt: ID, amount: u64, intent: vector<u8>,
 }
+public struct NftGiftCreated has copy, drop { product: ID, merchant: address, price: u64, max_supply: u64 }
+public struct NftGiftMinted has copy, drop { product: ID, nft: ID, recipient: address, edition: u64 }
 
 fun init(ctx: &mut TxContext) { transfer::transfer(Admin { id: object::new(ctx) }, ctx.sender()); }
 public fun register_creator(ctx: &mut TxContext) {
@@ -126,6 +149,34 @@ public fun create_gift(_: &Admin, title: String, merchant: address, price: u64, 
     transfer::share_object(GiftProduct { id: object::new(ctx), title, merchant, price, active: true });
 }
 public fun set_gift_active(_: &Admin, gift: &mut GiftProduct, active: bool) { gift.active = active; }
+public fun create_nft_gift(_: &Admin, title: String, description: String, image_url: String,
+    image_hash: vector<u8>, merchant: address, price: u64, max_supply: u64, ctx: &mut TxContext) {
+    assert!(merchant != @0x0 && price > 0 && max_supply > 0, EInvalid);
+    assert!(title.length() > 0 && title.length() <= 240 && description.length() <= 2000, EInvalid);
+    assert!(image_url.length() > 0 && image_url.length() <= 2000 && image_hash.length() == 32, EInvalid);
+    let product = NftGiftProduct { id: object::new(ctx), title, description, image_url, image_hash,
+        merchant, price, max_supply, minted: 0, active: true };
+    event::emit(NftGiftCreated { product: object::id(&product), merchant, price, max_supply });
+    transfer::share_object(product);
+}
+public fun set_nft_gift_active(_: &Admin, gift: &mut NftGiftProduct, active: bool) { gift.active = active; }
+fun mint_nft(product: &mut NftGiftProduct, recipient: address, ctx: &mut TxContext): ID {
+    assert!(product.active && product.minted < product.max_supply, ENotLive);
+    product.minted = product.minted + 1;
+    let nft = GiftNft { id: object::new(ctx), product: object::id(product), title: product.title,
+        description: product.description, image_url: product.image_url, image_hash: product.image_hash,
+        edition: product.minted };
+    let nft_id = object::id(&nft);
+    transfer::public_transfer(nft, recipient);
+    event::emit(NftGiftMinted { product: object::id(product), nft: nft_id, recipient, edition: product.minted });
+    nft_id
+}
+public fun purchase_nft_gift(product: &mut NftGiftProduct, payment: Coin<SUI>, ctx: &mut TxContext) {
+    assert!(payment.value() == product.price, EPayment);
+    let merchant = product.merchant;
+    transfer::public_transfer(payment, merchant);
+    mint_nft(product, ctx.sender(), ctx);
+}
 // There is deliberately no unrestricted withdrawal, merchant override, or limit-raising entry point.
 public fun send_gift(listing: &mut Listing, gift: &GiftProduct, recipient: address,
     intent: vector<u8>, clock: &Clock, ctx: &mut TxContext) {
@@ -146,7 +197,32 @@ public fun send_gift(listing: &mut Listing, gift: &GiftProduct, recipient: addre
         receipt: object::id(&receipt), amount: gift.price, intent });
     transfer::transfer(receipt, recipient);
 }
+public fun send_nft_gift(listing: &mut Listing, gift: &mut NftGiftProduct, recipient: address,
+    intent: vector<u8>, clock: &Clock, ctx: &mut TxContext) {
+    assert!(ctx.sender() == listing.operator, EOwner);
+    assert!(listing.buyers.contains(recipient), EAccess);
+    assert!(intent.length() == 32 && !listing.intents.contains(intent), EReplay);
+    assert!(gift.active && gift.minted < gift.max_supply && listing.allowed_gifts.contains(&object::id(gift)), EPolicy);
+    let day = clock::timestamp_ms(clock) / 86400000;
+    if (day > listing.day) { listing.day = day; listing.spent = 0; };
+    assert!(gift.price <= listing.per_gift_limit && gift.price <= listing.daily_limit - listing.spent, EPolicy);
+    assert!(gift.price <= listing.treasury.value(), EPayment);
+    listing.spent = listing.spent + gift.price;
+    listing.intents.add(intent, true);
+    let payment = coin::from_balance(listing.treasury.split(gift.price), ctx);
+    transfer::public_transfer(payment, gift.merchant);
+    let product = object::id(gift);
+    let _nft = mint_nft(gift, recipient, ctx);
+    let receipt = GiftReceipt { id: object::new(ctx), listing: object::id(listing), product, recipient, price: gift.price };
+    event::emit(GiftSent { listing: object::id(listing), product, recipient,
+        receipt: object::id(&receipt), amount: gift.price, intent });
+    transfer::transfer(receipt, recipient);
+}
 #[test_only]
 public fun init_for_testing(ctx: &mut TxContext) { init(ctx); }
 #[test_only]
 public fun treasury_value(listing: &Listing): u64 { listing.treasury.value() }
+#[test_only]
+public fun nft_product_id(product: &NftGiftProduct): ID { object::id(product) }
+#[test_only]
+public fun nft_edition(nft: &GiftNft): u64 { nft.edition }

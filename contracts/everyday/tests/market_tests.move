@@ -1,7 +1,7 @@
 #[test_only]
 module everyday::market_tests;
 
-use everyday::market::{Self, Admin, Creator, Listing, License, GiftProduct, GiftReceipt};
+use everyday::market::{Self, Admin, Creator, Listing, License, GiftProduct, GiftReceipt, NftGiftProduct, GiftNft};
 use sui::test_scenario::{Self, Scenario};
 use sui::coin::{Self, Coin};
 use sui::sui::SUI;
@@ -192,4 +192,77 @@ fun published_package_cannot_be_replaced() {
     let mut listing = s.take_shared<Listing>();
     market::publish(&mut listing, std::string::utf8(b"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"), b"11111111111111111111111111111111", 200, s.ctx());
     test_scenario::return_shared(listing); s.end();
+}
+
+#[test]
+fun nft_gift_is_paid_and_delivered_atomically() {
+    let mut s = test_scenario::begin(@0xA);
+    market::init_for_testing(s.ctx());
+    market::register_creator(s.ctx());
+    s.next_tx(@0xA);
+    let admin = s.take_from_sender<Admin>();
+    market::create_nft_gift(&admin, std::string::utf8(b"Warm heart"), std::string::utf8(b"A test gift"),
+        std::string::utf8(b"https://example.com/heart.svg"), b"00000000000000000000000000000000",
+        @0xD, 100, 2, s.ctx());
+    s.return_to_sender(admin);
+    s.next_tx(@0xA);
+    let product = s.take_shared<NftGiftProduct>();
+    let product_id = market::nft_product_id(&product);
+    test_scenario::return_shared(product);
+    let creator = s.take_from_sender<Creator>();
+    market::create_listing(&creator, @0xC, std::string::utf8(b"Everyday"), 1000, 2000, 100, 200,
+        vector[product_id], s.ctx());
+    s.return_to_sender(creator);
+    s.next_tx(@0xA);
+    let mut listing = s.take_shared<Listing>();
+    market::publish(&mut listing, std::string::utf8(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+        b"00000000000000000000000000000000", 100, s.ctx());
+    test_scenario::return_shared(listing);
+    buy(&mut s, 1000);
+    s.next_tx(@0xC);
+    let mut listing = s.take_shared<Listing>();
+    let mut product = s.take_shared<NftGiftProduct>();
+    let clock = clock::create_for_testing(s.ctx());
+    market::send_nft_gift(&mut listing, &mut product, @0xB,
+        b"11111111111111111111111111111111", &clock, s.ctx());
+    clock::destroy_for_testing(clock);
+    test_scenario::return_shared(product);
+    assert!(market::treasury_value(&listing) == 100);
+    test_scenario::return_shared(listing);
+    s.next_tx(@0xB);
+    let nft = s.take_from_sender<GiftNft>();
+    assert!(market::nft_edition(&nft) == 1);
+    s.return_to_sender(nft);
+    let receipt = s.take_from_sender<GiftReceipt>();
+    s.return_to_sender(receipt);
+    s.next_tx(@0xD);
+    let payment = s.take_from_sender<Coin<SUI>>();
+    assert!(payment.value() == 100);
+    coin::burn_for_testing(payment);
+    s.end();
+}
+
+#[test]
+fun user_can_buy_nft_gift_directly() {
+    let mut s = test_scenario::begin(@0xA);
+    market::init_for_testing(s.ctx());
+    s.next_tx(@0xA);
+    let admin = s.take_from_sender<Admin>();
+    market::create_nft_gift(&admin, std::string::utf8(b"Star letter"), std::string::utf8(b"A test gift"),
+        std::string::utf8(b"https://example.com/star.svg"), b"11111111111111111111111111111111",
+        @0xD, 75, 1, s.ctx());
+    s.return_to_sender(admin);
+    s.next_tx(@0xB);
+    let mut product = s.take_shared<NftGiftProduct>();
+    market::purchase_nft_gift(&mut product, coin::mint_for_testing<SUI>(75, s.ctx()), s.ctx());
+    test_scenario::return_shared(product);
+    s.next_tx(@0xB);
+    let nft = s.take_from_sender<GiftNft>();
+    assert!(market::nft_edition(&nft) == 1);
+    s.return_to_sender(nft);
+    s.next_tx(@0xD);
+    let payment = s.take_from_sender<Coin<SUI>>();
+    assert!(payment.value() == 75);
+    coin::burn_for_testing(payment);
+    s.end();
 }

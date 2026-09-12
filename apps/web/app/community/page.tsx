@@ -9,6 +9,8 @@ import { backend } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { market, formatPrice, recommendListings } from "@/lib/market";
 import { BottomNav } from "../components";
+import type { NftGiftProduct } from '@everyday/contracts';
+import { nftGifts } from '@/lib/gifts';
 
 type HotCharacter = { key: string; name: string; imageUrl: string | null; emoji: string; price: string; summary: string; activity: string };
 
@@ -19,6 +21,9 @@ export default function CommunityPage() {
   const [points, setPoints] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [recommended, setRecommended] = useState(false);
+  const [gifts, setGifts] = useState<NftGiftProduct[]>([]);
+  const [giftsLoading, setGiftsLoading] = useState(true);
+  const [giftsError, setGiftsError] = useState(false);
   useEffect(() => {
     let active = true;
     void market.list().then(async catalog => {
@@ -34,6 +39,8 @@ export default function CommunityPage() {
         activity: catalog.engagement?.[c.id] ? `대화 ${catalog.engagement[c.id].turns}회 · 재방문 ${catalog.engagement[c.id].revisitPercent}%` : '' })));
     }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     void backend.getMe().then(me => { if (active) setPoints(me.points); }).catch(() => {});
+    void nftGifts.list().then(value => { if (active) setGifts(value.filter(gift => gift.active)); })
+      .catch(() => { if (active) setGiftsError(true); }).finally(() => { if (active) setGiftsLoading(false); });
     return () => { active = false; };
   }, []);
   const packs = hot.map(c => ({ id: c.key, title: c.name, author: c.activity, desc: c.summary, price: c.price, emoji: c.emoji }));
@@ -129,6 +136,26 @@ export default function CommunityPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section style={{ marginBottom: 26 }}>
+        <div style={{ padding: '0 20px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span className="label1">NFT 선물 마켓</span>
+          <button className="caption" style={{ border: 0, background: 'none', color: 'var(--gray-500)', cursor: 'pointer' }} onClick={() => router.push('/my/gifts')}>내 선물</button>
+        </div>
+        {giftsLoading ? <p className="body2" style={{ padding: '0 20px', color: 'var(--gray-500)' }}>선물을 불러오는 중…</p>
+          : giftsError ? <p role="alert" className="body2" style={{ padding: '0 20px', color: 'var(--gray-500)' }}>NFT 선물 목록을 불러오지 못했어요.</p>
+          : gifts.length === 0 ? <p className="body2" style={{ padding: '0 20px', color: 'var(--gray-500)' }}>판매 준비 중인 NFT 선물이 있어요.</p> :
+          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 20px 2px', scrollbarWidth: 'none' }}>
+            {gifts.map(gift => { const soldOut = BigInt(gift.minted) >= BigInt(gift.maxSupply); return <article key={gift.id} role="link" tabIndex={0}
+              onClick={() => router.push(`/community/gifts/detail?product=${encodeURIComponent(gift.id)}`)}
+              onKeyDown={event => { if (event.key === 'Enter') router.push(`/community/gifts/detail?product=${encodeURIComponent(gift.id)}`); }}
+              style={{ flexShrink: 0, width: 148, border: '1px solid var(--gray-200)', borderRadius: 16, overflow: 'hidden', background: '#fff', cursor: 'pointer' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}<img src={gift.imageUrl} alt={gift.title} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', background: 'var(--orange-100)' }}/>
+              <div style={{ padding: 12 }}><div className="label1" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gift.title}</div>
+                <div className="caption" style={{ marginTop: 6, color: soldOut ? 'var(--gray-500)' : 'var(--orange-700)', fontWeight: 700 }}>{soldOut ? '품절' : formatPrice(gift.priceMist)}</div></div>
+            </article>; })}
+          </div>}
       </section>
 
       {/* 인기 설정집 */}

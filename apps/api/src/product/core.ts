@@ -1,5 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 import type { Database } from '../database.js';
+import type { GiftService } from '../gifts.js';
+import type { MarketListing } from '@everyday/contracts';
 
 export interface ProductIdentity { userId: string; address: string }
 export interface CharacterRow extends Record<string, unknown> {
@@ -26,6 +28,7 @@ export interface ProductContext {
   db: Database;
   llm: ProductLlm;
   image: ProductImageProvider;
+  gifts?: GiftService;
   authenticate(req: FastifyRequest): Promise<ProductIdentity>;
   ownedCharacter(userId: string, characterId: string, db?: Database, lock?: boolean): Promise<CharacterRow>;
   requireAccess(req: FastifyRequest, characterId: string, db?: Database): Promise<void>;
@@ -33,6 +36,8 @@ export interface ProductContext {
   isLicensed(characterId: string, db?: Database): Promise<boolean>;
   personalizedPrompt(characterId: string, fallback: string, callName: string | null, db?: Database): Promise<string>;
   withApprovedMemory(req: FastifyRequest, characterId: string, prompt: string, input: string, db?: Database): Promise<string>;
+  approvedMemories?(req: FastifyRequest, characterId: string, input: string, db?: Database): Promise<string[]>;
+  licensedListing?(characterId: string, db?: Database): Promise<MarketListing | null>;
 }
 
 const errorDefinitions = {

@@ -17,7 +17,7 @@ test('agent gifts claim one intent and recover ambiguous execution with identica
   const db = new PGlite(); await db.exec(migration); t.after(() => db.close());
   let decisions = 0, preparations = 0, sends = 0; const observed: string[] = [];
   const transport: GiftTransport = {
-    products: async () => [{ id: id('0xd'), title: 'Photo booth', priceMist: '100' }],
+    products: async () => [{ id: id('0xd'), title: 'Photo booth', description: 'Fixture', priceMist: '100' }],
     prepare: async (_listing, _product, recipient) => { preparations++; assert.equal(recipient, id('0xb')); return { bytes: 'same-signed-bytes', signature: 'same-signature', digest: 'same-digest' }; },
     execute: async bytes => { sends++; observed.push(bytes); if (sends === 1) throw Error('timeout after submission'); return 'confirmed'; },
   };
@@ -33,7 +33,7 @@ test('agent gifts claim one intent and recover ambiguous execution with identica
 test('invalid LLM product and declined proposals never reach signing', async t => {
   const db = new PGlite(); await db.exec(migration); t.after(() => db.close());
   let preparations = 0;
-  const transport: GiftTransport = { products: async () => [{ id: id('0xd'), title: 'Allowed', priceMist: '100' }],
+  const transport: GiftTransport = { products: async () => [{ id: id('0xd'), title: 'Allowed', description: 'Fixture', priceMist: '100' }],
     prepare: async () => { preparations++; throw Error('must not sign'); }, execute: async () => 'confirmed' };
   assert.equal((await createGiftService(db, transport, async () => id('0xe')).propose(id('0xb'), listing, 'bad', [])).status, 'unknown');
   assert.equal((await createGiftService(db, transport, async () => null).propose(id('0xb'), listing, 'no', [])).status, 'declined');

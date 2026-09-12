@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import type { SuiGrpcClient } from '@mysten/sui/grpc';
-import { createMarketChain, licenseBcs, listingBcs } from '../src/market-chain.js';
+import { createMarketChain, giftNftBcs, licenseBcs, listingBcs, nftGiftProductBcs } from '../src/market-chain.js';
 
 const id = normalizeSuiAddress;
 const pkg = id('0x99'), actor = id('0xb'), listingId = id('0x10'), licenseId = id('0x20');
@@ -94,4 +94,27 @@ test('batch listing reads reject partial, duplicated, reordered, failed and malf
   client.getObjects = async () => { throw Error('private RPC failure'); };
   await assert.rejects(chain.listings!(ids), { statusCode: 503, message: 'CHAIN_UNAVAILABLE' });
   assert.equal(singles, 0);
+});
+
+test('NFT gift products and wallet collection require exact package, ownership and BCS identity', async () => {
+  const productId = id('0x40'), nftId = id('0x41');
+  const productData = { id: productId, title: 'Warm heart', description: 'Test gift', image_url: 'https://example.com/heart.svg',
+    image_hash: Array(32).fill(7), merchant: id('0xd'), price: '9007199254740993', max_supply: '10', minted: '2', active: true };
+  const nftData = { id: nftId, product: productId, title: productData.title, description: productData.description,
+    image_url: productData.image_url, image_hash: productData.image_hash, edition: '2' };
+  let productObject: Record<string, any> = { objectId: productId, type: `${pkg}::market::NftGiftProduct`, owner: { $kind: 'Shared' },
+    content: nftGiftProductBcs.serialize(productData).toBytes() };
+  let ownedObject = { objectId: nftId, type: `${pkg}::market::GiftNft`, owner: { $kind: 'AddressOwner', AddressOwner: actor },
+    content: giftNftBcs.serialize(nftData).toBytes() };
+  const client = { getObject: async () => ({ object: productObject }), getObjects: async () => ({ objects: [productObject] }),
+    listOwnedObjects: async () => ({ objects: [ownedObject], cursor: null, hasNextPage: false }) } as unknown as Pick<SuiGrpcClient, 'getObject' | 'getObjects' | 'listOwnedObjects'>;
+  const chain = createMarketChain(pkg, client, [productId]);
+  assert.equal((await chain.nftGiftProduct!(productId)).priceMist, '9007199254740993');
+  assert.deepEqual((await chain.nftGiftProducts!([productId])).map(gift => gift.id), [productId]);
+  assert.deepEqual(await chain.ownedNftGifts!(actor), [{ id: nftId, productId, title: 'Warm heart', description: 'Test gift',
+    imageUrl: productData.image_url, imageHash: '07'.repeat(32), edition: '2' }]);
+  productObject = { ...productObject, owner: { $kind: 'AddressOwner', AddressOwner: actor } };
+  await assert.rejects(chain.nftGiftProduct!(productId), { statusCode: 404 });
+  ownedObject = { ...ownedObject, owner: { $kind: 'AddressOwner', AddressOwner: id('0xe') } };
+  await assert.rejects(chain.ownedNftGifts!(actor), { statusCode: 404 });
 });

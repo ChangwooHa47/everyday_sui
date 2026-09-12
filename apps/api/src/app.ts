@@ -54,6 +54,7 @@ export function buildApp(logger = false, options?: { db: Database; auth: AuthCon
       registerAuth(app, options.db, options.auth);
       if (options.product) registerProduct(app, { db: options.db, auth: options.auth, providers: options.product,
         chain: options.market, packages: options.runtime?.packages, memory: options.memory,
+        gifts: options.gifts,
         dailyLimit: options.aiLimits?.dailyLimit ?? options.ai?.dailyLimit,
         globalDailyLimit: options.aiLimits?.globalDailyLimit ?? options.ai?.globalDailyLimit });
       registerAi(app, options.db, options.auth, options.ai);

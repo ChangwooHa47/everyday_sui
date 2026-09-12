@@ -21,10 +21,10 @@ import { Icon } from "../icons";
 import { market, formatPrice, purchaseCharacter, pendingPreviewMessages, MarketRequestError } from '@/lib/market';
 import type { MarketPreview } from '@everyday/contracts';
 
-type Msg = { role: "user" | "assistant"; content: string; id?: number };
+type Msg = { role: "user" | "assistant"; content: string; id?: number; gift?: ChatMessage['gift'] };
 
 function toMsg(m: ChatMessage): Msg {
-  return { id: m.id, role: m.sender === "USER" ? "user" : "assistant", content: m.content };
+  return { id: m.id, role: m.sender === "USER" ? "user" : "assistant", content: m.content, gift: m.gift };
 }
 
 function ChatInner() {
@@ -261,6 +261,9 @@ function ChatInner() {
                   )}
                 </div>
               ))}
+              {m.gift?.status === 'confirmed' && <button onClick={() => router.push('/my/gifts')} style={{ marginTop: 4, maxWidth: 240, padding: 14, borderRadius: 14, border: '1px solid var(--orange-300)', background: 'var(--orange-50)', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
+                <strong className="body2">🎁 NFT 선물이 도착했어요</strong><div className="caption" style={{ color: 'var(--gray-600)', marginTop: 4 }}>내 선물에서 확인하기</div>
+              </button>}
             </div>
           );
         })}

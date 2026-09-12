@@ -17,6 +17,7 @@ type MenuRow = {
 
 const MENU: MenuRow[] = [
   { label: "내 갤러리", href: "/gallery" },
+  { label: "내 NFT 선물", href: "/my/gifts" },
   { label: "정보 관리" },
   { label: "구독 관리", ...(process.env.NEXT_PUBLIC_LEGACY_BASELINE === '1' ? { href: '/subscription' } : {}) },
   { label: "포인트 사용 내역" },

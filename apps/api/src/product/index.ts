@@ -15,6 +15,7 @@ import { registerProductImages, startProductImageWorkers } from './images.js';
 import { registerProductLibrary } from './library.js';
 import { AnthropicLlmClient } from './llm.js';
 import { createHiggsfieldImageProvider } from './image-provider.js';
+import type { GiftService } from '../gifts.js';
 
 export function productFromEnv(env: NodeJS.ProcessEnv = process.env): ProductOptions {
   return {
@@ -24,9 +25,9 @@ export function productFromEnv(env: NodeJS.ProcessEnv = process.env): ProductOpt
 }
 export function registerProduct(app: FastifyInstance, options: {
   db: Database; auth: AuthConfig; providers: ProductOptions; chain?: MarketChain; packages?: PackageStore;
-  memory?: MemoryProvider; dailyLimit?: number; globalDailyLimit?: number;
+  memory?: MemoryProvider; gifts?: GiftService; dailyLimit?: number; globalDailyLimit?: number;
 }) {
-  const context = createProductContext(options.db, options.auth, options.providers, options.chain, options.memory);
+  const context = createProductContext(options.db, options.auth, options.providers, options.chain, options.memory, options.gifts);
   app.register(async product => {
     product.setErrorHandler((error, _req, reply) => {
       const known = error as Error & { productError?: boolean; statusCode?: number };
