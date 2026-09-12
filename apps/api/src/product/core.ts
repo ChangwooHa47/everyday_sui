@@ -24,11 +24,17 @@ export interface ProductImageProvider {
   trainSoul(reference: string): Promise<string>;
   soulReady(id: string): Promise<boolean>;
 }
+export interface PhotoPaymentProvider {
+  readonly priceMist: string;
+  transaction(sender: string): Promise<string>;
+  verify(digest: string, sender: string): Promise<void>;
+}
 export interface ProductContext {
   db: Database;
   llm: ProductLlm;
   image: ProductImageProvider;
   gifts?: GiftService;
+  photoPayments?: PhotoPaymentProvider;
   authenticate(req: FastifyRequest): Promise<ProductIdentity>;
   ownedCharacter(userId: string, characterId: string, db?: Database, lock?: boolean): Promise<CharacterRow>;
   requireAccess(req: FastifyRequest, characterId: string, db?: Database): Promise<void>;
@@ -46,7 +52,7 @@ const errorDefinitions = {
   USER_NOT_FOUND: [404, '사용자를 찾을 수 없습니다.'], CHARACTER_NOT_FOUND: [404, '캐릭터를 찾을 수 없습니다.'],
   PHOTO_NOT_FOUND: [404, '사진을 찾을 수 없습니다.'], EPISODE_NOT_FOUND: [404, '에피소드를 찾을 수 없습니다.'],
   CHARACTER_EPISODE_NOT_FOUND: [404, '진행 중인 에피소드를 찾을 수 없습니다.'],
-  FORBIDDEN_CHARACTER_ACCESS: [403, '본인의 캐릭터가 아닙니다.'], INSUFFICIENT_POINTS: [402, '포인트가 부족합니다.'],
+  FORBIDDEN_CHARACTER_ACCESS: [403, '본인의 캐릭터가 아닙니다.'], PAYMENT_REQUIRED: [402, 'SUI 결제가 필요합니다.'],
   LLM_API_ERROR: [502, 'AI 응답 생성에 실패했습니다.'], IMAGE_API_ERROR: [502, '이미지 생성에 실패했습니다.'],
 } as const;
 export function productError(code: keyof typeof errorDefinitions | number, message?: string) {

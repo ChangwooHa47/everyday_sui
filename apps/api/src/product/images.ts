@@ -20,6 +20,10 @@ interface PhotoPlan { context: string; reference: string | null; concept: string
 interface PhotoRow extends Record<string, unknown> {
   id: string | number; image_url: string; concept: string | null; type: PhotoItem['type']; selected: boolean;
 }
+function paymentProvider(ctx: ProductContext) {
+  if (!ctx.photoPayments) throw productError(503);
+  return ctx.photoPayments;
+}
 export function photoResponse(row: PhotoRow): PhotoItem {
   return { id: numericId(row.id), imageUrl: row.image_url, concept: row.concept, type: row.type, selected: row.selected };
 }
@@ -77,16 +81,16 @@ async function planPhoto(ctx: ProductContext, req: FastifyRequest, db: Database,
   return { context, reference: character.profile_image_url, concept: concept.label, soulId };
 }
 export async function photoJobStatus(db: Database, owner: string, request: string): Promise<PhotoJob> {
-  const { rows } = await db.query<{ status: PhotoJob['status']; id: string | null; image_url: string; concept: string; points: number }>(`
-    SELECT j.status,p.id,p.image_url,p.concept,u.points FROM everyday.photo_jobs j
-    JOIN everyday.users u ON u.id=j.user_id LEFT JOIN everyday.photos p ON p.id=j.photo_id
+  const { rows } = await db.query<{ status: PhotoJob['status']; id: string | null; image_url: string; concept: string }>(`
+    SELECT j.status,p.id,p.image_url,p.concept FROM everyday.photo_jobs j
+    LEFT JOIN everyday.photos p ON p.id=j.photo_id
     WHERE j.request_id=$1 AND j.user_id=$2`, [request, owner]);
   const row = rows[0];
   if (!row) throw productError('PHOTO_NOT_FOUND');
   return { requestId: request, status: row.status,
-    photo: row.id === null ? null : photoResponse({ ...row, id: row.id, type: 'PHOTOBOOTH', selected: false }), remainingPoints: row.points };
+    photo: row.id === null ? null : photoResponse({ ...row, id: row.id, type: 'PHOTOBOOTH', selected: false }) };
 }
-async function enqueuePhoto(ctx: ProductContext, req: FastifyRequest, owner: string, id: string, request: string, input: PhotoInput) {
+async function enqueuePhoto(ctx: ProductContext, req: FastifyRequest, owner: string, address: string, id: string, request: string, digest: string, input: PhotoInput) {
   // Preserve ObjectMapper's record field order and explicit nulls for existing request hashes.
   const fingerprint = sha(JSON.stringify([numericId(id), { concept: input.concept ?? null, customPrompt: input.customPrompt ?? null }]));
   return withTransaction(ctx.db, async tx => {
@@ -98,9 +102,9 @@ async function enqueuePhoto(ctx: ProductContext, req: FastifyRequest, owner: str
       return photoJobStatus(tx, owner, request);
     }
     const plan = await planPhoto(ctx, req, tx, owner, id, input);
-    const { rows: reserved } = await tx.query(`UPDATE everyday.users SET points=points-1200,version=version+1
-      WHERE id=$1 AND points>=1200 RETURNING id`, [owner]);
-    if (reserved.length !== 1) throw productError('INSUFFICIENT_POINTS');
+    const claimed = await tx.query(`INSERT INTO photo_payments(digest,owner,request_id,amount_mist) VALUES($1,$2,$3,$4)
+      ON CONFLICT DO NOTHING RETURNING digest`, [digest, address, request, paymentProvider(ctx).priceMist]);
+    if (claimed.rows.length !== 1) throw productError(409, '이미 사용된 SUI 결제입니다.');
     await tx.query(`INSERT INTO everyday.photo_jobs(request_id,user_id,character_id,input_hash,context,reference_url,concept,soul_id,status)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8,'pending')`, [request, owner, id, fingerprint, plan.context, plan.reference, plan.concept, plan.soulId]);
     return photoJobStatus(tx, owner, request);
@@ -112,10 +116,17 @@ export function registerProductImages(app: FastifyInstance, ctx: ProductContext)
     await ctx.authenticate(req);
     return ok(photoConcepts.map(({ code, label }) => ({ code, label })));
   });
+  app.post('/api/characters/:characterId/photo-payment-transaction', async req => {
+    const owner = await ctx.authenticate(req); const id = characterId(req);
+    await ctx.ownedCharacter(owner.userId, id); await ctx.requireAccess(req, id);
+    const payments = paymentProvider(ctx);
+    return ok({ network: 'testnet', transaction: await payments.transaction(owner.address), priceMist: payments.priceMist });
+  });
   app.post('/api/characters/:characterId/photo-jobs', async req => {
     const owner = await ctx.authenticate(req);
-    const input = z.object({ requestId: requestIdSchema, photo: photoInput }).parse(req.body);
-    return ok(await enqueuePhoto(ctx, req, owner.userId, characterId(req), input.requestId, input.photo));
+    const input = z.object({ requestId: requestIdSchema, paymentDigest: z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{40,50}$/), photo: photoInput }).parse(req.body);
+    await paymentProvider(ctx).verify(input.paymentDigest, owner.address);
+    return ok(await enqueuePhoto(ctx, req, owner.userId, owner.address, characterId(req), input.requestId, input.paymentDigest, input.photo));
   });
   app.get('/api/photo-jobs/:requestId', async req => {
     const owner = await ctx.authenticate(req);
@@ -168,11 +179,8 @@ export function registerProductImages(app: FastifyInstance, ctx: ProductContext)
 }
 
 export async function failPhotoJob(db: Database, request: string) {
-  await withTransaction(db, async tx => {
-    const { rows } = await tx.query<{ user_id: string }>(`UPDATE everyday.photo_jobs SET status='failed',context='',updated_at=now()
-      WHERE request_id=$1 AND status='running' RETURNING user_id`, [request]);
-    for (const row of rows) await tx.query('UPDATE everyday.users SET points=points+1200,version=version+1 WHERE id=$1', [row.user_id]);
-  });
+  await db.query(`UPDATE everyday.photo_jobs SET status='failed',context='',updated_at=now()
+    WHERE request_id=$1 AND status='running'`, [request]);
 }
 export async function processPhotoJobs(ctx: Pick<ProductContext, 'db' | 'llm' | 'image'>) {
   const { rows: stale } = await ctx.db.query<{ request_id: string }>(`SELECT request_id FROM everyday.photo_jobs

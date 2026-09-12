@@ -5,10 +5,11 @@ import type { MarketChain } from '../market-chain.js';
 import { requireMarketAccess } from '../market.js';
 import type { MemoryProvider } from '../memory-provider.js';
 import type { GiftService } from '../gifts.js';
-import { productError, productId, type CharacterRow, type ProductContext, type ProductIdentity, type ProductLlm, type ProductImageProvider } from './core.js';
+import { productError, productId, type CharacterRow, type ProductContext, type ProductIdentity, type ProductLlm, type ProductImageProvider, type PhotoPaymentProvider } from './core.js';
 
 export interface ProductOptions {
   llm: ProductLlm; image: ProductImageProvider;
+  photoPayments?: PhotoPaymentProvider;
   workers?: boolean;
 }
 export function createProductContext(db: Database, auth: AuthConfig, providers: ProductOptions,
@@ -18,7 +19,9 @@ export function createProductContext(db: Database, auth: AuthConfig, providers: 
     (await source.query<{ listing_id: string; license_id: string; base_prompt: string }>(
       'SELECT listing_id,license_id,base_prompt FROM everyday.licensed_characters WHERE character_id=$1', [characterId])).rows[0];
   const context: ProductContext = {
-    db, ...providers, gifts,
+    db, ...providers, gifts, photoPayments: providers.photoPayments ?? {
+      priceMist: '10000000', async transaction() { throw productError(503); }, async verify() { throw productError(503); },
+    },
     async authenticate(req) {
       const cached = identities.get(req);
       if (cached) return cached;
@@ -26,7 +29,7 @@ export function createProductContext(db: Database, auth: AuthConfig, providers: 
       let user = (await db.query<{ id: string }>('SELECT id FROM everyday.users WHERE wallet_address=$1', [address])).rows[0];
       if (!user) {
         await db.query(`INSERT INTO everyday.users(wallet_address,points,version,created_at,updated_at)
-          VALUES($1,1200,0,now(),now()) ON CONFLICT(wallet_address) DO NOTHING`, [address]);
+          VALUES($1,0,0,now(),now()) ON CONFLICT(wallet_address) DO NOTHING`, [address]);
         user = (await db.query<{ id: string }>('SELECT id FROM everyday.users WHERE wallet_address=$1', [address])).rows[0];
       }
       if (!user) throw productError('USER_NOT_FOUND');

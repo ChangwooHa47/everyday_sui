@@ -104,6 +104,10 @@ CREATE TABLE IF NOT EXISTS publications (
  fingerprint text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE(owner,package_id,character_id,fingerprint)
 );
+CREATE TABLE IF NOT EXISTS photo_payments (
+ digest text PRIMARY KEY, owner text NOT NULL, request_id uuid NOT NULL UNIQUE,
+ amount_mist text NOT NULL CHECK(amount_mist ~ '^[1-9][0-9]*$'), created_at timestamptz NOT NULL DEFAULT now()
+);
 CREATE TABLE IF NOT EXISTS publication_steps (
  publication_id uuid NOT NULL REFERENCES publications(id), step text NOT NULL CHECK(step IN ('creator','listing','publish')),
  tx_bytes text NOT NULL, signature text NOT NULL, digest text NOT NULL,

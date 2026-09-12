@@ -30,6 +30,8 @@
 | `API_AUDIENCE` | api의 정확한 공개 HTTPS Origin, 끝의 `/` 없이 |
 | `ANTHROPIC_API_KEY` | 기존 제품 생성·대화와 마켓 AI에서 함께 사용하는 서버 비밀값 |
 | `HIGGSFIELD_API_KEY`, `HIGGSFIELD_API_SECRET` | 초상·사진·Soul 연동의 서버 비밀값 |
+| `PHOTO_PAYMENT_RECIPIENT` | 포토부스 테스트넷 SUI 결제를 받을 공개 주소 |
+| `PHOTO_PRICE_MIST` | 사진 1장 가격. 현재 `10000000` MIST (`0.01 SUI`) |
 
 운영 로그인에는 `DATABASE_URL`, `WEB_ORIGINS`, `API_AUDIENCE`를 모두 설정한다. 같은 API가 기존 PostgreSQL의 `public`·`everyday` schema를 사용하므로 DB를 새로 만들거나 데이터를 이관하지 않는다. 복수 WEB_ORIGINS는 쉼표로 구분하며 wildcard를 허용하지 않는다. Postgres는 같은 Railway 프로젝트/환경의 private 연결을 사용하고 외부 공개 포트는 필요 없다.
 

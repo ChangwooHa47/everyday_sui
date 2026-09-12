@@ -67,7 +67,7 @@ test('ported character product preserves compilation, private draft boundaries, 
   assert.equal(selected.statusCode, 200); assert.equal(selected.json().data.profileImageUrl, 'https://images.invalid/two');
   assert.equal((await db.query<{ selected: boolean }>('SELECT selected FROM everyday.photos WHERE id=$1', [firstPhoto])).rows[0].selected, false);
   const me = await app.inject({ method: 'GET', url: '/api/me', headers });
-  assert.equal(me.json().data.points, 1200); assert.equal(me.json().data.subscriptionTier, 'Free'); assert.equal(me.json().data.characters.length, 1);
+  assert.equal('points' in me.json().data, false); assert.equal(me.json().data.subscriptionTier, 'Free'); assert.equal(me.json().data.characters.length, 1);
   assert.equal((await app.inject({ method: 'PATCH', url: '/api/me', headers, payload: { email: 'first@example.test' } })).statusCode, 200);
   assert.equal((await app.inject({ method: 'PATCH', url: '/api/me', headers: otherHeaders, payload: { email: 'first@example.test' } })).statusCode, 409);
   assert.equal((await app.inject({ method: 'PATCH', url: '/api/me', headers, payload: { email: 'bad' } })).statusCode, 400);

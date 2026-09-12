@@ -1,7 +1,7 @@
 "use client";
 
 // 마이페이지 — figma 42:3341.
-// everyday 로고 + 포인트 배지 / 프로필 행(아바타·유저명·구독 칩) / 메뉴 리스트.
+// everyday 로고 + 지갑 SUI 잔액 / 프로필 행 / 메뉴 리스트.
 // 계정 데이터는 백엔드 /api/me. 연결되지 않은 기존 메뉴는 비활성화한다.
 
 import { useRouter } from "next/navigation";
@@ -20,8 +20,6 @@ const MENU: MenuRow[] = [
   { label: "내 NFT 선물", href: "/my/gifts" },
   { label: "정보 관리" },
   { label: "구독 관리", ...(process.env.NEXT_PUBLIC_LEGACY_BASELINE === '1' ? { href: '/subscription' } : {}) },
-  { label: "포인트 사용 내역" },
-  { label: "포인트 결제 내역" },
   { label: "설정" },
 ];
 
@@ -29,11 +27,18 @@ export default function MyPage() {
   const router = useRouter();
   const [me, setMe] = useState<MyPageData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [suiBalance, setSuiBalance] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         setMe(await backend.getMe());
+        const { walletKit } = await import("@/lib/wallet-auth");
+        const account = walletKit.stores.$connection.get().account;
+        if (account) {
+          const { balance } = await walletKit.getClient("testnet").getBalance({ owner: account.address });
+          setSuiBalance((Number(balance.balance) / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits: 4 }));
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "불러오지 못했어요. 다시 시도해주세요.");
       }
@@ -61,9 +66,7 @@ export default function MyPage() {
         <span className="logo" style={{ fontSize: 22, color: "var(--gray-800)" }}>
           everyday
         </span>
-        <span className="point-badge">
-          <span className="p">P</span> {me.points.toLocaleString()}
-        </span>
+        <span className="point-badge">{suiBalance === null ? "…" : suiBalance} SUI</span>
       </header>
 
       {/* 프로필 행 */}

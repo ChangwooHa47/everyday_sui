@@ -1,7 +1,6 @@
 "use client";
 
-// FS-05 포토부스 — Spring 백엔드 연동판 (figma 사진 찍기 42:2973 / 생성 상세 42:2729).
-// 컨셉 카탈로그(GET /api/photo/concepts) + 생성(POST /api/characters/{id}/photos, 포인트 차감).
+// 포토부스 — 테스트넷 SUI 결제 후 비동기 사진 생성.
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -15,9 +14,9 @@ import {
 } from "@/lib/api";
 import { Avatar } from "../components";
 import { Icon } from "../icons";
+import { payForPhoto } from "@/lib/photo-payment";
 
-// figma 42:2729 정산 행 기준 사진 1장 사용 포인트.
-const PHOTO_COST = 1200;
+const PHOTO_PRICE_SUI = "0.01 SUI";
 
 // 백엔드 컨셉 라벨 → 섹션 그룹. 일상 키워드에 걸리면 일상, 나머지는 전부 이벤트.
 const DAILY_KEYWORDS = ["인생네컷", "셀카", "거울", "일상"];
@@ -43,7 +42,7 @@ export default function PhotoboothPage() {
   const [concepts, setConcepts] = useState<PhotoConcept[]>([]);
   const [concept, setConcept] = useState<PhotoConcept | null>(null); // null = 카탈로그, 값 = 생성 상세
   const [desc, setDesc] = useState("");
-  const [points, setPoints] = useState<number | null>(null);
+  const [suiBalance, setSuiBalance] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,21 +61,24 @@ export default function PhotoboothPage() {
         const active = list.find((c) => c.id === activeId) ?? list[0];
         setActiveCharacterId(active.id);
         setChar(active);
-        const [conceptList, me] = await Promise.all([
-          backend.listPhotoConcepts(),
-          backend.getMe(),
-        ]);
+        const conceptList = await backend.listPhotoConcepts();
         setConcepts(conceptList);
-        setPoints(me.points);
+        const { walletKit } = await import("@/lib/wallet-auth");
+        const account = walletKit.stores.$connection.get().account;
+        if (account) {
+          const { balance } = await walletKit.getClient("testnet").getBalance({ owner: account.address });
+          setSuiBalance((Number(balance.balance) / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits: 4 }));
+        }
         const pending = sessionStorage.getItem(`everyday.photo-job.${active.id}`);
         if (pending) {
-          const saved = JSON.parse(pending) as { requestId: string; concept: string; customPrompt?: string };
+          const saved = JSON.parse(pending) as { requestId: string; concept: string; customPrompt?: string; paymentDigest?: string };
           const selected = conceptList.find(c => c.code === saved.concept);
           if (selected) setConcept(selected);
           setDesc(saved.customPrompt ?? '');
           setBusy(true);
           try {
-            await backend.startPhotoJob(active.id, saved.requestId, { concept: saved.concept, customPrompt: saved.customPrompt });
+            if (!saved.paymentDigest) throw Error('이전 결제가 완료되지 않았습니다. 다시 생성해주세요.');
+            await backend.startPhotoJob(active.id, saved.requestId, saved.paymentDigest, { concept: saved.concept, customPrompt: saved.customPrompt });
             await waitForPhoto(active.id, saved.requestId);
           } catch (e) {
             if (e instanceof ApiError && [400, 402, 403, 404].includes(e.status)) sessionStorage.removeItem(`everyday.photo-job.${active.id}`);
@@ -92,14 +94,13 @@ export default function PhotoboothPage() {
   async function waitForPhoto(characterId: number, requestId: string) {
     for (let i = 0; i < 300 && mounted.current; i++) {
       const job = await backend.photoJob(requestId);
-      setPoints(job.remainingPoints);
       if (job.status === 'completed' && job.photo) {
         sessionStorage.removeItem(`everyday.photo-job.${characterId}`);
         setResult(job.photo.imageUrl); return;
       }
       if (job.status === 'failed') {
         sessionStorage.removeItem(`everyday.photo-job.${characterId}`);
-        throw new Error('사진을 만들지 못했어요. 사용한 포인트는 돌려드렸어요.');
+        throw new Error('사진을 만들지 못했어요. 고객 지원에 결제 digest를 알려주세요.');
       }
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
@@ -119,18 +120,18 @@ export default function PhotoboothPage() {
     setError(null);
     setResult(null);
     try {
-      if (process.env.NEXT_PUBLIC_LEGACY_BASELINE === '1') {
-        const gen = await backend.generatePhoto(char.id, { concept: concept.code, customPrompt: desc.trim() || undefined });
-        setResult(gen.photo.imageUrl); setPoints(gen.remainingPoints);
-      } else {
-        const key = `everyday.photo-job.${char.id}`;
-        const saved = sessionStorage.getItem(key);
-        const job = saved ? JSON.parse(saved) : { requestId: crypto.randomUUID(), concept: concept.code, customPrompt: desc.trim() || undefined };
-        if (job.concept !== concept.code || (job.customPrompt ?? '') !== desc.trim()) throw Error('이전 사진의 생성 결과를 먼저 확인해주세요.');
+      const key = `everyday.photo-job.${char.id}`;
+      const saved = sessionStorage.getItem(key);
+      const job: { requestId: string; concept: string; customPrompt?: string; paymentDigest?: string } = saved
+        ? JSON.parse(saved) : { requestId: crypto.randomUUID(), concept: concept.code, customPrompt: desc.trim() || undefined };
+      if (job.concept !== concept.code || (job.customPrompt ?? '') !== desc.trim()) throw Error('이전 사진의 생성 결과를 먼저 확인해주세요.');
+      sessionStorage.setItem(key, JSON.stringify(job));
+      if (!job.paymentDigest) {
+        job.paymentDigest = await payForPhoto(char.id);
         sessionStorage.setItem(key, JSON.stringify(job));
-        await backend.startPhotoJob(char.id, job.requestId, { concept: job.concept, customPrompt: job.customPrompt });
-        await waitForPhoto(char.id, job.requestId);
       }
+      await backend.startPhotoJob(char.id, job.requestId, job.paymentDigest, { concept: job.concept, customPrompt: job.customPrompt });
+      await waitForPhoto(char.id, job.requestId);
     } catch (e) {
       if (e instanceof ApiError && [400, 402, 403, 404].includes(e.status)) sessionStorage.removeItem(`everyday.photo-job.${char.id}`);
       setError(e instanceof Error ? e.message : "생성 실패");
@@ -141,17 +142,10 @@ export default function PhotoboothPage() {
 
   if (!char) return error ? <p className="caption" role="alert">{error}</p> : null;
 
-  const pointBadge = (
-    <span className="point-badge">
-      <span className="p">P</span> {points === null ? "…" : points.toLocaleString()}
-    </span>
-  );
+  const suiBadge = <span className="point-badge">{suiBalance === null ? "…" : suiBalance} SUI</span>;
 
   // ── 생성 상세 (42:2729) ──
   if (concept) {
-    // 결과 전이면 예상 잔여, 결과가 나오면 백엔드가 준 실제 잔여(points)를 그대로.
-    const remaining =
-      points === null ? null : result || busy ? points : Math.max(0, points - PHOTO_COST);
     return (
       <div
         className="fade-in"
@@ -170,7 +164,7 @@ export default function PhotoboothPage() {
             <Icon name="chevron-left" size={24} />
           </button>
           <span className="headline1">{concept.label}</span>
-          {pointBadge}
+          {suiBadge}
         </header>
 
         {/* 예시 이미지 / 결과 영역 */}
@@ -265,7 +259,7 @@ export default function PhotoboothPage() {
 
         <div style={{ flex: 1 }} />
 
-        {/* 포인트 정산 */}
+        {/* SUI 결제 */}
         <div
           style={{
             borderTop: "1px dashed var(--gray-300)",
@@ -274,18 +268,18 @@ export default function PhotoboothPage() {
         >
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span className="body2" style={{ color: "var(--gray-500)" }}>
-              사용 포인트
+              사진 생성 비용
             </span>
             <span className="body2" style={{ color: "var(--orange-700)", fontWeight: 700 }}>
-              {PHOTO_COST.toLocaleString()} 사용
+              {PHOTO_PRICE_SUI}
             </span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
             <span className="body2" style={{ color: "var(--gray-500)" }}>
-              남은 포인트
+              지갑 잔액
             </span>
             <span className="body2" style={{ fontWeight: 700 }}>
-              {remaining === null ? "…" : remaining.toLocaleString()}
+              {suiBalance === null ? "…" : `${suiBalance} SUI`}
             </span>
           </div>
           <button className="cta" onClick={generate} disabled={busy}>
@@ -370,7 +364,7 @@ export default function PhotoboothPage() {
           <Icon name="chevron-left" size={24} />
         </button>
         <span className="headline1">사진 찍기</span>
-        {pointBadge}
+        {suiBadge}
       </header>
 
       {/* 현재 캐릭터 */}

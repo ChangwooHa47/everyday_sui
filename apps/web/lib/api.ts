@@ -12,11 +12,11 @@ const DEMO_PASSWORD = "demo1234!";
 const TOKEN_KEY = "everyday.v2.jwt";
 
 // ── 백엔드 응답 타입 ──
-import type { CharacterSummary, ProductDraft, PhotoJob, LicenseBinding } from '@everyday/contracts';
+import type { CharacterSummary, ProductDraft, PhotoJob, LicenseBinding, PhotoPaymentTransaction } from '@everyday/contracts';
 export type { CharacterSummary } from '@everyday/contracts';
 
-import type { CharacterDetail, ChatMessage, InterviewQuestion, InterviewAnswer, PhotoItem, CompileResult, EpisodeItem, EpisodeStart, PhotoConcept, PhotoGeneration, MyPage } from '@everyday/contracts';
-export type { CharacterDetail, ChatMessage, InterviewQuestion, InterviewAnswer, PhotoItem, CompileResult, EpisodeItem, EpisodeStart, PhotoConcept, PhotoGeneration, MyPage } from '@everyday/contracts';
+import type { CharacterDetail, ChatMessage, InterviewQuestion, InterviewAnswer, PhotoItem, CompileResult, EpisodeItem, EpisodeStart, PhotoConcept, MyPage } from '@everyday/contracts';
+export type { CharacterDetail, ChatMessage, InterviewQuestion, InterviewAnswer, PhotoItem, CompileResult, EpisodeItem, EpisodeStart, PhotoConcept, MyPage } from '@everyday/contracts';
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -80,7 +80,7 @@ async function api<T>(path: string, init?: RequestInit, retried = false): Promis
     localStorage.removeItem(TOKEN_KEY);
     return api<T>(path, init, true);
   }
-  if (!res.ok) throw new ApiError(res.status, res.status === 402 ? '포인트가 부족해요.' : '요청을 처리하지 못했어요. 다시 시도해주세요.');
+  if (!res.ok) throw new ApiError(res.status, res.status === 402 ? 'SUI 결제가 필요해요.' : '요청을 처리하지 못했어요. 다시 시도해주세요.');
   const json = await res.json();
   if (!json.success) throw new Error(json.message ?? `요청 실패 (${res.status})`);
   return json.data as T;
@@ -160,15 +160,11 @@ export const backend = {
     }),
 
   // 포토부스·갤러리
-  startPhotoJob: (characterId: number | string, requestId: string, photo: { concept?: string; customPrompt?: string }) =>
-    api<PhotoJob>(`/api/characters/${characterId}/photo-jobs`, { method: 'POST', body: JSON.stringify({ requestId, photo }) }),
+  photoPaymentTransaction: (characterId: number | string) => api<PhotoPaymentTransaction>(`/api/characters/${characterId}/photo-payment-transaction`, { method: 'POST' }),
+  startPhotoJob: (characterId: number | string, requestId: string, paymentDigest: string, photo: { concept?: string; customPrompt?: string }) =>
+    api<PhotoJob>(`/api/characters/${characterId}/photo-jobs`, { method: 'POST', body: JSON.stringify({ requestId, paymentDigest, photo }) }),
   photoJob: (requestId: string) => api<PhotoJob>(`/api/photo-jobs/${requestId}`),
   listPhotoConcepts: () => api<PhotoConcept[]>("/api/photo/concepts"),
-  generatePhoto: (characterId: number | string, body: { concept?: string; customPrompt?: string }) =>
-    api<PhotoGeneration>(`/api/characters/${characterId}/photos`, {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
   getGallery: (characterId: number | string) => api<PhotoItem[]>(`/api/characters/${characterId}/gallery`),
 
   // 마이페이지

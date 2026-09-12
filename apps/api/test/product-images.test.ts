@@ -10,7 +10,7 @@ import { createProductContext } from '../src/product/context.js';
 import { enqueuePortrait, failPhotoJob, processPhotoJobs, processPortraitJobs, registerProductImages, startProductImageWorkers } from '../src/product/images.js';
 import type { ProductImageProvider, ProductLlm } from '../src/product/core.js';
 
-test('migrated image jobs preserve ownership, durable requests, provider failures and point refunds', async t => {
+test('migrated image jobs preserve ownership, durable requests, provider failures and SUI payment claims', async t => {
   const db = new PGlite();
   await db.exec(migration);
   await migrateProduct(db);
@@ -37,17 +37,18 @@ test('migrated image jobs preserve ownership, durable requests, provider failure
     async soulReady() { calls.ready++; return true; },
   };
   const llm: ProductLlm = { requireConfigured() {}, async chat(_system, messages) { return messages[0]!.content; } };
-  const context = createProductContext(db, { origins: [origin], audience: 'https://api.fixture.invalid', network: 'testnet' }, { image, llm });
+  const photoPayments = { priceMist: '10000000', async transaction() { return 'fixture'; }, async verify() {} };
+  const context = createProductContext(db, { origins: [origin], audience: 'https://api.fixture.invalid', network: 'testnet' }, { image, llm, photoPayments });
   const app = Fastify();
   app.setErrorHandler((error: Error & { statusCode?: number }, _req, reply) => reply.code(error.statusCode ?? 500).send({ message: error.message }));
   registerProductImages(app, context);
   t.after(async () => { await app.close(); await db.close(); });
+  const paymentDigest = (id: string) => id.replaceAll('-', '').replaceAll('0', '1') + 'A'.repeat(12);
   const request = (url: string, owner = 1, payload?: Record<string, unknown>) => app.inject({ url,
     method: payload === undefined ? 'GET' : 'POST',
     headers: { origin, authorization: `Bearer ${String(owner).repeat(43)}` },
     ...(payload === undefined ? {} : { payload }),
   });
-  const points = async () => (await db.query<{ points: number }>('SELECT points FROM everyday.users WHERE id=1')).rows[0]!.points;
 
   await t.test('draft portraits start once and cross-owner access stays forbidden', async () => {
     await enqueuePortrait(db, '1', 'portrait prompt', 4, true);
@@ -61,41 +62,39 @@ test('migrated image jobs preserve ownership, durable requests, provider failure
     assert.equal((await db.query('SELECT * FROM everyday.photos WHERE character_id=1')).rows.length, 4);
     assert.equal((await request('/api/characters/1/portrait-status')).json().data.status, 'completed');
   });
-  await t.test('one point reservation survives duplicate requests and successful photo completion', async () => {
+  await t.test('one SUI payment claim survives duplicate requests and successful photo completion', async () => {
     for (let i = 0; i < 6; i++) await db.query(`INSERT INTO everyday.chat_messages(character_id,sender,content)
       VALUES(1,'USER',$1)`, [`PRIVATE_MOOD_${i}`]);
     await db.query("INSERT INTO everyday.chat_messages(character_id,sender,content) VALUES(2,'USER','OTHER_OWNER_SECRET')");
-    const id = randomUUID(); const input = { requestId: id, photo: { concept: 'CAFE_DATE' } };
+    const id = randomUUID(); const input = { requestId: id, paymentDigest: paymentDigest(id), photo: { concept: 'CAFE_DATE' } };
     const results = await Promise.all([request('/api/characters/1/photo-jobs', 1, input), request('/api/characters/1/photo-jobs', 1, input)]);
     assert.deepEqual(results.map(r => r.statusCode), [200, 200]);
-    assert.equal(await points(), 1200);
+    assert.equal((await db.query('SELECT digest FROM photo_payments WHERE request_id=$1', [id])).rows.length, 1);
+    const replayId = randomUUID();
+    assert.equal((await request('/api/characters/1/photo-jobs', 1, { ...input, requestId: replayId })).statusCode, 409);
     assert.equal((await request(`/api/photo-jobs/${id}`, 2)).statusCode, 404);
     assert.equal((await request('/api/characters/1/photo-jobs', 1, { ...input, photo: { concept: 'NIGHT_WALK' } })).statusCode, 409);
     await processPhotoJobs(context); await processPhotoJobs(context);
     const result = (await request(`/api/photo-jobs/${id}`)).json().data;
     assert.equal(result.status, 'completed'); assert.equal(result.photo.type, 'PHOTOBOOTH');
-    assert.equal(calls.images, 2); assert.equal(await points(), 1200);
+    assert.equal(calls.images, 2);
     const mood = calls.prompts.at(-1)!;
     assert.ok(mood.includes('OWNER_1_APPEARANCE')); assert.ok(!mood.includes('OTHER_OWNER_SECRET'));
     assert.ok(!mood.includes('PRIVATE_MOOD_0')); assert.ok(mood.indexOf('PRIVATE_MOOD_1') < mood.indexOf('PRIVATE_MOOD_5'));
     assert.equal((await db.query<{ context: string }>('SELECT context FROM everyday.photo_jobs WHERE request_id=$1', [id])).rows[0]!.context, '');
   });
-  await t.test('failed and stale photo calls refund exactly once and never auto-resubmit', async () => {
-    const id = randomUUID(); const payload = { requestId: id, photo: { concept: 'CAFE_DATE' } };
+  await t.test('failed and stale paid photo calls never auto-resubmit', async () => {
+    const id = randomUUID(); const payload = { requestId: id, paymentDigest: paymentDigest(id), photo: { concept: 'CAFE_DATE' } };
     assert.equal((await request('/api/characters/1/photo-jobs', 1, payload)).statusCode, 200);
-    assert.equal(await points(), 0);
     failImage = true; await processPhotoJobs(context); failImage = false;
-    assert.equal((await request(`/api/photo-jobs/${id}`)).json().data.status, 'failed');
-    assert.equal(await points(), 1200); assert.equal(calls.images, 3);
+    assert.equal((await request(`/api/photo-jobs/${id}`)).json().data.status, 'failed'); assert.equal(calls.images, 3);
     await failPhotoJob(db, id); await processPhotoJobs(context);
-    assert.equal((await request('/api/characters/1/photo-jobs', 1, payload)).json().data.status, 'failed');
-    assert.equal(await points(), 1200); assert.equal(calls.images, 3);
+    assert.equal((await request('/api/characters/1/photo-jobs', 1, payload)).json().data.status, 'failed'); assert.equal(calls.images, 3);
     const stale = randomUUID();
-    await request('/api/characters/1/photo-jobs', 1, { ...payload, requestId: stale });
+    await request('/api/characters/1/photo-jobs', 1, { ...payload, requestId: stale, paymentDigest: paymentDigest(stale) });
     await db.query("UPDATE everyday.photo_jobs SET status='running',updated_at=now()-interval '31 minutes' WHERE request_id=$1", [stale]);
     await processPhotoJobs(context); await processPhotoJobs(context);
-    assert.equal((await request(`/api/photo-jobs/${stale}`)).json().data.status, 'failed');
-    assert.equal(await points(), 1200); assert.equal(calls.images, 3);
+    assert.equal((await request(`/api/photo-jobs/${stale}`)).json().data.status, 'failed'); assert.equal(calls.images, 3);
   });
   await t.test('uncertain portraits and face training preserve a durable do-not-retry state', async () => {
     await enqueuePortrait(db, '2', 'second portrait', 4, false);
@@ -127,7 +126,7 @@ test('migrated image jobs preserve ownership, durable requests, provider failure
       cancel() { cancellations++; rejectRequest(Error('shutdown')); },
     };
     const id = randomUUID();
-    await request('/api/characters/1/photo-jobs', 1, { requestId: id, photo: { concept: 'CAFE_DATE' } });
+    await request('/api/characters/1/photo-jobs', 1, { requestId: id, paymentDigest: paymentDigest(id), photo: { concept: 'CAFE_DATE' } });
     const errors: unknown[] = [];
     const stop = startProductImageWorkers({ ...context, image: cancelImage }, error => { errors.push(error); }, 1, 10);
     const alive = setTimeout(() => {}, 1000);
@@ -136,7 +135,6 @@ test('migrated image jobs preserve ownership, durable requests, provider failure
       await stop();
       assert.equal(cancellations, 1);
       assert.equal((await request(`/api/photo-jobs/${id}`)).json().data.status, 'failed');
-      assert.equal(await points(), 1200);
       await processPhotoJobs({ ...context, image: cancelImage });
       assert.equal(imageCalls, 1); assert.deepEqual(errors, []);
     } finally { clearTimeout(alive); }
@@ -153,7 +151,7 @@ test('migrated image jobs preserve ownership, durable requests, provider failure
       }, cancel() {},
     };
     const id = randomUUID();
-    await request('/api/characters/1/photo-jobs', 1, { requestId: id, photo: { concept: 'CAFE_DATE' } });
+    await request('/api/characters/1/photo-jobs', 1, { requestId: id, paymentDigest: paymentDigest(id), photo: { concept: 'CAFE_DATE' } });
     const stop = startProductImageWorkers({ ...context, image: stuck }, () => {}, 1, 5, 5);
     const alive = setTimeout(() => {}, 1000);
     try {
@@ -164,7 +162,6 @@ test('migrated image jobs preserve ownership, durable requests, provider failure
       rejectRequest(Error('fixture cleanup'));
       await stop();
       assert.equal((await request(`/api/photo-jobs/${id}`)).json().data.status, 'failed');
-      assert.equal(await points(), 1200);
     } finally { clearTimeout(alive); }
   });
 });

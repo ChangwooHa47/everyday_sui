@@ -135,9 +135,9 @@ async function characterList(db: Database, userId: string) {
   return (await db.query<CharacterRow>('SELECT * FROM everyday.characters WHERE user_id=$1 ORDER BY id', [userId])).rows.map(summaryResponse);
 }
 async function myPage(db: Database, userId: string): Promise<MyPage> {
-  const user = (await db.query<{ id: string; email: string | null; points: number }>('SELECT id,email,points FROM everyday.users WHERE id=$1', [userId])).rows[0];
+  const user = (await db.query<{ id: string; email: string | null }>('SELECT id,email FROM everyday.users WHERE id=$1', [userId])).rows[0];
   if (!user) throw productError('USER_NOT_FOUND');
-  return { id: numericId(user.id), email: user.email ?? '', points: user.points, subscriptionTier: 'Free', characters: await characterList(db, userId) };
+  return { id: numericId(user.id), email: user.email ?? '', subscriptionTier: 'Free', characters: await characterList(db, userId) };
 }
 
 export function registerProductCharacters(app: FastifyInstance, ctx: ProductContext) {

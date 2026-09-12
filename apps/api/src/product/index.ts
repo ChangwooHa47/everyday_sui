@@ -16,11 +16,13 @@ import { registerProductLibrary } from './library.js';
 import { AnthropicLlmClient } from './llm.js';
 import { createHiggsfieldImageProvider } from './image-provider.js';
 import type { GiftService } from '../gifts.js';
+import { createPhotoPaymentProvider } from './photo-payment.js';
 
 export function productFromEnv(env: NodeJS.ProcessEnv = process.env): ProductOptions {
   return {
     llm: new AnthropicLlmClient({ apiKey: env.ANTHROPIC_API_KEY, baseUrl: env.ANTHROPIC_BASE_URL, model: env.ANTHROPIC_MODEL }),
     image: createHiggsfieldImageProvider({ apiKey: env.HIGGSFIELD_API_KEY, apiSecret: env.HIGGSFIELD_API_SECRET, baseUrl: env.HIGGSFIELD_BASE_URL }),
+    photoPayments: createPhotoPaymentProvider(env.PHOTO_PAYMENT_RECIPIENT, env.PHOTO_PRICE_MIST),
   };
 }
 export function registerProduct(app: FastifyInstance, options: {

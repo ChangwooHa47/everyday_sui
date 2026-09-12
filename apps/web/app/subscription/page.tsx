@@ -1,7 +1,7 @@
 "use client";
 
 // 구독 요금제 — figma 42:3413.
-// everyday 로고 + 포인트 배지 / 세로 요금제 카드 4개. 현재 플랜만 오렌지 활성 + 체크.
+// 기존 구독 요금제 화면. 운영에서는 마이페이지로 이동한다.
 // 구독 기능은 백엔드 미구현 → 표시용 (현재 등급은 /api/me 로 반영).
 
 import { useEffect, useState } from "react";
@@ -78,14 +78,12 @@ export default function SubscriptionPage() {
 }
 
 function BaselineSubscription() {
-  const [points, setPoints] = useState<number | null>(null);
   const [tier, setTier] = useState<string>("Free");
 
   useEffect(() => {
     (async () => {
       try {
         const me = await backend.getMe();
-        setPoints(me.points);
         setTier(me.subscriptionTier);
       } catch {
         // 백엔드 미연결이어도 카드는 표시
@@ -100,9 +98,6 @@ function BaselineSubscription() {
       <header className="topbar">
         <span className="logo" style={{ fontSize: 22, color: "var(--gray-800)" }}>
           everyday
-        </span>
-        <span className="point-badge">
-          <span className="p">P</span> {(points ?? 0).toLocaleString()}
         </span>
       </header>
 

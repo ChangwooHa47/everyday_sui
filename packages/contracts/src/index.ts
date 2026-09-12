@@ -158,15 +158,9 @@ export interface PhotoConcept {
   label: string;
 }
 
-export interface PhotoGeneration {
-  photo: PhotoItem;
-  remainingPoints: number;
-}
-
 export interface MyPage {
   id: number;
   email: string;
-  points: number;
   subscriptionTier: string;
   characters: CharacterSummary[];
 }
@@ -175,7 +169,12 @@ export interface PhotoJob {
   requestId: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
   photo: PhotoItem | null;
-  remainingPoints: number;
+}
+
+export interface PhotoPaymentTransaction {
+  network: 'testnet';
+  transaction: string;
+  priceMist: string;
 }
 
 export interface LicenseBinding { listingId: string; licenseId: string; }
