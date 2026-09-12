@@ -1,0 +1,56 @@
+{
+  "network": "testnet",
+  "packageId": "0x3e99d3e3789354810095f4dc41f7f2b0d1614ac16f068928b0d9e6691531aa37",
+  "adminId": "0x277321dfea8978efd7185d7c5cffc55ad2ae1384667d02251df08e82fc88f5ad",
+  "upgradeCapId": "0xf2d08e682e6e50625422f20d2b689f485fbd05c0d93e10d6b9d50f8428b76b96",
+  "creator": "0x941030e118d68d322be6050e2c5f300587194ed847d59c474dda3af12d36f007",
+  "publishDigest": "8XokANoJyqCtUbRCeNKWetQV792VVGKx2ZXv4eDXV7LN",
+  "sourceSha256": "32cb4a4bb89c06dba38fe1ca82ee4a0358b133f5cb636a51c4ca3b8f95871f15",
+  "walrus": {
+    "publisher": "https://publisher.walrus-testnet.walrus.space",
+    "aggregator": "https://aggregator.walrus-testnet.walrus.space",
+    "requestedEpochs": "7"
+  },
+  "products": [
+    {
+      "key": "warm-cafe-latte",
+      "productId": "0xa7b6eb56b1389c330887ecb532062598b35d222e2f2c9c4491e2ef5382adeadf",
+      "title": "따뜻한 카페라테",
+      "description": "잠깐 쉬어가라는 마음을 담은 Everyday Gifts 에디션 작품",
+      "priceMist": "10000000",
+      "maxSupply": "100",
+      "imageSha256": "651b718bd3d4d67a3d907fdf9a07e988516a7f8ecc4f148499cc97cb4c92751b",
+      "walrusBlobId": "-hr44B3p0eW-vbJoZ66D3QKzvmO_UhJRpf2Dzu8yIF4",
+      "walrusEndEpoch": "525",
+      "imageUrl": "https://aggregator.walrus-testnet.walrus.space/v1/blobs/-hr44B3p0eW-vbJoZ66D3QKzvmO_UhJRpf2Dzu8yIF4",
+      "createDigest": "Hc4DsR3LASbHqbhDtUSg526MAYr2ij5UzefcPK8w2Lz2"
+    },
+    {
+      "key": "yellow-tulip-bouquet",
+      "productId": "0xe4945d27bef8c3537d2b4e5a04d8dd337a44aa3d866806d1e373f90051221deb",
+      "title": "노란 튤립 꽃다발",
+      "description": "새로운 시작과 응원을 전하는 Everyday Gifts 에디션 작품",
+      "priceMist": "20000000",
+      "maxSupply": "50",
+      "imageSha256": "12436dca5c5571696187fd100dd7055b2e1b3975af0507476930d15fc85b701a",
+      "walrusBlobId": "szWtQOM7Jrt2Wr-CqB6BUyvOiD6ckO18G9QZZ-9hT_c",
+      "walrusEndEpoch": "525",
+      "imageUrl": "https://aggregator.walrus-testnet.walrus.space/v1/blobs/szWtQOM7Jrt2Wr-CqB6BUyvOiD6ckO18G9QZZ-9hT_c",
+      "createDigest": "GvLZgsJhmHR4tnYyMjwQ9F4RPgZBZaRAm18nK7JH7Ao"
+    },
+    {
+      "key": "strawberry-birthday-cake",
+      "productId": "0xda4f1b4ebb8b4878fdc121d3a7be4e8640040ce2b66c36d76ccff0769f0d731c",
+      "title": "딸기 생일 케이크",
+      "description": "생일과 특별한 날을 축하하는 Everyday Gifts 에디션 작품",
+      "priceMist": "30000000",
+      "maxSupply": "30",
+      "imageSha256": "fbe2343acf1e026bdc604a6e360973b409d44456b7cc5cb34ceb6ca6dd80e77a",
+      "walrusBlobId": "yVyPXafSPAtOKt2_Dwo2FZfNPVfBDtWMPLkXSXxFH4c",
+      "walrusEndEpoch": "525",
+      "imageUrl": "https://aggregator.walrus-testnet.walrus.space/v1/blobs/yVyPXafSPAtOKt2_Dwo2FZfNPVfBDtWMPLkXSXxFH4c",
+      "createDigest": "8h6NHXRLWHkYx1aTjwXp7JFRMFzQwMxatzxsaVCSh7TG"
+    }
+  ],
+  "verifiedAt": "2026-09-12T10:22:57.103Z"
+}

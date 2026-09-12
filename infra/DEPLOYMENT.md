@@ -84,6 +84,8 @@ API/웹 호스팅 성공과 온체인 결제 성공은 별도 검증이다.
 
 2026-09-12 Walrus/Sui epoch 구분을 수정해 v2 testnet package `0x3ff2bfc626a8b26ca76eb13045009f642103a7a623188794f5b534882d210023`를 게시했다. [배포 기록](../contracts/everyday/deployments/testnet.json)을 참조한다. 재확인은 `node infra/deploy-testnet.mjs --execute --deployment-state market-testnet-v2`다. 이전 v1은 Git 기록과 기존 로컬 상태에 남기며 새 상품과 혼용하지 않는다. 키/서명은 ignored `.local-tools/market-testnet-v2`에만 있다.
 
+2026-09-12 NFT 선물 계약을 포함한 package `0x3e99d3e3789354810095f4dc41f7f2b0d1614ac16f068928b0d9e6691531aa37`를 별도 testnet 검증 대상으로 게시했다. 생성 이미지 3개는 Walrus testnet에 7 epochs로 보관 요청하고 재다운로드 해시를 확인했으며, 각 `NftGiftProduct`도 실제 생성·조회했다. 공개 식별자와 해시는 [NFT 선물 배포 기록](../contracts/everyday/deployments/nft-gifts-testnet.json)에 있다. 기존 운영 API·웹의 package 변수는 이 작업에서 변경하지 않았다.
+
 실제 가상 데이터 검증: `node infra/verify-market-testnet.mjs --execute --with-memory`. 같은 서명/거래를 재확인하고 불확실한 업로드를 자동 재시도하지 않는다. [거래 증거](../contracts/everyday/deployments/testnet-verification.json)와 [기억 증거](../contracts/everyday/deployments/memory-verification.json)는 공개 식별자만 담는다. 검증용 가상 상품을 운영 카탈로그에 등록했다고 간주하지 않는다.
 
 `node infra/verify-market-api.mjs`는 실제 체인/저장/기억 어댑터를 두 Origin의 인증 API로 검증한다. DB는 별도 PGlite이고 AI/이미지 호출은 하지 않는다. 시드 상품은 `--seed-market` 옵션으로 게시한 [10명 기록](../contracts/everyday/deployments/market-seed.json)을 사용한다. 새 API와 DB migration이 준비된 뒤 `node infra/register-market-seed.mjs --execute --api https://everydayapi-production.up.railway.app --origin https://everydayweb-production.up.railway.app`로 운영 카탈로그에 등록한다. 이미 게시한 상품만 등록하며 새 결제·업로드는 하지 않는다.
