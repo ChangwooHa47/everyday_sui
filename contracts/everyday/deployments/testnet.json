@@ -1,9 +1,9 @@
 {
   "network": "testnet",
-  "packageId": "0x361efffcabf0ecd042a605ede4f9ff114fc3c0af39ce0d3ef51adfd9e0cc1263",
-  "adminId": "0x9ce3c7dcdc22db6a2c5bef1dcefc90a664abac01d763c43fedd5fb6b492c1694",
-  "upgradeCapId": "0xad9d5e76ad2972b0f8eb41c6d97cd48c900aaa3e731adb5948672bd3a02e8603",
+  "packageId": "0x3ff2bfc626a8b26ca76eb13045009f642103a7a623188794f5b534882d210023",
+  "adminId": "0xb60a3a0c5d37ef372f1d536388bb368c8ac031b9cc7ff692b32ce71028bfce7e",
+  "upgradeCapId": "0x65fc83c5cc0d3fdbdb9e60b2cba55614d13e3cef9e6e9abcf1c018c59a3571f6",
   "creator": "0x97eb51ec405dfd3edf9f5cbe7f38dc8e0cba2ff6252ffe565055a52fe618aa47",
-  "publishDigest": "C4ySsykV54Ym9GevYnqiuQQ3UT5imNn6DoYRyqs4Vd5h",
-  "sourceSha256": "2708bcc49e160d5f6f19f2076aed5940224c688a5cd162235662a5df5c9bd7ac"
+  "publishDigest": "HHN75UaP7YxjPVHMPWBfQxHnc4QjAYNFD6UgtHxxpV1e",
+  "sourceSha256": "eb737c9fd8c62768dad8a9306ac19f057e5c39d696ec75181591446a542e74ec"
 }

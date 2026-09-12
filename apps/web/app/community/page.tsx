@@ -2,69 +2,57 @@
 
 // 커뮤니티 — figma 42:3227.
 // HOT 캐릭터(가로 스크롤) / 인기 설정집(2열) / 자유 게시판(세로 리스트).
-// 커뮤니티는 백엔드 미구현 → 표시용. HOT 캐릭터만 backend.listCharacters() 재활용 + 목데이터 보충.
+// 기존 카드와 간격을 유지하고, 게시된 실제 상품만 표시한다.
 
 import { useEffect, useState } from "react";
-import { backend, type CharacterSummary } from "@/lib/api";
+import { backend } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { market, formatPrice, recommendListings } from "@/lib/market";
 import { BottomNav } from "../components";
 
-type HotCharacter = { key: string; name: string; imageUrl: string | null; emoji: string; price: number };
-
-const MOCK_HOT: HotCharacter[] = [
-  { key: "m-haru", name: "하루", imageUrl: null, emoji: "🐶", price: 1200 },
-  { key: "m-seojun", name: "서준", imageUrl: null, emoji: "🌙", price: 1800 },
-  { key: "m-dain", name: "다인", imageUrl: null, emoji: "🌷", price: 1500 },
-  { key: "m-minjae", name: "민재", imageUrl: null, emoji: "☕", price: 2000 },
-];
-
-const SETTING_PACKS = [
-  { id: 1, title: "다정한 소꿉친구 성격", author: "@haru_dev", desc: "티격태격해도 결국 챙겨주는 오랜 친구", price: 1500, emoji: "🐶" },
-  { id: 2, title: "무심한 듯 다정한 선배", author: "@minji", desc: "말은 툭툭 던져도 뒤에선 늘 챙긴다", price: 2000, emoji: "🌙" },
-  { id: 3, title: "장난꾸러기 강아지상", author: "@dool", desc: "사람 좋아하고 애교 많은 명랑 캐릭터", price: 1200, emoji: "🐾" },
-  { id: 4, title: "차분한 밤샘 메이트", author: "@nabi", desc: "새벽까지 조용히 곁을 지켜주는 성격", price: 1800, emoji: "🕯️" },
-];
-
-const POSTS = [
-  { id: 1, author: "지호", title: "첫 캐릭터 만들었어요", body: "관계를 소꿉친구로 했더니 대화가 자연스러워서 놀랐어요. 다들 어떤 관계로 시작하셨나요?" },
-  { id: 2, author: "민서", title: "사진 포인트 아끼는 팁", body: "포토부스는 컨셉을 몰아서 찍는 게 이득이더라고요. 저는 주말에 한 번에 찍어둡니다." },
-  { id: 3, author: "재윤", title: "에피소드 추천받아요", body: "잔잔한 일상 에피소드 위주로 하는데 다른 분들은 어떤 걸 즐기시나요?" },
-  { id: 4, author: "수아", title: "말투 설정 이렇게 했어요", body: "존댓말이랑 반말을 섞으니 훨씬 사람 같아요. 설정집에도 올려봤는데 반응이 좋네요." },
-];
+type HotCharacter = { key: string; name: string; imageUrl: string | null; emoji: string; price: string; summary: string; activity: string };
 
 export default function CommunityPage() {
-  const [hot, setHot] = useState<HotCharacter[]>(MOCK_HOT);
-
+  const router = useRouter();
+  const [hot, setHot] = useState<HotCharacter[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [points, setPoints] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [recommended, setRecommended] = useState(false);
   useEffect(() => {
-    (async () => {
-      try {
-        const chars: CharacterSummary[] = await backend.listCharacters();
-        const fromBackend: HotCharacter[] = chars.slice(0, 3).map((c) => ({
-          key: `b-${c.id}`,
-          name: c.name,
-          imageUrl: c.profileImageUrl,
-          emoji: "🙂",
-          price: 1200,
-        }));
-        setHot([...fromBackend, ...MOCK_HOT]);
-      } catch {
-        // 백엔드 미연결이어도 목데이터로 표시
+    let active = true;
+    void market.list().then(async catalog => {
+      let { listings } = catalog; const { previews } = catalog;
+      const from = new URLSearchParams(window.location.search).get('from');
+      if (from && /^[1-9]\d*$/.test(from)) {
+        const draft = await backend.productDraft(Number(from));
+        listings = recommendListings(catalog, draft);
+        if (active) setRecommended(true);
       }
-    })();
+      if (active) setHot(listings.filter(c => c.active && c.published).map(c => ({ key: c.id, name: c.title,
+        imageUrl: previews[c.id]?.imageUrl ?? null, summary: previews[c.id]?.summary ?? '', emoji: '', price: c.priceMist,
+        activity: catalog.engagement?.[c.id] ? `대화 ${catalog.engagement[c.id].turns}회 · 재방문 ${catalog.engagement[c.id].revisitPercent}%` : '' })));
+    }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
+    void backend.getMe().then(me => { if (active) setPoints(me.points); }).catch(() => {});
+    return () => { active = false; };
   }, []);
+  const packs = hot.map(c => ({ id: c.key, title: c.name, author: c.activity, desc: c.summary, price: c.price, emoji: c.emoji }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
       <header className="topbar">
         <span className="h3">커뮤니티</span>
         <span className="point-badge">
-          <span className="p">P</span> 1,200
+          <span className="p">P</span> {points?.toLocaleString() ?? ""}
         </span>
       </header>
+      {error && <p className="body2" role="alert" style={{ padding: '0 20px' }}>{error}</p>}
+      {!error && (loading || hot.length === 0) && <p className="body2" style={{ padding: '0 20px' }}>{loading ? '불러오는 중…' : '아직 등록된 캐릭터가 없어요.'}</p>}
 
       {/* HOT 캐릭터 */}
       <section style={{ marginBottom: 26 }}>
         <div className="label1" style={{ padding: "0 20px 12px" }}>
-          HOT 캐릭터
+          {recommended ? '함께 둘러볼 캐릭터' : '마켓 캐릭터'}
         </div>
         <div
           style={{
@@ -78,6 +66,9 @@ export default function CommunityPage() {
           {hot.map((c) => (
             <div
               key={c.key}
+              role="link" tabIndex={0}
+              onClick={() => router.push(`/chat?listing=${c.key}`)}
+              onKeyDown={e => { if (e.key === "Enter") router.push(`/chat?listing=${c.key}`); }}
               style={{
                 flexShrink: 0,
                 width: 132,
@@ -119,7 +110,7 @@ export default function CommunityPage() {
                   className="point-badge"
                   style={{ padding: "3px 8px", fontSize: 11 }}
                 >
-                  <span className="p">P</span> {c.price.toLocaleString()}
+                  {formatPrice(c.price)}
                 </span>
               </div>
             </div>
@@ -130,7 +121,7 @@ export default function CommunityPage() {
       {/* 인기 설정집 */}
       <section style={{ marginBottom: 26 }}>
         <div className="label1" style={{ padding: "0 20px 12px" }}>
-          인기 설정집
+          캐릭터 이용권
         </div>
         <div
           style={{
@@ -140,9 +131,12 @@ export default function CommunityPage() {
             gap: 12,
           }}
         >
-          {SETTING_PACKS.map((p) => (
+          {packs.map((p) => (
             <div
               key={p.id}
+              role="link" tabIndex={0}
+              onClick={() => router.push(`/chat?listing=${p.id}`)}
+              onKeyDown={e => { if (e.key === "Enter") router.push(`/chat?listing=${p.id}`); }}
               style={{
                 borderRadius: 14,
                 padding: "14px 14px 16px",
@@ -178,59 +172,14 @@ export default function CommunityPage() {
                 {p.desc}
               </div>
               <span className="caption" style={{ color: "var(--orange-700)", fontWeight: 700 }}>
-                P {p.price.toLocaleString()}
+                {formatPrice(p.price)}
               </span>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 자유 게시판 */}
-      <section style={{ marginBottom: 8 }}>
-        <div className="label1" style={{ padding: "0 20px 12px" }}>
-          자유 게시판
-        </div>
-        <div style={{ padding: "0 20px" }}>
-          {POSTS.map((post) => (
-            <div
-              key={post.id}
-              style={{
-                display: "flex",
-                gap: 12,
-                alignItems: "center",
-                padding: "14px 0",
-                borderBottom: "1px solid var(--gray-100)",
-              }}
-            >
-              <div
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: "50%",
-                  background: "var(--gray-200)",
-                  flexShrink: 0,
-                }}
-              />
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="body1" style={{ fontWeight: 700, color: "var(--gray-800)" }}>
-                  {post.title}
-                </div>
-                <div
-                  className="body2"
-                  style={{
-                    color: "var(--gray-500)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {post.body}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+
 
       <div style={{ flex: 1 }} />
       <BottomNav active="community" />

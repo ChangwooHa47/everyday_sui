@@ -1,0 +1,23 @@
+{
+  "network": "testnet",
+  "packageId": "0x3ff2bfc626a8b26ca76eb13045009f642103a7a623188794f5b534882d210023",
+  "listingId": "0x69b6a87358a041f5fbc927837a72535b6f97f9fa89244a5b9eaacefe87023c11",
+  "creator": "0x97eb51ec405dfd3edf9f5cbe7f38dc8e0cba2ff6252ffe565055a52fe618aa47",
+  "operator": "0x941030e118d68d322be6050e2c5f300587194ed847d59c474dda3af12d36f007",
+  "buyer": "0x375e8d9b6eaa3965fbe8b7db94c061b48bac4e3d5da77cfcdf8b7db54c52ca38",
+  "licenseId": "0xebab3e37cb9408203487a5ea3087634ecec4ba531c74c4ee056126712780e008",
+  "purchaseDigest": "HXKVfZfcHH3aV6PcxGm1HexWhvtMpCAtBiUE9RaC9HXw",
+  "priceMist": "10000000",
+  "creatorAmountMist": "8000000",
+  "treasuryAmountMist": "2000000",
+  "storage": {
+    "blobId": "81TlgdaEJHSa9RxLCFU7wVt5ldTEnkzB4VjtW0qWS1g",
+    "endEpoch": "525",
+    "contentHash": "57d6920062ccde31abe93b459e59fd88478198363c2d687e504bfa43773a860f"
+  },
+  "sealOperatorDecrypt": true,
+  "sealBuyerDecrypt": true,
+  "giftReceiptId": "0x8d2dd0d2fff804b18be89e46fa2a1bab9ed5e5d71f45201be81c779a28fa5a36",
+  "giftDigest": "DY1GErYiaRQrR922DHtCZj6pagCd4ewXybpDnEL64WNY",
+  "note": "Fictional test data. Gift policy execution only; no LLM agency or real-world gift fulfillment is claimed."
+}

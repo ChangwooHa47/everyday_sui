@@ -23,6 +23,8 @@ fun setup(per_gift: u64, daily: u64, allow: bool): Scenario {
     market::create_listing(&creator, @0xC, std::string::utf8(b"Everyday"), 1000, 2000, per_gift, daily, gifts, s.ctx());
     s.return_to_sender(creator);
     s.next_tx(@0xA);
+    // Walrus storage epoch 100 must not be compared with Sui epoch 1000.
+    s.skip_to_epoch(1000);
     let mut listing = s.take_shared<Listing>();
     market::publish(&mut listing, std::string::utf8(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), b"00000000000000000000000000000000", 100, s.ctx());
     test_scenario::return_shared(listing);

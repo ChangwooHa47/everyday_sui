@@ -1,9 +1,147 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import type { MarketCatalog } from '@everyday/contracts';
 import { assertContext, canonical, encode, publicSchema, sha256, u64, vaultSchema } from '../lib/web3/schema';
 import { parseReceipt, readLimited } from '../lib/web3/storage';
+import { priceToMist } from '../lib/publish';
+import { formatPrice, recommendListings, loadMarketCatalog, submitPreviewTurn, MarketRequestError, pendingPreviewMessages } from '../lib/market';
+import { getActiveCharacterId, setActiveCharacterId, prepareChatRequest, getPendingChatRequest, clearChatRequest, prepareCompileRequest, getPendingCompile, clearCompileRequest, getIncompleteCharacter, saveIncompleteCharacter, clearIncompleteCharacter } from '../lib/api';
 const pkg = '0x'+'1'.repeat(64);
 const metadata = {schemaVersion:1,network:'testnet',appPackage:pkg,revision:'0',previousRef:null,createdAt:'2026-09-08T00:00:00.000Z'};
+
+test('market prices preserve a single MIST and u64 maximum without floating point rounding', () => {
+  assert.equal(priceToMist('0.000000001'), '1');
+  assert.equal(priceToMist('18446744073.709551615'), '18446744073709551615');
+  for (const value of ['0', '-1', '1e3', '01', '0.0000000001', '18446744073.709551616']) assert.throws(() => priceToMist(value));
+  assert.equal(formatPrice('18446744073709551615'), '18446744073.709551615 테스트 SUI');
+});
+
+test('active character selection is isolated between authenticated wallet accounts', () => {
+  const prior = ['window', 'localStorage', 'sessionStorage'].map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)] as const);
+  const storage = () => { const values = new Map<string, string>(); return { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) }; };
+  const local = storage(), session = storage();
+  try {
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: {} });
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: local });
+    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: session });
+    const use = (digit: string) => session.setItem('everyday.session.v1', JSON.stringify({ address: '0x' + digit.repeat(64), expiresAt: new Date(Date.now()+60000).toISOString() }));
+    use('a'); setActiveCharacterId(42); assert.equal(getActiveCharacterId(), 42);
+    use('b'); assert.equal(getActiveCharacterId(), null); setActiveCharacterId(99);
+    use('a'); assert.equal(getActiveCharacterId(), 42);
+  } finally {
+    for (const [name, descriptor] of prior) { if (descriptor) Object.defineProperty(globalThis, name, descriptor); else Reflect.deleteProperty(globalThis, name); }
+  }
+});
+
+test('recommendations rank matching authored interests without requiring relationship history', () => {
+  const listings = ['art', 'music'].map((id, i) => ({ id, title: id, active: true, published: true, creator: '', operator: '', priceMist: '1', agentBps: 0, treasuryMist: '0',
+    package: { blobId: '', contentHash: '', endEpoch: '1' }, policy: { perGiftLimitMist: '0', dailyLimitMist: '0', allowedGiftIds: [] } }));
+  const catalog = { listings, previews: { art: { summary: '그림과 전시', imageUrl: null }, music: { summary: '기타와 공연', imageUrl: null } }, nextCursor: null };
+  const result = recommendListings(catalog, { name: '가상', summary: '기타와 공연', personality: '음악을 좋아한다', appearance: '', speechStyles: [], imageUrl: null, examples: [] });
+  assert.equal(result[0].id, 'music');
+  listings[1].active = false; assert.equal(recommendListings(catalog, { name: '', summary: '', personality: '', appearance: '', speechStyles: [], imageUrl: null, examples: [] }).length, 1);
+});
+
+test('catalog follows server cursors and includes later pages without losing preview metadata', async () => {
+  const cursor = '0x' + '2'.repeat(64), paths: string[] = [];
+  const catalog = await loadMarketCatalog(async (path): Promise<MarketCatalog> => {
+    paths.push(path);
+    return paths.length === 1 ? { listings: [], previews: { first: { summary: 'first', imageUrl: null } }, nextCursor: cursor }
+      : { listings: [], previews: { second: { summary: 'second', imageUrl: null } }, nextCursor: null };
+  });
+  assert.equal(paths.length, 2); assert.ok(paths[1].includes(`after=${cursor}`));
+  assert.deepEqual(Object.keys(catalog.previews), ['first', 'second']);
+  await assert.rejects(loadMarketCatalog(async () => ({ listings: [], previews: {}, nextCursor: cursor })));
+});
+
+test('unknown chat submissions reuse their request and isolate other accounts, characters and episodes', () => {
+  const prior = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
+  const values = new Map<string, string>();
+  const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) };
+  const use = (digit: string) => storage.setItem('everyday.session.v1', JSON.stringify({ address: '0x' + digit.repeat(64), expiresAt: new Date(Date.now() + 60000).toISOString() }));
+  try {
+    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: storage });
+    use('a');
+    const pending = prepareChatRequest(42, null, 'fictional message');
+    assert.deepEqual(prepareChatRequest(42, null, 'fictional message'), pending);
+    assert.throws(() => prepareChatRequest(42, null, 'different message'));
+    assert.equal(getPendingChatRequest(99, null), null); assert.equal(getPendingChatRequest(42, '1'), null);
+    use('b'); assert.equal(getPendingChatRequest(42, null), null);
+    use('a'); assert.deepEqual(getPendingChatRequest(42, null), pending);
+    clearChatRequest(42, null, crypto.randomUUID()); assert.deepEqual(getPendingChatRequest(42, null), pending);
+    clearChatRequest(42, null, pending.requestId); assert.equal(getPendingChatRequest(42, null), null);
+  } finally {
+    if (prior) Object.defineProperty(globalThis, 'sessionStorage', prior); else Reflect.deleteProperty(globalThis, 'sessionStorage');
+  }
+});
+
+test('unknown compilation retains its exact authored input and identity through retry', () => {
+  const prior = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
+  const values = new Map<string, string>();
+  const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) };
+  try {
+    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: storage });
+    storage.setItem('everyday.session.v1', JSON.stringify({ address: '0x' + 'a'.repeat(64), expiresAt: new Date(Date.now() + 60000).toISOString() }));
+    const input = { relationshipType: '친구', gender: '여성', freeText: undefined, name: '가상', interviewAnswers: [], birthday: undefined, deferPortraitGeneration: true };
+    const pending = prepareCompileRequest(input);
+    assert.equal(prepareCompileRequest(input).requestId, pending.requestId);
+    assert.equal(getPendingCompile()?.name, input.name);
+    assert.throws(() => prepareCompileRequest({ ...input, name: 'changed' }));
+    clearCompileRequest(crypto.randomUUID()); assert.ok(getPendingCompile());
+    clearCompileRequest(pending.requestId); assert.equal(getPendingCompile(), null);
+  } finally {
+    if (prior) Object.defineProperty(globalThis, 'sessionStorage', prior); else Reflect.deleteProperty(globalThis, 'sessionStorage');
+  }
+});
+
+test('preview keeps ambiguous requests but releases a completed lost response before a new authored turn', async () => {
+  const prior = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
+  const values = new Map<string, string>();
+  const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) };
+  try {
+    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: storage });
+    storage.setItem('everyday.session.v1', JSON.stringify({ address: '0x' + 'a'.repeat(64), expiresAt: new Date(Date.now() + 60000).toISOString() }));
+    const messages = [{ role: 'user' as const, content: 'fictional first turn' }], requests: string[] = [];
+    await assert.rejects(submitPreviewTurn(pkg, messages, async (_path, body) => {
+      requests.push((body as { requestId: string }).requestId);
+      throw new MarketRequestError(502, 'PROVIDER_RESULT_UNKNOWN_DO_NOT_AUTO_RETRY', 'unknown');
+    }));
+    assert.deepEqual(pendingPreviewMessages(pkg), messages);
+    await assert.rejects(submitPreviewTurn(pkg, messages, async (_path, body) => {
+      requests.push((body as { requestId: string }).requestId);
+      throw new MarketRequestError(409, 'TURN_COMPLETED', 'response lost');
+    }));
+    assert.equal(requests[0], requests[1]); assert.equal(pendingPreviewMessages(pkg), null);
+    await submitPreviewTurn(pkg, [{ role: 'user', content: 'a new authored turn' }], async (_path, body) => {
+      assert.notEqual((body as { requestId: string }).requestId, requests[0]); return { content: 'reply' };
+    });
+  } finally {
+    if (prior) Object.defineProperty(globalThis, 'sessionStorage', prior); else Reflect.deleteProperty(globalThis, 'sessionStorage');
+  }
+});
+
+test('portrait creation resumes the same character and style only for its owner until confirmed or explicitly replaced', () => {
+  const prior = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
+  const values = new Map<string, string>();
+  const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) };
+  const use = (digit: string) => storage.setItem('everyday.session.v1', JSON.stringify({ address: '0x' + digit.repeat(64), expiresAt: new Date(Date.now() + 60000).toISOString() }));
+  try {
+    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: storage });
+    use('a');
+    const incomplete = { characterId: 42, photoFeelText: 'fictional portrait style', photoFeelChip: 'portrait' };
+    saveIncompleteCharacter(incomplete);
+    assert.deepEqual(getIncompleteCharacter(), incomplete);
+    use('b'); assert.equal(getIncompleteCharacter(), null);
+    saveIncompleteCharacter({ ...incomplete, characterId: 99 });
+    use('a'); assert.equal(getIncompleteCharacter()?.characterId, 42);
+    clearIncompleteCharacter(99); assert.equal(getIncompleteCharacter()?.characterId, 42);
+    clearIncompleteCharacter(42); assert.equal(getIncompleteCharacter(), null);
+    saveIncompleteCharacter(incomplete); clearIncompleteCharacter(); assert.equal(getIncompleteCharacter(), null);
+    use('b'); assert.equal(getIncompleteCharacter()?.characterId, 99);
+  } finally {
+    if (prior) Object.defineProperty(globalThis, 'sessionStorage', prior); else Reflect.deleteProperty(globalThis, 'sessionStorage');
+  }
+});
 test('canonical hashes ignore key insertion order and preserve large u64 versions',async () => {
   assert.equal(canonical({z:1,a:{y:2,x:3}}),canonical({a:{x:3,y:2},z:1}));
   assert.equal(await sha256(encode({z:1,a:2})),await sha256(encode({a:2,z:1})));

@@ -4,9 +4,10 @@
 // 컨셉 카탈로그(GET /api/photo/concepts) + 생성(POST /api/characters/{id}/photos, 포인트 차감).
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   backend,
+  ApiError,
   getActiveCharacterId,
   setActiveCharacterId,
   type CharacterSummary,
@@ -46,6 +47,8 @@ export default function PhotoboothPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   useEffect(() => {
     (async () => {
@@ -65,11 +68,43 @@ export default function PhotoboothPage() {
         ]);
         setConcepts(conceptList);
         setPoints(me.points);
+        const pending = sessionStorage.getItem(`everyday.photo-job.${active.id}`);
+        if (pending) {
+          const saved = JSON.parse(pending) as { requestId: string; concept: string; customPrompt?: string };
+          const selected = conceptList.find(c => c.code === saved.concept);
+          if (selected) setConcept(selected);
+          setDesc(saved.customPrompt ?? '');
+          setBusy(true);
+          try {
+            await backend.startPhotoJob(active.id, saved.requestId, { concept: saved.concept, customPrompt: saved.customPrompt });
+            await waitForPhoto(active.id, saved.requestId);
+          } catch (e) {
+            if (e instanceof ApiError && [400, 402, 403, 404].includes(e.status)) sessionStorage.removeItem(`everyday.photo-job.${active.id}`);
+            throw e;
+          } finally { if (mounted.current) setBusy(false); }
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "백엔드 연결 실패");
+        setError(e instanceof Error ? e.message : "불러오지 못했어요. 다시 시도해주세요.");
       }
     })();
   }, [router]);
+
+  async function waitForPhoto(characterId: number, requestId: string) {
+    for (let i = 0; i < 300 && mounted.current; i++) {
+      const job = await backend.photoJob(requestId);
+      setPoints(job.remainingPoints);
+      if (job.status === 'completed' && job.photo) {
+        sessionStorage.removeItem(`everyday.photo-job.${characterId}`);
+        setResult(job.photo.imageUrl); return;
+      }
+      if (job.status === 'failed') {
+        sessionStorage.removeItem(`everyday.photo-job.${characterId}`);
+        throw new Error('사진을 만들지 못했어요. 사용한 포인트는 돌려드렸어요.');
+      }
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+    if (mounted.current) throw new Error('사진을 만들고 있어요. 잠시 후 다시 확인해주세요.');
+  }
 
   function openConcept(c: PhotoConcept) {
     setConcept(c);
@@ -84,20 +119,27 @@ export default function PhotoboothPage() {
     setError(null);
     setResult(null);
     try {
-      const gen = await backend.generatePhoto(char.id, {
-        concept: concept.code,
-        customPrompt: desc.trim() || undefined,
-      });
-      setResult(gen.photo.imageUrl);
-      setPoints(gen.remainingPoints);
+      if (process.env.NEXT_PUBLIC_LEGACY_BASELINE === '1') {
+        const gen = await backend.generatePhoto(char.id, { concept: concept.code, customPrompt: desc.trim() || undefined });
+        setResult(gen.photo.imageUrl); setPoints(gen.remainingPoints);
+      } else {
+        const key = `everyday.photo-job.${char.id}`;
+        const saved = sessionStorage.getItem(key);
+        const job = saved ? JSON.parse(saved) : { requestId: crypto.randomUUID(), concept: concept.code, customPrompt: desc.trim() || undefined };
+        if (job.concept !== concept.code || (job.customPrompt ?? '') !== desc.trim()) throw Error('이전 사진의 생성 결과를 먼저 확인해주세요.');
+        sessionStorage.setItem(key, JSON.stringify(job));
+        await backend.startPhotoJob(char.id, job.requestId, { concept: job.concept, customPrompt: job.customPrompt });
+        await waitForPhoto(char.id, job.requestId);
+      }
     } catch (e) {
+      if (e instanceof ApiError && [400, 402, 403, 404].includes(e.status)) sessionStorage.removeItem(`everyday.photo-job.${char.id}`);
       setError(e instanceof Error ? e.message : "생성 실패");
     } finally {
       setBusy(false);
     }
   }
 
-  if (!char) return null;
+  if (!char) return error ? <p className="caption" role="alert">{error}</p> : null;
 
   const pointBadge = (
     <span className="point-badge">
@@ -109,7 +151,7 @@ export default function PhotoboothPage() {
   if (concept) {
     // 결과 전이면 예상 잔여, 결과가 나오면 백엔드가 준 실제 잔여(points)를 그대로.
     const remaining =
-      points === null ? null : result ? points : Math.max(0, points - PHOTO_COST);
+      points === null ? null : result || busy ? points : Math.max(0, points - PHOTO_COST);
     return (
       <div
         className="fade-in"
@@ -118,6 +160,7 @@ export default function PhotoboothPage() {
         <header className="topbar">
           <button
             className="nav-btn nav-prev"
+            disabled={busy}
             onClick={() => {
               setConcept(null);
               setResult(null);
@@ -213,6 +256,7 @@ export default function PhotoboothPage() {
           </div>
           <input
             className="input"
+            disabled={busy}
             placeholder="예: 나랑 사귀면 완전 야르~"
             value={desc}
             onChange={(e) => setDesc(e.target.value)}

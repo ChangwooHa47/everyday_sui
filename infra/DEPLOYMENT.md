@@ -1,17 +1,17 @@
 ﻿# Railway 배포
 
-같은 GitHub 저장소의 `main`을 Railway 프로젝트의 `web`, `api` 두 서비스에 연결하고 PostgreSQL 서비스를 추가한다. npm workspace와 루트 lockfile을 공유하므로 두 서비스의 Root Directory는 `/`다.
+같은 저장소를 Railway의 `web`, `api`, private `spring` 서비스에서 사용하고 PostgreSQL을 공유한다. 각 서비스 Root Directory는 `/`다. main 반영은 코드리뷰와 명세 대조 후 진행하며 실제 공급자 호출까지 통과해야 전체 서비스 검증 완료로 보고한다. 최신 완료/미완료 범위는 [리뷰](DEPLOYMENT_REVIEW.md)를 따른다.
 
 ## 서비스 설정
 
 Dockerfile 선택은 각 서비스의 Variables에서 설정한다. 구형 `railway.json` Config File 설정은 제거한다. Build Command와 Start Command의 수동 override도 지워 Dockerfile의 build/CMD를 사용한다.
 
-| 설정 | api | web |
-| --- | --- | --- |
-| `RAILWAY_DOCKERFILE_PATH` | `infra/Dockerfile.api` | `infra/Dockerfile.web` |
-| Healthcheck Path | `/health/ready` | `/` |
-| Healthcheck Timeout | 120초 | 120초 |
-| Restart Policy | On Failure, 최대 3회 | On Failure, 최대 3회 |
+| 설정 | api | web | spring |
+| --- | --- | --- | --- |
+| `RAILWAY_DOCKERFILE_PATH` | `infra/Dockerfile.api` | `infra/Dockerfile.web` | `infra/Dockerfile.spring` |
+| Healthcheck Path | `/health/ready` | `/` | `/health/ready` |
+| Healthcheck Timeout | 120초 | 120초 | 120초 |
+| 공개 도메인 | 사용 | 사용 | 없음 |
 
 `PORT`는 Railway가 제공하는 값을 사용한다. API와 Next.js 모두 그 값을 직접 읽는다. API의 우선순위는 `PORT` → 로컬 호환용 `API_PORT` → `3001`이다. API 운영 기본 호스트는 `0.0.0.0`이다. 웹의 컨테이너 기본 포트는 `3000`이다.
 
@@ -37,6 +37,16 @@ API는 시작 시 실제 Postgres에 연결해 스키마를 적용한 후 listen
 
 공개 주소 생성 → api/web 주소 변수 설정 → 배포 순서로 진행한다. `NEXT_PUBLIC_*`는 빌드 시 JavaScript에 들어가므로 변경하면 web을 다시 빌드한다. `EVERYDAY_STATIC_EXPORT`와 `NEXT_PUBLIC_LEGACY_BASELINE`은 운영에 설정하지 않는다. 서버 비밀키는 web 변수에 넣지 않는다.
 
+## private Spring 서비스
+
+- `SPRING_DATASOURCE_URL=jdbc:postgresql://<Postgres private host>:5432/<database>`
+- `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`: 같은 PostgreSQL의 Railway 변수 참조.
+- `WALLET_AUTH_URL=http://<api private domain>:<api PORT>`, `WEB_ORIGINS`: 공개 web Origin.
+- `ANTHROPIC_API_KEY`, `HIGGSFIELD_API_KEY`, `HIGGSFIELD_API_SECRET`: 비공개 서비스 변수. 실제 키가 없으면 생성·대화·사진 검증을 완료할 수 없다.
+- Node에 `SPRING_API_URL=http://<spring private domain>:<spring PORT>` 설정. 운영에서 baseline profile을 켜지 않는다.
+- Spring은 시작할 때 Flyway V1–V11을 별도 everyday schema에 적용하고 Hibernate validate를 실행한다. Node의 public schema와 분리한다. 기존 사용자 데이터를 추정해 합치지 않는다.
+- 순서: private Spring 구성/빌드/DB 검사 → 실제 공급자 호출 검증 → API gateway 연결 및 v2 package 설정 → 같은 package ID로 web 재빌드. 공급자 확인 전 공개 서비스 전환을 완료로 보고하지 않는다.
+
 ## 헬스체크와 오류 진단
 
 - API `/health/ready`: DB 질의 성공 시 200, 실패 시 503. 헬스체크는 일반 요청 rate limit에서 제외한다.
@@ -50,11 +60,16 @@ API는 시작 시 실제 Postgres에 연결해 스키마를 적용한 후 listen
 API/웹 호스팅 성공과 온체인 결제 성공은 별도 검증이다.
 
 - testnet에 실제 배포한 package ID를 api의 `SUI_MARKET_PACKAGE_ID`와 web의 `NEXT_PUBLIC_SUI_PACKAGE_ID`에 동일하게 설정한다.
-- AI는 api의 `AI_ENDPOINT`, `AI_MODEL`, `AI_API_KEY`를 함께 설정한다.
+- 마켓 AI는 api의 `ANTHROPIC_API_KEY`로 기존 Claude 계정을 재사용할 수 있다. 별도 OpenAI 호환 공급자를 쓸 때만 `AI_ENDPOINT`, `AI_MODEL`, `AI_API_KEY` 세 변수를 함께 설정한다.
+- `AI_DAILY_LIMIT` 기본 50, `AI_GLOBAL_DAILY_LIMIT` 기본 100은 사용자별/서버 전체 일일 요청 한도다. Node/Spring/선물 판단에 같은 DB 예약 함수를 사용한다. 요청 수 제한이며 공급자 청구액 상한은 아니다. 읽기 요청은 AI를 생성하지 않고 첫 인사는 별도 제한된 POST 요청이다.
 - Seal/Walrus/operator 및 MemWal의 필수 변수 그룹은 [API 환경 예시](../apps/api/.env.example)와 [마켓 실행 가이드](../docs/MARKET_RUNBOOK.md)를 따른다.
 - 공개 변수 목록은 [웹 환경 예시](../apps/web/.env.local.example)를 따른다. P1 선물은 기본 비활성이다.
 
-2026-09-11 공식 웹 faucet으로 가스를 확보해 testnet 게시를 완료했다. 검증된 package ID는 `0x361efffcabf0ecd042a605ede4f9ff114fc3c0af39ce0d3ef51adfd9e0cc1263`이다. [배포 기록](../contracts/everyday/deployments/testnet.json)을 참조한다. 재확인은 `node infra/deploy-testnet.mjs --execute`로 실행한다. 기존 bootstrap 대신 이 검토된 진입점을 사용한다. 키와 서명 파일은 `.local-tools/market-testnet`에만 보관한다.
+2026-09-12 Walrus/Sui epoch 구분을 수정해 v2 testnet package `0x3ff2bfc626a8b26ca76eb13045009f642103a7a623188794f5b534882d210023`를 게시했다. [배포 기록](../contracts/everyday/deployments/testnet.json)을 참조한다. 재확인은 `node infra/deploy-testnet.mjs --execute --deployment-state market-testnet-v2`다. 이전 v1은 Git 기록과 기존 로컬 상태에 남기며 새 상품과 혼용하지 않는다. 키/서명은 ignored `.local-tools/market-testnet-v2`에만 있다.
+
+실제 가상 데이터 검증: `node infra/verify-market-testnet.mjs --execute --with-memory`. 같은 서명/거래를 재확인하고 불확실한 업로드를 자동 재시도하지 않는다. [거래 증거](../contracts/everyday/deployments/testnet-verification.json)와 [기억 증거](../contracts/everyday/deployments/memory-verification.json)는 공개 식별자만 담는다. 검증용 가상 상품을 운영 카탈로그에 등록했다고 간주하지 않는다.
+
+`node infra/verify-market-api.mjs`는 실제 체인/저장/기억 어댑터를 두 Origin의 인증 API로 검증한다. DB는 별도 PGlite이고 AI/이미지 호출은 하지 않는다. 시드 상품은 `--seed-market` 옵션으로 게시한 [10명 기록](../contracts/everyday/deployments/market-seed.json)을 사용한다. 새 API와 DB migration이 준비된 뒤 `node infra/register-market-seed.mjs --execute --api https://everydayapi-production.up.railway.app --origin https://everydayweb-production.up.railway.app`로 운영 카탈로그에 등록한다. 이미 게시한 상품만 등록하며 새 결제·업로드는 하지 않는다.
 
 ## 검증
 

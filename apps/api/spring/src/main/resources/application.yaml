@@ -1,0 +1,48 @@
+server:
+  address: 0.0.0.0
+  port: ${PORT:8080}
+spring:
+  application:
+    name: everyday-spring
+  task:
+    scheduling:
+      pool:
+        size: 2
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 5000
+  flyway:
+    enabled: true
+    schemas: everyday
+    default-schema: everyday
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: everyday
+app:
+  wallet:
+    auth-url: ${WALLET_AUTH_URL:http://127.0.0.1:3001}
+  llm:
+    provider: anthropic
+    api-key: ${ANTHROPIC_API_KEY:}
+    base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
+    model: ${ANTHROPIC_MODEL:claude-sonnet-4-5}
+  image:
+    provider: higgsfield
+    api-key: ${HIGGSFIELD_API_KEY:}
+    api-secret: ${HIGGSFIELD_API_SECRET:}
+    base-url: ${HIGGSFIELD_BASE_URL:https://platform.higgsfield.ai}
+  cors:
+    allowed-origins: ${WEB_ORIGINS:http://127.0.0.1:3000}
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

@@ -1,0 +1,147 @@
+{
+  "network": "testnet",
+  "packageId": "0x3ff2bfc626a8b26ca76eb13045009f642103a7a623188794f5b534882d210023",
+  "note": "Fictional seed characters using original image assets. Onchain publications; API catalog registration is separate.",
+  "listings": [
+    {
+      "listingId": "0x613f640927593391837c505f40547417454200652307b2b878828a4da2acd0aa",
+      "name": "도윤",
+      "image": {
+        "blobId": "J3PRJDly1l5d4UGTTEGmznRySq-g1p_ttn3qQtZo8wI",
+        "endEpoch": "525"
+      },
+      "package": {
+        "blobId": "6-79g9A1oXAXKt_Ji5Da3vzAoJ1_EbP1KX3nMyd_JB0",
+        "endEpoch": "525",
+        "contentHash": "4a22a56a2950294a12a31060a638d838e9637a1c4a6799961ba7756a67fd265f"
+      },
+      "publishDigest": "8zRFJLnHyVN1X8he9kZvycXpCkN5iQWD8kULkcMPRyt"
+    },
+    {
+      "listingId": "0x90f26681fd56d7f4a65b936eb107cb644c1f66e86c60dc898c34791804849892",
+      "name": "서연",
+      "image": {
+        "blobId": "ds18OExT4a7FeRE9Fvl5U6TI-mQtQYHhxBZHNep88EA",
+        "endEpoch": "525"
+      },
+      "package": {
+        "blobId": "XSiwJdx5bV6lkEGTzBp39sxLTtv5gQnXG98SzVP1_tk",
+        "endEpoch": "525",
+        "contentHash": "f506bcad90ab19a51a3aced44e0f43b8e8f536f4f17c6466bc581e7933056069"
+      },
+      "publishDigest": "EPgpXs9AkPkT5Cy2cU8ox7ArQyALrVdvTxPBmG6pmYek"
+    },
+    {
+      "listingId": "0xb8e46919a8f822864a4bb477f0a1d1f79e7d3913a7a43896a98532bbd852c9f8",
+      "name": "민지",
+      "image": {
+        "blobId": "74gyrGyq82Sgg1kyTwN19rXXtcnMU8YQMDTMQwuY0J0",
+        "endEpoch": "525"
+      },
+      "package": {
+        "blobId": "JTovcsj1kJBM517MOh6Y9SjUg_zbZlWY7lZznD5-1A0",
+        "endEpoch": "525",
+        "contentHash": "35c41be9a650d77c805c7dece547a0fda9e8e486b97f359c81d92d17da5c49b0"
+      },
+      "publishDigest": "B7QvhHyc9yrHc17nFEFZtJTA1sftkQoyXVD61CHYPVNF"
+    },
+    {
+      "listingId": "0x870cbf0fc721d921580a422dcea83fbca6ba2aa89463ec82b61a4fcdecb83d54",
+      "name": "지후",
+      "image": {
+        "blobId": "2HIEMJ5rLENGxnqFsJjKTuzQt4QesgOPG_FyiUeeL04",
+        "endEpoch": "525"
+      },
+      "package": {
+        "blobId": "9a5XJ0uzvCob4h6a_KWM-6uZrFuWMQYQhm6PeIQmgAE",
+        "endEpoch": "525",
+        "contentHash": "87cac04ba9c209ed9d82a0e6a7160a44dbd8ec89bdf7c631f59e06fe65fec92f"
+      },
+      "publishDigest": "EngoKZXYnq7rt7cDYd6KGeEoxomNtcXNohp6GRmLqYSD"
+    },
+    {
+      "listingId": "0x45d4a363bba63294e49baaf578a4e1651e255cd2128d042d0d339fcade18e9a3",
+      "name": "하린",
+      "image": {
+        "blobId": "X-cJnz3hE3QdKoDzcwyXSsyPUQVstun_4bgzrQLCqOQ",
+        "endEpoch": "525"
+      },
+      "package": {
+        "blobId": "GvITcVY9Eqq_BfwpCQjn5j9_O_vMEnRFA6SqEdpkuCI",
+        "endEpoch": "525",
+        "contentHash": "85a74c09530f828c32fa2fd64b53e2bd3d1de8c34b6b6756557fdaa5c48fcccf"
+      },
+      "publishDigest": "HDSkD6bDiS9c7UBLK5UkGN7MxZ1CwmfgYxgiCozXsZm9"
+    },
+    {
+      "listingId": "0x1916ef7edb686e15890d9f7e6836637a0123b648092c73f736dbaaaa608f9038",
+      "name": "태오",
+      "image": {
+        "blobId": "_esUAtV77ZnDCRMFoBWn0HhVFBw-z5AITlZzfaACKoI",
+        "endEpoch": "525"
+      },
+      "package": {
+        "blobId": "z651pMQ_GF_3nr7JpduTHSLmtgN8kopNCChRCdZ6h9Y",
+        "endEpoch": "525",
+        "contentHash": "c0da63a27f60425c1ba8c8d0d69a0accc4465cd560c464cf7877285393061f34"
+      },
+      "publishDigest": "H1RdbadAZM3F8ftsFKHBmpBMtJu3mrztr2v3TYNott4z"
+    },
+    {
+      "listingId": "0xff66b6a3cbafe3f87eda43694807113ccab47401781dccbf73419945d1cc9729",
+      "name": "유나",
+      "image": {
+        "blobId": "gcFoFaLZmFPk3n323PuOLeRf-rdf8ckmWeMA3AOMXmo",
+        "endEpoch": "525"
+      },
+      "package": {
+        "blobId": "S9Xm7ixV_4LXhY4nbQYhjtnQJH7KPtNytFgDUeW9pRE",
+        "endEpoch": "525",
+        "contentHash": "36cddf001d58d615a1085ae0e12820452cec90e79e35bb52f27a0fbcaeb89867"
+      },
+      "publishDigest": "8P7pS1qSjPwmhbmKgeL4bdsZVUp89iNGxs4jj9MW7dZW"
+    },
+    {
+      "listingId": "0x2a63d017b7898a97d5b7d2283ebcacd3cbbe136c8b6a822f5878d9e9028618de",
+      "name": "수빈",
+      "image": {
+        "blobId": "gcCi3IwNSRNva3lA5lKPi-NLp17UR_kdyRTZSgIRcho",
+        "endEpoch": "525"
+      },
+      "package": {
+        "blobId": "1fCS6Uz078RZ2BZZIv1ScGgmU3aNI24zktcXuR8T2k8",
+        "endEpoch": "525",
+        "contentHash": "572b9a27b7a257ab306493d4cd7570192b77a2b6b1d0b376f02a1335e51521c1"
+      },
+      "publishDigest": "EZDrRGxcUm2v98MBdHDQ2cmUksdCycRGNznjDtYX8ic9"
+    },
+    {
+      "listingId": "0x0aff3576059debe37e947001444607526a2b8628ca20bd1c7f4d7f1f6ef352a8",
+      "name": "시우",
+      "image": {
+        "blobId": "1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0",
+        "endEpoch": "525"
+      },
+      "package": {
+        "blobId": "qSzmG1ATwQc_3OTA5WFEVlcHXxAJAg-jcdKi578Sy9s",
+        "endEpoch": "525",
+        "contentHash": "24fd4691b48ca2919fb85fbfe0e3daa0824aca8273fab72afff87cf39ec8a104"
+      },
+      "publishDigest": "D42CYFtUBS9UHqCDc6k1XmZMpVMmJhPkxiLxBuD1PdaE"
+    },
+    {
+      "listingId": "0x99843159639f472e59469573f74d4959570f72db858b39c972e31eb91b4b1efa",
+      "name": "예린",
+      "image": {
+        "blobId": "3MefhXZTkCVRf-ET9cmz85E3dG_ZqNaRtNYJKWC-410",
+        "endEpoch": "525"
+      },
+      "package": {
+        "blobId": "4o56xxrT9oq9YxzYdmGKssyB8TROFSaq4hUfBIra7kk",
+        "endEpoch": "525",
+        "contentHash": "510aa82fd8c7f4f7d287c60c7af5e126013617da90582c81d0607e8778a0c17b"
+      },
+      "publishDigest": "4LDjwKCHWC4JHfEk7aH9C16vptG6GuRZyZhcpVWLtG8S"
+    }
+  ]
+}

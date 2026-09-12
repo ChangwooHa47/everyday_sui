@@ -77,7 +77,9 @@ public fun create_listing(creator: &Creator, operator: address, title: String, p
 }
 public fun publish(listing: &mut Listing, blob_id: String, content_hash: vector<u8>, end_epoch: u64, ctx: &TxContext) {
     assert!(listing.creator == ctx.sender(), EOwner);
-    assert!(!listing.published && blob_id.length() == 43 && content_hash.length() == 32 && end_epoch > ctx.epoch(), EInvalid);
+    // end_epoch is a Walrus storage epoch, not a Sui epoch. This is reference metadata;
+    // storage availability is checked by the package reader, not by comparing unrelated clocks.
+    assert!(!listing.published && blob_id.length() == 43 && content_hash.length() == 32 && end_epoch > 0, EInvalid);
     listing.blob_id = blob_id;
     listing.content_hash = content_hash;
     listing.end_epoch = end_epoch;
@@ -89,7 +91,7 @@ public fun publish(listing: &mut Listing, blob_id: String, content_hash: vector<
 // A new edition of the character is a new Listing in the first version.
 public fun extend_retention(listing: &mut Listing, end_epoch: u64, ctx: &TxContext) {
     assert!(listing.creator == ctx.sender(), EOwner);
-    assert!(listing.published && end_epoch > listing.end_epoch && end_epoch > ctx.epoch(), EInvalid);
+    assert!(listing.published && end_epoch > listing.end_epoch, EInvalid);
     listing.end_epoch = end_epoch;
 }
 public fun set_active(listing: &mut Listing, active: bool, ctx: &TxContext) {
@@ -98,7 +100,7 @@ public fun set_active(listing: &mut Listing, active: bool, ctx: &TxContext) {
     listing.active = active;
 }
 public fun purchase(listing: &mut Listing, mut payment: Coin<SUI>, ctx: &mut TxContext) {
-    assert!(listing.active && listing.end_epoch > ctx.epoch(), ENotLive);
+    assert!(listing.active && listing.published, ENotLive);
     let buyer = ctx.sender();
     assert!(!listing.buyers.contains(buyer), EPurchased);
     assert!(payment.value() == listing.price, EPayment);

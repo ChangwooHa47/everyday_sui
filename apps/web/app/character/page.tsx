@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { Avatar } from "../components";
 import { Icon } from "../icons";
+import { PersonalMemory } from './PersonalMemory';
 
 type Tab = "settings" | "gallery";
 
@@ -25,25 +26,33 @@ function EditSection({
   value,
   placeholder,
   onSave,
+  readOnly = false,
 }: {
   title: string;
   value: string;
   placeholder?: string;
   onSave: (v: string) => Promise<void>;
+  readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   function open() {
     setDraft(value);
+    setSaveError('');
     setEditing(true);
   }
   async function commit() {
+    if (saving) return;
     setSaving(true);
+    setSaveError('');
     try {
       await onSave(draft.trim());
       setEditing(false);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : '저장하지 못했어요. 다시 시도해주세요.');
     } finally {
       setSaving(false);
     }
@@ -51,8 +60,8 @@ function EditSection({
 
   return (
     <section style={{ marginBottom: 26 }}>
-      <button className="cp-secTitle" onClick={open} type="button">
-        <Icon name="edit-small" size={16} style={{ color: "var(--orange-700)" }} />
+      <button className="cp-secTitle" onClick={open} type="button" disabled={readOnly}>
+        {!readOnly && <Icon name="edit-small" size={16} style={{ color: "var(--orange-700)" }} />}
         <span className="label1">{title}</span>
       </button>
 
@@ -74,6 +83,7 @@ function EditSection({
               {saving ? "저장 중…" : "저장"}
             </button>
           </div>
+          {saveError && <p className="caption" role="alert">{saveError}</p>}
         </div>
       </div>
 
@@ -94,6 +104,9 @@ export default function CharacterPage() {
   const [tab, setTab] = useState<Tab>("settings");
   const [viewer, setViewer] = useState<PhotoItem | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPublish, setShowPublish] = useState(false);
+  const [publishPrice, setPublishPrice] = useState('0.01');
+  const [publishing, setPublishing] = useState(false);
 
   // 호칭·말투 편집 상태
   const [editingName, setEditingName] = useState(false);
@@ -121,7 +134,7 @@ export default function CharacterPage() {
         idRef.current = id;
         setChar(await backend.getCharacter(id));
       } catch (e) {
-        setError(e instanceof Error ? e.message : "백엔드 연결 실패");
+        setError(e instanceof Error ? e.message : "불러오지 못했어요. 다시 시도해주세요.");
       }
     })();
   }, [router]);
@@ -131,9 +144,10 @@ export default function CharacterPage() {
     if (tab !== "gallery" || galleryLoaded || idRef.current == null) return;
     (async () => {
       try {
+        setError(null);
         setPhotos(await backend.getGallery(idRef.current!));
-      } catch {
-        /* 빈 그리드 유지 */
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '사진을 불러오지 못했어요.');
       } finally {
         setGalleryLoaded(true);
       }
@@ -144,6 +158,16 @@ export default function CharacterPage() {
     if (idRef.current == null) return;
     const updated = await backend.updateCharacter(idRef.current, patch);
     setChar(updated);
+  }
+
+  async function publish() {
+    if (!char || publishing) return;
+    setPublishing(true); setError(null);
+    try {
+      await (await import('@/lib/publish')).publishCharacter(char.id, publishPrice);
+      router.push('/community');
+    } catch (e) { setError(e instanceof Error ? e.message : '등록하지 못했어요. 다시 시도해주세요.'); }
+    finally { setPublishing(false); }
   }
 
   async function saveCallName() {
@@ -206,8 +230,8 @@ export default function CharacterPage() {
                 {char.name}
               </div>
               <div className="body2" style={{ color: "var(--gray-500)" }}>
-                {char.relationshipType} <span style={{ color: "var(--gray-300)" }}>|</span> {char.age}{" "}
-                <span style={{ color: "var(--gray-300)" }}>|</span> {char.gender}
+                {[char.relationshipType, char.age > 0 ? String(char.age) : '', char.gender].filter(Boolean).map((value, index) =>
+                  <span key={index}>{index > 0 && <span style={{ color: 'var(--gray-300)' }}> | </span>}{value}</span>)}
               </div>
             </div>
             <button
@@ -266,12 +290,14 @@ export default function CharacterPage() {
               {char.summary && <div className="cp-summary body2">{char.summary}</div>}
 
               <EditSection
+                readOnly={char.readOnlySettings}
                 title="외모"
                 value={char.appearance ?? ""}
                 placeholder="외모를 적어주세요"
                 onSave={(v) => saveField({ appearance: v })}
               />
               <EditSection
+                readOnly={char.readOnlySettings}
                 title="성격"
                 value={char.personality ?? ""}
                 placeholder="성격을 적어주세요"
@@ -283,12 +309,13 @@ export default function CharacterPage() {
                 <button
                   className="cp-secTitle"
                   type="button"
+                  disabled={char.readOnlySettings}
                   onClick={() => {
                     setSpeechDraft(char.speechStyles.join("\n"));
                     setEditingSpeech(true);
                   }}
                 >
-                  <Icon name="edit-small" size={16} style={{ color: "var(--orange-700)" }} />
+                  {!char.readOnlySettings && <Icon name="edit-small" size={16} style={{ color: "var(--orange-700)" }} />}
                   <span className="label1">말투</span>
                 </button>
 
@@ -327,13 +354,28 @@ export default function CharacterPage() {
                 </div>
               </section>
 
+              {char.readOnlySettings && <PersonalMemory characterId={char.id} />}
+              {!char.readOnlySettings && <section style={{ marginTop: 24 }}>
+                <button className="cp-btnGhost" type="button" onClick={() => setShowPublish(v => !v)}>마켓에 등록</button>
+                {showPublish && <div className="cp-callBox">
+                  <label className="label1" htmlFor="publish-price">판매 가격 (테스트 SUI)</label>
+                  <input id="publish-price" className="input" inputMode="decimal" value={publishPrice}
+                    onChange={e => setPublishPrice(e.target.value)} disabled={publishing} />
+                  <p className="caption">개인 이용권 · 제작자 80% / 캐릭터 20%</p>
+                  <p className="caption">대화와 개인 기억은 포함되지 않아요.</p>
+                  <button className="cp-btnFill" type="button" disabled={publishing} onClick={() => void publish()}>
+                    {publishing ? '등록 중…' : '등록'}
+                  </button>
+                </div>}
+              </section>}
+
               {error && (
                 <div className="caption" style={{ color: "#d64545", textAlign: "center", marginTop: 12 }}>{error}</div>
               )}
             </>
           ) : (
             <>
-              {!galleryLoaded ? (
+              {error ? <p className="caption" role="alert">{error}</p> : !galleryLoaded ? (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   {[0, 1, 2, 3].map((i) => (
                     <div key={i} className="skeleton" style={{ aspectRatio: "3/4", borderRadius: 14 }} />

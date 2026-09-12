@@ -26,19 +26,16 @@ export default function Home() {
 
   // 대화 일수 — 캐릭터별 최초 메시지 기준. 활성 카드에 대해서만 지연 로드.
   const loadDayCount = useCallback(async (id: number) => {
-    setDayCounts((prev) => (id in prev ? prev : prev));
     try {
-      const msgs = await backend.getMessages(id);
+      const msgs = await backend.getHistory(id);
       const times = msgs
         .map((m) => new Date(m.createdAt).getTime())
         .filter((t) => Number.isFinite(t));
       const days = times.length
         ? Math.max(1, Math.floor((Date.now() - Math.min(...times)) / 86_400_000) + 1)
-        : 1;
+        : 0;
       setDayCounts((prev) => ({ ...prev, [id]: days }));
-    } catch {
-      setDayCounts((prev) => ({ ...prev, [id]: 1 }));
-    }
+    } catch { /* Leave unavailable counts unset instead of inventing relationship history. */ }
   }, []);
 
   useEffect(() => {
@@ -46,7 +43,7 @@ export default function Home() {
       try {
         const list = await backend.listCharacters();
         if (list.length === 0) {
-          router.replace("/create");
+          setChars([]);
           return;
         }
         const savedId = getActiveCharacterId();
@@ -56,7 +53,7 @@ export default function Home() {
         setActiveCharacterId(list[idx].id);
         void loadDayCount(list[idx].id);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "백엔드 연결 실패");
+        setError(e instanceof Error ? e.message : "불러오지 못했어요. 다시 시도해주세요.");
       }
     })();
   }, [router, loadDayCount]);
@@ -98,8 +95,6 @@ export default function Home() {
       <div style={{ display: "grid", placeItems: "center", height: "100dvh", padding: 24 }}>
         <div className="body2" style={{ color: "var(--gray-500)", textAlign: "center" }}>
           {error}
-          <br />
-          백엔드 연결을 확인해주세요.
         </div>
       </div>
     );
@@ -214,7 +209,7 @@ export default function Home() {
                 <div>
                   <span style={{ fontWeight: 700 }}>{char.relationshipType}</span>
                   {divider}
-                  <span style={{ opacity: 0.9 }}>{dayCounts[char.id] ?? 1}일째 대화</span>
+                  <span style={{ opacity: 0.9 }}>{dayCounts[char.id] === undefined ? '' : dayCounts[char.id] === 0 ? '첫 대화 시작하기' : `${dayCounts[char.id]}일째 대화`}</span>
                 </div>
                 <div>
                   <span style={{ fontWeight: 700 }}>에피소드</span>
@@ -228,7 +223,7 @@ export default function Home() {
 
         {/* 캐러셀 끝 — 새 캐릭터 추가 카드 (figma 278:2213, 점선 보더) */}
         <button
-          onClick={() => router.push("/create")}
+          onClick={() => router.push("/create?new=1")}
           aria-label="새 캐릭터 추가하기"
           style={{
             flex: "0 0 calc(min(375px, 100vw) - 72px)",

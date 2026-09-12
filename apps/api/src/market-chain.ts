@@ -1,5 +1,6 @@
 import { bcs } from '@mysten/sui/bcs';
 import { SuiGrpcClient } from '@mysten/sui/grpc';
+import { TransactionError } from '@mysten/sui/client';
 import { normalizeStructTag } from '@mysten/sui/utils';
 import { addressSchema, failure } from './auth.js';
 import type { MarketListing } from '@everyday/contracts';
@@ -18,8 +19,9 @@ export interface MarketChain {
   readonly packageId: string;
   listing(id: string): Promise<MarketListing>;
   hasLicense(actor: string, listingId: string, licenseId: string): Promise<boolean>;
+  transactionStatus?(digest: string): Promise<'confirmed' | 'failed' | 'notFound'>;
 }
-export function createMarketChain(packageId: string, client: Pick<SuiGrpcClient, 'getObject'>): MarketChain {
+export function createMarketChain(packageId: string, client: Pick<SuiGrpcClient, 'getObject'> & Partial<Pick<SuiGrpcClient, 'getTransaction'>>): MarketChain {
   const pkg = addressSchema.parse(packageId);
   if (BigInt(pkg) === 0n) throw Error('SUI_MARKET_PACKAGE_ID must be a deployed package');
   async function object(id: string) {
@@ -28,6 +30,16 @@ export function createMarketChain(packageId: string, client: Pick<SuiGrpcClient,
   }
   return {
     packageId: pkg,
+    async transactionStatus(digest) {
+      if (!client.getTransaction) throw failure(503, 'CHAIN_UNAVAILABLE');
+      try {
+        const result = await client.getTransaction({ digest, signal: AbortSignal.timeout(10000) });
+        return result.$kind === 'Transaction' ? 'confirmed' : 'failed';
+      } catch (error) {
+        if (error instanceof TransactionError && error.reason === 'notFound') return 'notFound';
+        throw failure(503, 'CHAIN_UNAVAILABLE');
+      }
+    },
     async listing(id) {
       const value = await object(id);
       if (normalizeStructTag(value.type) !== `${pkg}::market::Listing` || value.owner.$kind !== 'Shared') throw failure(404, 'LISTING_NOT_FOUND');

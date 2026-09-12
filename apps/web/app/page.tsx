@@ -57,7 +57,7 @@ export default function Splash() {
         style={{ position: "absolute", bottom: 64, color: "var(--gray-500)" }}
       >
         {!legacyBaseline ? <WalletLogin onLogin={() => router.push('/home')} /> : error
-          ? "백엔드(localhost:8080)에 연결할 수 없어요"
+          ? "불러오지 못했어요. 다시 시도해주세요."
           : hasCharacter === null
             ? "연결 중..."
             : hasCharacter

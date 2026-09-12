@@ -25,10 +25,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      spring:
+        condition: service_started
     environment:
       DATABASE_URL: postgresql://everyday:${POSTGRES_PASSWORD:-everyday-local-only}@postgres:5432/everyday
       WEB_ORIGINS: ${WEB_ORIGINS:-http://127.0.0.1:3000,http://127.0.0.1:3002}
       API_AUDIENCE: ${API_AUDIENCE:-http://127.0.0.1:3001}
+      SPRING_API_URL: http://spring:8080
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-https://api.anthropic.com}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-5}
       AI_ENDPOINT: ${AI_ENDPOINT:-}
       AI_MODEL: ${AI_MODEL:-}
       AI_API_KEY: ${AI_API_KEY:-}
@@ -39,7 +45,7 @@ services:
       SEAL_THRESHOLD: ${SEAL_THRESHOLD:-2}
       WALRUS_PUBLISHER: ${WALRUS_PUBLISHER:-}
       WALRUS_AGGREGATOR: ${WALRUS_AGGREGATOR:-}
-      WALRUS_EPOCHS: ${WALRUS_EPOCHS:-2}
+      WALRUS_EPOCHS: ${WALRUS_EPOCHS:-7}
       MARKET_PREVIEW_TURNS: ${MARKET_PREVIEW_TURNS:-3}
       MEMWAL_DELEGATE_MASTER_KEY: ${MEMWAL_DELEGATE_MASTER_KEY:-}
       MEMWAL_SERVER_URL: ${MEMWAL_SERVER_URL:-https://relayer-staging.memory.walrus.xyz}
@@ -47,10 +53,31 @@ services:
       MEMWAL_REGISTRY_ID: ${MEMWAL_REGISTRY_ID:-}
       AGENT_GIFTS_ENABLED: ${AGENT_GIFTS_ENABLED:-0}
       AI_DAILY_LIMIT: ${AI_DAILY_LIMIT:-50}
+      AI_GLOBAL_DAILY_LIMIT: ${AI_GLOBAL_DAILY_LIMIT:-100}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 3s
       retries: 3
+  spring:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.spring
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/everyday
+      SPRING_DATASOURCE_USERNAME: everyday
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-everyday-local-only}
+      WALLET_AUTH_URL: http://api:3001
+      WEB_ORIGINS: ${WEB_ORIGINS:-http://127.0.0.1:3000,http://127.0.0.1:3002}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-https://api.anthropic.com}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-5}
+      HIGGSFIELD_API_KEY: ${HIGGSFIELD_API_KEY:-}
+      HIGGSFIELD_API_SECRET: ${HIGGSFIELD_API_SECRET:-}
+      HIGGSFIELD_BASE_URL: ${HIGGSFIELD_BASE_URL:-https://platform.higgsfield.ai}
 volumes:
   postgres-data:

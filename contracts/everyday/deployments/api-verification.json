@@ -1,0 +1,19 @@
+{
+  "network": "testnet",
+  "packageId": "0x3ff2bfc626a8b26ca76eb13045009f642103a7a623188794f5b534882d210023",
+  "verifiedAt": "2026-09-12T05:52:51.970Z",
+  "database": "isolated PGlite; not the deployed production database",
+  "catalogCount": 10,
+  "authenticatedOrigins": [
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3002"
+  ],
+  "realWalletSignatures": true,
+  "exactLicenseAccess": true,
+  "sealPackageEqualAcrossOrigins": true,
+  "memoryRecalledAcrossOrigins": true,
+  "otherOwnerDenied": true,
+  "otherCharacterMemoryEmpty": true,
+  "disabledMemoryDenied": true,
+  "note": "Actual Sui, Walrus, Seal and MemWal adapters through Fastify HTTP injection. No browser/UI or paid AI/image calls. Catalog registration was isolated to this verification database."
+}

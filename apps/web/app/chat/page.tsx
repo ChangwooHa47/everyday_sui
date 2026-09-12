@@ -8,17 +8,23 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import {
   backend,
+  ApiError,
+  prepareChatRequest,
+  getPendingChatRequest,
+  clearChatRequest,
   getActiveCharacterId,
   setActiveCharacterId,
   type CharacterDetail,
   type ChatMessage,
 } from "@/lib/api";
 import { Icon } from "../icons";
+import { market, formatPrice, purchaseCharacter, pendingPreviewMessages, MarketRequestError } from '@/lib/market';
+import type { MarketPreview } from '@everyday/contracts';
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; id?: number };
 
 function toMsg(m: ChatMessage): Msg {
-  return { role: m.sender === "USER" ? "user" : "assistant", content: m.content };
+  return { id: m.id, role: m.sender === "USER" ? "user" : "assistant", content: m.content };
 }
 
 function ChatInner() {
@@ -27,6 +33,8 @@ function ChatInner() {
   const episodeId = params.get("episode");
   const episodeTitle = params.get("title");
   const starter = params.get("starter");
+  const listingId = params.get('listing');
+  const [preview, setPreview] = useState<MarketPreview | null>(null);
 
   const [char, setChar] = useState<CharacterDetail | null>(null);
   const [nicknameInput, setNicknameInput] = useState("");
@@ -34,13 +42,30 @@ function ChatInner() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
 
   useEffect(() => {
+    let active = true;
+    setHistoryLoaded(false);
+    setChar(null);
+    startedRef.current = false;
     (async () => {
       try {
+        if (listingId) {
+          const selected = await market.preview(listingId);
+          if (!active) return;
+          setPreview(selected);
+          setChar({ id: 0, name: selected.character.name, birthday: null, age: 0, relationshipType: '', gender: '',
+            summary: selected.character.summary ?? null, appearance: null, personality: null, speechStyles: [],
+            profileImageUrl: selected.character.imageUrl ?? null, callName: null, soulTrained: false });
+          const pending = pendingPreviewMessages(listingId);
+          setAskNickname(false); setMessages(pending ? pending.slice(0, -1) : []); setInput(pending?.at(-1)?.content ?? ''); setError(null);
+          return;
+        }
+        setPreview(null);
         let id = getActiveCharacterId();
         if (!id) {
           const list = await backend.listCharacters();
@@ -52,27 +77,45 @@ function ChatInner() {
           setActiveCharacterId(id);
         }
         const detail = await backend.getCharacter(id);
+        if (!active) return;
         setChar(detail);
         setAskNickname(!detail.callName);
-        const history = episodeId
+        let history = episodeId
           ? await backend.getEpisodeMessages(id, episodeId)
           : await backend.getMessages(id);
+        if (!active) return;
+        if (!episodeId && history.length === 0) {
+          const pending = prepareChatRequest(id, 'greeting', 'greeting');
+          history = [await backend.ensureGreeting(id, pending.requestId)];
+          clearChatRequest(id, 'greeting', pending.requestId);
+        } else if (!episodeId) {
+          const pending = getPendingChatRequest(id, 'greeting');
+          if (pending) clearChatRequest(id, 'greeting', pending.requestId);
+        }
+        if (!active) return;
         setMessages(history.map(toMsg));
+        const pending = getPendingChatRequest(id, episodeId);
+        if (pending) setInput(pending.content);
+        setHistoryLoaded(true);
         scrollDown();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "백엔드에 연결할 수 없어요");
+        if (active) setError(e instanceof Error ? e.message : "불러오지 못했어요. 다시 시도해주세요.");
       }
     })();
-  }, [router, episodeId]);
+    return () => { active = false; };
+  }, [router, episodeId, listingId]);
 
   // 에피소드에서 starter 들고 진입 시 자동 발화
   useEffect(() => {
-    if (starter && char && char.callName && !startedRef.current) {
+    if (starter && char && char.callName && historyLoaded && !preview && !startedRef.current) {
       startedRef.current = true;
-      void send(starter);
+      const remaining = new URLSearchParams(params.toString());
+      remaining.delete('starter');
+      router.replace(`/chat?${remaining.toString()}`, { scroll: false });
+      if (!getPendingChatRequest(char.id, episodeId)) void send(starter);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [starter, char]);
+  }, [starter, char, historyLoaded, preview]);
 
   function scrollDown() {
     setTimeout(
@@ -83,7 +126,7 @@ function ChatInner() {
 
   async function send(textArg?: string) {
     const text = (textArg ?? input).trim();
-    if (!text || busy || !char) return;
+    if (!text || busy || !char || (!preview && !historyLoaded)) return;
     setInput("");
     setBusy(true);
     setError(null);
@@ -92,14 +135,24 @@ function ChatInner() {
     setMessages([...base, { role: "assistant", content: "" }]); // 타이핑 버블
     scrollDown();
 
+    let requestId: string | undefined;
     try {
+      if (preview) {
+        const reply = await market.turn(preview.listing.id, base);
+        setMessages([...base, { role: 'assistant', content: reply.content }]);
+        return;
+      }
+      const pending = prepareChatRequest(char.id, episodeId, text);
+      requestId = pending.requestId;
       const reply = episodeId
-        ? await backend.sendEpisodeMessage(char.id, episodeId, text)
-        : await backend.sendMessage(char.id, text);
-      setMessages([...base, toMsg(reply)]);
+        ? await backend.sendEpisodeMessage(char.id, episodeId, text, requestId)
+        : await backend.sendMessage(char.id, text, requestId);
+      clearChatRequest(char.id, episodeId, requestId);
+      setMessages(messages.some(message => message.id === reply.id) ? messages : [...base, toMsg(reply)]);
     } catch (e) {
-      // 정책 거절 스펙 — 캐릭터 말풍선으로 안내 + 입력바 위 배너(에러 시에만)
-      setMessages([...base, { role: "assistant", content: "답변을 생성할 수 없어요." }]);
+      if (requestId && e instanceof ApiError && [400, 402, 403, 404, 422].includes(e.status)) clearChatRequest(char.id, episodeId, requestId);
+      setMessages(messages);
+      setInput(preview && e instanceof MarketRequestError && e.code === 'TURN_COMPLETED' ? '' : text);
       setError(e instanceof Error ? e.message : "메시지 전송 실패");
     } finally {
       setBusy(false);
@@ -109,9 +162,22 @@ function ChatInner() {
 
   async function saveNickname() {
     if (!char || !nicknameInput.trim()) return;
-    const updated = await backend.setCallName(char.id, nicknameInput.trim());
-    setChar(updated);
-    setAskNickname(false);
+    try {
+      const updated = await backend.setCallName(char.id, nicknameInput.trim());
+      setChar(updated); setAskNickname(false);
+    } catch (e) { setError(e instanceof Error ? e.message : '저장하지 못했어요.'); }
+  }
+
+  async function buy() {
+    if (!preview || busy) return;
+    setBusy(true); setError(null);
+    try {
+      const character = await purchaseCharacter(preview.listing);
+      setActiveCharacterId(character.id);
+      router.replace('/chat');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '구매를 완료하지 못했어요.');
+    } finally { setBusy(false); }
   }
 
   if (error && !char) {
@@ -120,7 +186,6 @@ function ChatInner() {
         <div className="body2" style={{ color: "var(--gray-500)", textAlign: "center" }}>
           {error}
           <br />
-          백엔드(localhost:8080)가 켜져 있는지 확인해주세요.
         </div>
       </div>
     );
@@ -133,7 +198,7 @@ function ChatInner() {
       <header className="topbar" style={{ borderBottom: "1px solid var(--gray-100)" }}>
         <button
           className="nav-btn nav-prev"
-          onClick={() => router.push(episodeId ? "/episode" : "/home")}
+          onClick={() => router.push(preview ? '/community' : episodeId ? "/episode" : "/home")}
         >
           <Icon name="chevron-left" size={24} />
         </button>
@@ -151,15 +216,19 @@ function ChatInner() {
         <button
           className="nav-btn"
           style={{ color: "var(--gray-700)", display: "flex" }}
-          onClick={() => router.push("/edit")}
-          title="캐릭터 편집"
+          onClick={() => preview ? void buy() : router.push("/edit")}
+          disabled={busy}
+          title={preview ? '구매' : '캐릭터 편집'}
         >
-          <Icon name="menu" size={22} />
+          {preview ? '구매' : <Icon name="menu" size={22} />}
         </button>
       </header>
 
       {/* 메시지 — 캐릭터 응답은 줄바꿈마다 말풍선 분리 (톡처럼 여러 번 보낸 느낌) */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
+        {preview && <p className="caption" style={{ color: 'var(--gray-500)' }}>
+          미리보기 {preview.previewTurns}회 · 개인 이용권 {formatPrice(preview.listing.priceMist)}
+        </p>}
         {messages.map((m, i) => {
           const isUser = m.role === "user";
           const lines =
@@ -197,9 +266,10 @@ function ChatInner() {
         })}
       </div>
 
-      {/* 정책 거절 배너 — 에러 발생 시에만 입력바 위에 노출 */}
+      {/* 요청 실패 안내 — 실제로 실패한 작업에 맞는 메시지를 표시한다. */}
       {error && char && (
         <div
+          role="alert"
           style={{
             background: "var(--gray-900)",
             color: "var(--gray-300)",
@@ -209,7 +279,7 @@ function ChatInner() {
             padding: "10px 16px",
           }}
         >
-          ※ 정책상 민감한 요청은 AI 답변을 생성할 수 없어요
+          {error}
         </div>
       )}
 
@@ -224,9 +294,9 @@ function ChatInner() {
           onKeyDown={(e) =>
             e.key === "Enter" && !e.nativeEvent.isComposing && send()
           }
-          disabled={askNickname}
+          disabled={askNickname || (!preview && !historyLoaded)}
         />
-        <button className="send-btn" onClick={() => send()} disabled={busy || askNickname}>
+        <button className="send-btn" onClick={() => send()} disabled={busy || askNickname || (!preview && !historyLoaded)}>
           <Icon name="send" size={18} />
         </button>
       </div>

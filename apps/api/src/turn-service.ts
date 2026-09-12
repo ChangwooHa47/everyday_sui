@@ -1,15 +1,32 @@
 import { z } from 'zod';
 import { failure, hash } from './auth.js';
 import type { Database } from './database.js';
-export interface AiConfig { endpoint: string; apiKey: string; model: string; dailyLimit: number; }
+import { reserveAiBudget } from './ai-budget.js';
+export interface AiConfig { endpoint: string; apiKey: string; model: string; dailyLimit: number; globalDailyLimit?: number; provider?: 'openai-compatible' | 'anthropic'; }
 export const messagesSchema = z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().min(1).max(8000) }).strict()).min(1).max(40);
 export const characterSchema = z.object({ name: z.string().min(1).max(80), personality: z.string().max(4000), callName: z.string().max(80) }).strict();
 export type ChatMessage = z.infer<typeof messagesSchema>[number];
 
+export async function requestCompletion(config: AiConfig, system: string, messages: ChatMessage[], maxTokens = 1000, timeout = 60000) {
+  const anthropic = config.provider === 'anthropic';
+  const response = await fetch(config.endpoint, { method: 'POST', signal: AbortSignal.timeout(timeout),
+    headers: anthropic ? { 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }
+      : { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: config.model, max_tokens: maxTokens,
+      ...(anthropic ? { system, messages } : { messages: [{ role: 'system', content: system }, ...messages] }) }) });
+  if (!response.ok) throw Error('provider failure');
+  if (anthropic) {
+    const data = z.object({ content: z.array(z.object({ type: z.string(), text: z.string().optional() })) }).parse(await response.json());
+    return z.string().min(1).max(32000).parse(data.content.filter(block => block.type === 'text').map(block => block.text ?? '').join('\n'));
+  }
+  const data = z.object({ choices: z.array(z.object({ message: z.object({ content: z.string().min(1).max(32000) }) })).min(1) }).parse(await response.json());
+  return data.choices[0].message.content;
+}
+
 // Only fingerprints/accounting are durable; prompts and completions are not.
 export async function generateTurn(db: Database, config: AiConfig | undefined, input: {
   actor: string; requestId: string; fingerprint: unknown; system: string; messages: ChatMessage[];
-  reserve?: () => Promise<void>;
+  preview?: { listingId: string; limit: number };
 }) {
   if (!config) throw failure(503, 'AI_NOT_CONFIGURED');
   const { actor, requestId } = input;
@@ -22,18 +39,16 @@ export async function generateTurn(db: Database, config: AiConfig | undefined, i
   }
   const unknown = () => db.query("UPDATE ai_requests SET status='unknown' WHERE actor=$1 AND request_id=$2", [actor, requestId]);
   try {
-    await input.reserve?.();
-    const quota = await db.query(`INSERT INTO ai_daily_budget(actor,used) VALUES($1,1)
-      ON CONFLICT(actor,day) DO UPDATE SET used=ai_daily_budget.used+1 WHERE ai_daily_budget.used<$2 RETURNING used`, [actor, config.dailyLimit]);
-    if (!quota.rows.length) throw failure(429, 'DAILY_AI_LIMIT');
-  } catch (error) { await unknown(); throw error; }
+    await reserveAiBudget(db, actor, config.dailyLimit, config.globalDailyLimit, input.preview);
+  } catch (error) {
+    // No model request has started. The same request ID may be retried after a
+    // known quota rejection without being mislabeled as an uncertain completion.
+    await db.query("DELETE FROM ai_requests WHERE actor=$1 AND request_id=$2 AND status='running'", [actor, requestId]);
+    throw error;
+  }
   try {
-    const response = await fetch(config.endpoint, { method: 'POST', signal: AbortSignal.timeout(60_000),
-      headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: config.model, max_tokens: 1000, messages: [{ role: 'system', content: input.system }, ...input.messages] }) });
-    if (!response.ok) throw Error('provider failure');
-    const data = z.object({ choices: z.array(z.object({ message: z.object({ content: z.string().min(1).max(32000) }) })).min(1) }).parse(await response.json());
+    const content = await requestCompletion(config, input.system, input.messages);
     await db.query("UPDATE ai_requests SET status='completed' WHERE actor=$1 AND request_id=$2", [actor, requestId]);
-    return { turnId: requestId, content: data.choices[0].message.content };
+    return { turnId: requestId, content };
   } catch { await unknown(); throw failure(502, 'PROVIDER_RESULT_UNKNOWN_DO_NOT_AUTO_RETRY'); }
 }

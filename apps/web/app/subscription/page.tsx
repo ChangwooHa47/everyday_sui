@@ -5,6 +5,7 @@
 // 구독 기능은 백엔드 미구현 → 표시용 (현재 등급은 /api/me 로 반영).
 
 import { useEffect, useState } from "react";
+import { redirect } from 'next/navigation';
 import { backend } from "@/lib/api";
 import { BottomNav } from "../components";
 import { Icon } from "../icons";
@@ -72,6 +73,11 @@ const PLANS: Plan[] = [
 ];
 
 export default function SubscriptionPage() {
+  if (process.env.NEXT_PUBLIC_LEGACY_BASELINE !== '1') redirect('/my');
+  return <BaselineSubscription />;
+}
+
+function BaselineSubscription() {
   const [points, setPoints] = useState<number | null>(null);
   const [tier, setTier] = useState<string>("Free");
 

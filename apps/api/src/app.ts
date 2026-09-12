@@ -3,7 +3,7 @@ import type { HealthResponse } from '@everyday/contracts';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { ZodError } from 'zod';
-import { registerAuth, type AuthConfig } from './auth.js';
+import { authenticate, registerAuth, type AuthConfig } from './auth.js';
 import type { Database } from './database.js';
 import { registerAi, type AiConfig } from './ai.js';
 import { registerMarket } from './market.js';
@@ -12,8 +12,10 @@ import { registerMarketFlow, type MarketRuntime } from './market-flow.js';
 import { registerMemory } from './memory.js';
 import type { MemoryProvider } from './memory-provider.js';
 import type { GiftService } from './gifts.js';
+import { registerSpring } from './spring.js';
+import { registerPublications } from './publications.js';
 
-export function buildApp(logger = false, options?: { db: Database; auth: AuthConfig; ai?: AiConfig; market?: MarketChain; runtime?: MarketRuntime; memory?: MemoryProvider; gifts?: GiftService }) {
+export function buildApp(logger = false, options?: { db: Database; auth: AuthConfig; ai?: AiConfig; aiLimits?: Pick<AiConfig, 'dailyLimit' | 'globalDailyLimit'>; market?: MarketChain; runtime?: MarketRuntime; memory?: MemoryProvider; gifts?: GiftService; springUrl?: string }) {
   const app = Fastify({
     logger: logger ? { redact: ['req.headers.authorization', 'req.headers.cookie'] } : false,
     bodyLimit: 1024 * 1024,
@@ -26,8 +28,15 @@ export function buildApp(logger = false, options?: { db: Database; auth: AuthCon
     service: 'everyday-api', status: 'ok', stage: options ? 'wallet' : 'foundation',
   }));
   if (options) {
-    app.register(cors, { origin: options.auth.origins, methods: ['GET','POST','DELETE','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] });
-    app.register(rateLimit, { max: 60, timeWindow: '1 minute' });
+    app.register(cors, { origin: options.auth.origins, methods: ['GET','POST','PATCH','PUT','DELETE','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] });
+    app.register(rateLimit, { max: 120, timeWindow: '1 minute', keyGenerator: async req => {
+      // The private Spring service shares an IP across users. Resolve a valid session
+      // before assigning a per-user quota; arbitrary Authorization values cannot mint buckets.
+      if (req.headers.authorization) {
+        try { return `user:${await authenticate(req, options.db, options.auth)}`; } catch {}
+      }
+      return `ip:${req.ip}`;
+    } });
     app.get('/health/ready', { config: { rateLimit: false } }, async (_request, reply) => {
       try {
         await options.db.query('SELECT 1');
@@ -37,9 +46,12 @@ export function buildApp(logger = false, options?: { db: Database; auth: AuthCon
       }
     });
     registerAuth(app, options.db, options.auth);
+    registerSpring(app, options.db, options.auth, options.springUrl, options.aiLimits?.dailyLimit ?? options.ai?.dailyLimit,
+      options.aiLimits?.globalDailyLimit ?? options.ai?.globalDailyLimit);
     registerAi(app, options.db, options.auth, options.ai);
-    registerMarket(app, options.db, options.auth, options.market);
+    registerMarket(app, options.db, options.auth, options.market, options.runtime?.packages, Boolean(options.springUrl));
     registerMarketFlow(app, options.db, options.auth, options.market, options.runtime, options.ai, options.memory, options.gifts);
+    registerPublications(app, options.db, options.auth, options.market);
     if (options.gifts) {
       let recovering = false;
       const timer = setInterval(() => {

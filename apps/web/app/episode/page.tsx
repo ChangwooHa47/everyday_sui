@@ -37,9 +37,9 @@ export default function EpisodePage() {
         const active = list.find((c) => c.id === activeId) ?? list[0];
         setActiveCharacterId(active.id);
         setChar(active);
-        setEpisodes(await backend.listEpisodes());
+        setEpisodes(await backend.listEpisodes(active.id));
       } catch (e) {
-        setError(e instanceof Error ? e.message : "백엔드 연결 실패");
+        setError(e instanceof Error ? e.message : "불러오지 못했어요. 다시 시도해주세요.");
       }
     })();
   }, [router]);
@@ -148,7 +148,7 @@ export default function EpisodePage() {
               onClick={() =>
                 router.push(
                   `/chat?episode=${episode.id}&title=${encodeURIComponent(
-                    `${episode.emoji} ${episode.title}`,
+                    [episode.emoji, episode.title].filter(Boolean).join(' '),
                   )}&starter=${encodeURIComponent(s)}`,
                 )
               }

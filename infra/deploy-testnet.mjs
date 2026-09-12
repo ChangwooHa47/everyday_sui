@@ -12,7 +12,10 @@ import { fromBase64, normalizeSuiAddress } from '@mysten/sui/utils';
 
 if (!process.argv.includes('--execute')) throw Error('Pass --execute to publish the reviewed package to testnet.');
 const root = fileURLToPath(new URL('../', import.meta.url));
-const dir = `${root}/.local-tools/market-testnet`;
+const stateArgument = process.argv.indexOf('--deployment-state');
+const stateName = stateArgument < 0 ? 'market-testnet' : process.argv[stateArgument + 1];
+if (!stateName || !/^market-testnet(?:-[a-z0-9]+)*$/.test(stateName)) throw Error('Invalid dedicated testnet state directory');
+const dir = `${root}/.local-tools/${stateName}`;
 const statePath = `${dir}/publish.json`;
 const keyPath = `${dir}/creator.key`;
 if (!existsSync(keyPath)) throw Error('Dedicated testnet creator.key is required; no automatic replacement wallet is created.');

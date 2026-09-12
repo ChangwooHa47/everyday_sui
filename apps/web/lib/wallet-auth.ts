@@ -6,7 +6,22 @@ import { apiUrl, rpcUrl } from './web3/config';
 export const walletKit = createDAppKit({ networks: ['testnet'],
   slushWalletConfig: { appName: 'everyday' },
   createClient: () => new SuiGrpcClient({ network: 'testnet', baseUrl: rpcUrl }) });
-let session: { token: string; address: string; expiresAt: string } | null = null;
+type Session = { token: string; address: string; expiresAt: string };
+const sessionKey = 'everyday.session.v1';
+function readSession(): Session | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const value = JSON.parse(sessionStorage.getItem(sessionKey) ?? 'null');
+    if (value && /^[A-Za-z0-9_-]{43}$/.test(value.token) && /^0x[0-9a-f]{64}$/.test(value.address)
+      && Date.parse(value.expiresAt) > Date.now()) return value;
+  } catch {}
+  return null;
+}
+let session: Session | null = readSession();
+function remember(value: Session | null) {
+  session = value;
+  try { if (value) sessionStorage.setItem(sessionKey, JSON.stringify(value)); else sessionStorage.removeItem(sessionKey); } catch {}
+}
 let generation = 0;
 let connected: string | undefined;
 function revoke(token: string) {
@@ -18,16 +33,30 @@ walletKit.stores.$connection.subscribe(connection => {
   if (address === connected) return;
   connected = address;
   generation++;
-  if (session) revoke(session.token);
-  session = null;
+  if (session && (!address || normalizeSuiAddress(address) !== session.address)) {
+    revoke(session.token); remember(null);
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') window.location.replace('/');
+  }
 });
 
 export function getWalletToken() {
   if (!session || !connected || normalizeSuiAddress(connected) !== session.address || Date.parse(session.expiresAt) <= Date.now()) {
-    session = null;
+    remember(null);
     throw Error('로그인해주세요.');
   }
   return session.token;
+}
+
+export async function restoreWalletToken() {
+  if (session && !connected && typeof window !== 'undefined') {
+    await new Promise<void>(resolve => {
+      const timeout = setTimeout(() => { unsubscribe(); resolve(); }, 10000);
+      const unsubscribe = walletKit.stores.$connection.listen(value => {
+        if (value.account) { clearTimeout(timeout); unsubscribe(); resolve(); }
+      });
+    });
+  }
+  return getWalletToken();
 }
 
 export async function loginWithWallet() {
@@ -58,5 +87,5 @@ export async function loginWithWallet() {
   }
   if (generation !== started) { revoke(result.token); check(); }
   if (session) revoke(session.token);
-  session = result;
+  remember(result);
 }

@@ -1,0 +1,13 @@
+FROM eclipse-temurin:21-jdk-jammy AS build
+WORKDIR /build
+COPY apps/api/spring/ .
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew bootJar --no-daemon --max-workers=1
+
+FROM eclipse-temurin:21-jre-jammy AS runtime
+RUN groupadd --system everyday && useradd --system --gid everyday --home-dir /app everyday
+WORKDIR /app
+COPY --from=build --chown=everyday:everyday /build/build/libs/everyday.jar ./everyday.jar
+USER everyday
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70 -Dfile.encoding=UTF-8"
+EXPOSE 8080
+CMD ["java", "-jar", "everyday.jar"]

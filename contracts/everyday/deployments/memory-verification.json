@@ -1,0 +1,15 @@
+{
+  "network": "testnet",
+  "packageId": "0x0a625e2db2af6f591a4c80a3d8551ddf11656089cc3a20c5e9e7f8fb75b9265c",
+  "registryId": "0x736aef9906798fca4460490ccdf8e8502ef170122dc26ecae32111b78c6b42dd",
+  "accountId": "0xc499d949f8bf03fa95b224f53e1e7434980a7252002a349cfd64d844afe3a741",
+  "listingId": "0x69b6a87358a041f5fbc927837a72535b6f97f9fa89244a5b9eaacefe87023c11",
+  "owner": "0x375e8d9b6eaa3965fbe8b7db94c061b48bac4e3d5da77cfcdf8b7db54c52ca38",
+  "jobId": "05a2aed9-3e90-4d34-8091-50e150f8bf83",
+  "blobId": "XV_mOz4NQk8UakMbTxI5ZXRVCy3MWUZc2WXDS0gOU3w",
+  "remembered": true,
+  "independentSdkRecall": true,
+  "wrongOwnerRejected": true,
+  "otherCharacterNamespaceEmpty": true,
+  "note": "Fictional approved memory; verified with a fresh SDK client instance. Browser/second-origin UI not tested."
+}

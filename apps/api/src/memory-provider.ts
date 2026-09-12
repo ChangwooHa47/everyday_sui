@@ -15,6 +15,8 @@ export const memoryAccountBcs = bcs.struct('MemWalAccount', { id: bcs.Address, o
   legacy_account_id: bcs.option(bcs.Address), access_counter_version: bcs.u64(),
 });
 export interface MemoryProvider {
+  readonly packageId?: string;
+  readonly registryId?: string;
   setup(owner: string, accountId?: string, revoke?: boolean): Promise<{ transaction: string; publicKey: string }>;
   verify(owner: string, accountId: string): Promise<void>;
   remember(owner: string, accountId: string, listingId: string, text: string, requestId: string): Promise<{ job_id: string; status: string }>;
@@ -54,6 +56,7 @@ export function createMemoryProvider(config: { masterKey: string; packageId: str
     })]); } finally { if (timer) clearTimeout(timer); sdk.destroy(); secret.fill(0); }
   }
   return {
+    packageId: config.packageId, registryId: config.registryId,
     verify: (owner, accountId) => account(owner, accountId, true),
     async setup(owner, accountId, revoke = false) {
       await deployment();

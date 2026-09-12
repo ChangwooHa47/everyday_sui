@@ -1,9 +1,9 @@
 "use client";
 
 // chatlist — figma 241:2511(채팅 목록) + 241:2152(채팅방 편집).
-// 톱니 → 편집 모드: 행마다 체크박스, 하단 "선택 해제" / "채팅방 삭제" 2버튼.
-// 백엔드에 채팅방 삭제 API가 없어 삭제 = 로컬 숨김(localStorage) 처리.
-// 마지막 메시지 전용 API가 없어 캐릭터별 getMessages 병렬 호출로 뽑는다(실패 시 프리뷰 생략).
+// 톱니 → 편집 모드: 행마다 체크박스, 하단 선택 해제 / 목록에서 숨기기.
+// 목록 숨김은 이 기기에만 적용되며 대화를 삭제하지 않는다.
+// 마지막 메시지 전용 API가 없어 캐릭터별 getHistory 병렬 호출로 뽑는다(실패 시 프리뷰 생략).
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -46,7 +46,7 @@ export default function ChatListPage() {
         const entries = await Promise.all(
           characters.map(async (c) => {
             try {
-              const msgs = await backend.getMessages(c.id);
+              const msgs = await backend.getHistory(c.id);
               const last = msgs[msgs.length - 1];
               return [c.id, last?.content ?? ""] as const;
             } catch {
@@ -56,7 +56,7 @@ export default function ChatListPage() {
         );
         setPreviews(Object.fromEntries(entries));
       } catch (e) {
-        setError(e instanceof Error ? e.message : "백엔드 연결 실패");
+        setError(e instanceof Error ? e.message : "불러오지 못했어요. 다시 시도해주세요.");
       }
     })();
   }, [router]);
@@ -266,7 +266,7 @@ export default function ChatListPage() {
                 transition: `all 200ms ${EASE}`,
               }}
             >
-              채팅방 삭제
+              목록에서 숨기기
             </button>
           </div>
         </>

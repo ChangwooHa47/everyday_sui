@@ -6,11 +6,22 @@ import type { MarketChain } from './market-chain.js';
 import type { AiConfig } from './turn-service.js';
 import type { Database } from './database.js';
 import { createGiftService, createGiftTransport, giftDecision } from './gifts.js';
+import { reserveAiBudget } from './ai-budget.js';
 const httpsUrl = z.string().url().refine(value => new URL(value).protocol === 'https:').transform(value => value.replace(/\/$/, ''));
+export function aiLimitsFromEnv(env: NodeJS.ProcessEnv = process.env) {
+  return { dailyLimit: z.coerce.number().int().min(1).max(10000).parse(env.AI_DAILY_LIMIT ?? 50),
+    globalDailyLimit: z.coerce.number().int().min(1).max(100000).parse(env.AI_GLOBAL_DAILY_LIMIT ?? 100) };
+}
 export function aiFromEnv(env: NodeJS.ProcessEnv = process.env): AiConfig | undefined {
-  if (!env.AI_API_KEY && !env.AI_ENDPOINT && !env.AI_MODEL) return undefined;
+  const limits = aiLimitsFromEnv(env);
+  if (!env.AI_API_KEY && !env.AI_ENDPOINT && !env.AI_MODEL) {
+    if (!env.ANTHROPIC_API_KEY) return undefined;
+    return { provider: 'anthropic', apiKey: env.ANTHROPIC_API_KEY,
+      endpoint: `${httpsUrl.parse(env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com')}/v1/messages`,
+      model: env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-5', ...limits };
+  }
   return { apiKey: z.string().min(1).parse(env.AI_API_KEY), endpoint: z.string().url().parse(env.AI_ENDPOINT),
-    model: z.string().min(1).parse(env.AI_MODEL), dailyLimit: z.coerce.number().int().min(1).max(10000).parse(env.AI_DAILY_LIMIT ?? 50) };
+    model: z.string().min(1).parse(env.AI_MODEL), ...limits };
 }
 export function runtimeFromEnv(chain: MarketChain | undefined, env: NodeJS.ProcessEnv = process.env, db?: Database) {
   const rpcUrl = httpsUrl.parse(env.SUI_GRPC_URL ?? 'https://fullnode.testnet.sui.io:443');
@@ -23,7 +34,8 @@ export function runtimeFromEnv(chain: MarketChain | undefined, env: NodeJS.Proce
       packages: createPackageStore({ packageId: chain.packageId, rpcUrl, operatorKey: env.SUI_OPERATOR_KEY, servers,
         threshold: z.coerce.number().int().min(2).max(servers.length).parse(env.SEAL_THRESHOLD ?? 2),
         publisher: httpsUrl.parse(env.WALRUS_PUBLISHER), aggregator: httpsUrl.parse(env.WALRUS_AGGREGATOR),
-        epochs: z.coerce.number().int().min(1).max(53).parse(env.WALRUS_EPOCHS ?? 2) }) };
+        walrusTypeOrigin: env.WALRUS_TYPE_ORIGIN ? addressSchema.parse(env.WALRUS_TYPE_ORIGIN) : undefined,
+        epochs: z.coerce.number().int().min(1).max(53).parse(env.WALRUS_EPOCHS ?? 7) }) };
   }
   if (env.MEMWAL_DELEGATE_MASTER_KEY) {
     if (!chain) throw Error('SUI_MARKET_PACKAGE_ID is required for memory');
@@ -35,7 +47,8 @@ export function runtimeFromEnv(chain: MarketChain | undefined, env: NodeJS.Proce
   if (env.AGENT_GIFTS_ENABLED === '1') {
     const ai = aiFromEnv(env);
     if (!db || !chain || !runtime || !ai || !env.SUI_OPERATOR_KEY) throw Error('Agent gifts require DB, market runtime and AI configuration');
-    gifts = createGiftService(db, createGiftTransport(chain.packageId, rpcUrl, env.SUI_OPERATOR_KEY), giftDecision(ai));
+    gifts = createGiftService(db, createGiftTransport(chain.packageId, rpcUrl, env.SUI_OPERATOR_KEY), giftDecision(ai),
+      owner => reserveAiBudget(db, owner, ai.dailyLimit, ai.globalDailyLimit));
   }
   return { runtime, memory, gifts };
 }

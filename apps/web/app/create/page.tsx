@@ -9,6 +9,14 @@ import { useEffect, useRef, useState } from "react";
 import { RELATIONSHIPS } from "@/lib/character";
 import {
   backend,
+  ApiError,
+  ensureAuth,
+  getPendingCompile,
+  prepareCompileRequest,
+  clearCompileRequest,
+  getIncompleteCharacter,
+  saveIncompleteCharacter,
+  clearIncompleteCharacter,
   setActiveCharacterId,
   type CharacterDetail,
   type InterviewAnswer,
@@ -114,6 +122,8 @@ function OnbTop({ dots, onBack }: { dots: number; onBack?: () => void }) {
 export default function CreatePage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const [restoring, setRestoring] = useState(true);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   const [relationship, setRelationship] = useState<string | null>(null);
   const [gender, setGender] = useState<string | null>(null);
@@ -138,13 +148,57 @@ export default function CreatePage() {
   const [portraitTimeout, setPortraitTimeout] = useState(false);
   const pollStartRef = useRef<number>(0);
 
-  // 사진 느낌 (onboarding/6 프레젠테이션용 — 백엔드에 후보 재생성 엔드포인트 없음)
+  // 사진 느낌은 초상 생성 요청을 시작할 때 반영한다.
   const [photoFeelText, setPhotoFeelText] = useState("");
   const [photoFeelChip, setPhotoFeelChip] = useState<string | null>(null);
 
+  useEffect(() => {
+    let active = true;
+    void ensureAuth().then(async () => {
+      if (!active) return;
+      const location = new URL(window.location.href);
+      if (location.searchParams.get('new') === '1') {
+        clearIncompleteCharacter();
+        location.searchParams.delete('new');
+        window.history.replaceState(window.history.state, '', `${location.pathname}${location.search}`);
+      }
+      const pending = getPendingCompile();
+      if (pending) {
+        setRelationship(pending.relationshipType); setGender(pending.gender); setName(pending.name);
+        setFreeText(pending.freeText ?? ''); setAnswers(pending.interviewAnswers ?? []);
+        const [y = '', m = '', d = ''] = (pending.birthday ?? '').split('-');
+        setBirth({ y, m, d }); setStep(3);
+        return;
+      }
+      const saved = getIncompleteCharacter();
+      if (!saved) return;
+      const [character, gallery, status] = await Promise.all([
+        backend.getCharacter(saved.characterId), backend.getGallery(saved.characterId),
+        process.env.NEXT_PUBLIC_LEGACY_BASELINE === '1' ? Promise.resolve({ status: 'running' }) : backend.getPortraitStatus(saved.characterId),
+      ]);
+      if (!active) return;
+      const profiles = gallery.filter(photo => photo.type === 'PROFILE');
+      if (profiles.some(photo => photo.selected)) {
+        clearIncompleteCharacter(saved.characterId); router.replace('/home'); return;
+      }
+      setCompiled(character); setName(character.name); setPortraits(profiles); setActiveCharacterId(character.id);
+      setPhotoFeelText(saved.photoFeelText); setPhotoFeelChip(saved.photoFeelChip);
+      setPortraitTimeout(['failed', 'unknown'].includes(status.status));
+      setStep(status.status === 'draft' ? 6 : 5);
+    }).catch(e => { if (active) setRestoreError(e instanceof Error ? e.message : '생성 요청을 확인하지 못했어요.'); })
+      .finally(() => { if (active) setRestoring(false); });
+    return () => { active = false; };
+  }, [router]);
+
+  useEffect(() => {
+    if (!compiled || restoring) return;
+    try { saveIncompleteCharacter({ characterId: compiled.id, photoFeelText, photoFeelChip }); }
+    catch (e) { setError(e instanceof Error ? e.message : '진행 상태를 저장하지 못했어요.'); }
+  }, [compiled?.id, photoFeelText, photoFeelChip, restoring]);
+
   // 초상 후보는 백엔드가 백그라운드로 생성 → 갤러리를 폴링해 도착하는 대로 표시.
   useEffect(() => {
-    if (!compiled) return;
+    if (!compiled || step !== 5) return;
     pollStartRef.current = Date.now();
     const POLL_MS = 5000;
     const GIVE_UP_MS = 12 * 60 * 1000;
@@ -157,6 +211,13 @@ export default function CreatePage() {
           clearInterval(timer);
           return;
         }
+        if (process.env.NEXT_PUBLIC_LEGACY_BASELINE !== '1') {
+          const { status } = await backend.getPortraitStatus(compiled.id);
+          if (status === 'failed' || status === 'unknown') {
+            clearInterval(timer);
+            setPortraitTimeout(true);
+          }
+        }
       } catch {
         // 일시 오류는 다음 턴에 재시도
       }
@@ -166,7 +227,7 @@ export default function CreatePage() {
       }
     }, POLL_MS);
     return () => clearInterval(timer);
-  }, [compiled]);
+  }, [compiled?.id, step]);
 
   async function fetchQuestion(prev: InterviewAnswer[]) {
     if (!relationship || !gender) return;
@@ -218,21 +279,28 @@ export default function CreatePage() {
       parseInt(birth.y, 10) > 1900 && birth.m && birth.d ? `${y}-${m}-${d}` : undefined;
     setStep(4);
     setError(null);
+    let requestId: string | undefined;
     try {
       setLoadingMsg("답변을 바탕으로 프로필을 조립하는 중");
-      const result = await backend.compile({
+      const request = prepareCompileRequest({
         relationshipType: relationship,
         gender,
         freeText: freeText.trim() || undefined,
         interviewAnswers: answers,
         name: name.trim(),
         birthday,
+        deferPortraitGeneration: process.env.NEXT_PUBLIC_LEGACY_BASELINE !== '1',
       });
+      requestId = request.requestId;
+      const result = await backend.compile(request);
+      saveIncompleteCharacter({ characterId: result.character.id, photoFeelText: '', photoFeelChip: null });
+      clearCompileRequest(requestId);
       setCompiled(result.character);
       setPortraits(result.candidatePortraits);
       setActiveCharacterId(result.character.id);
       setStep(6); // 카드 확인
     } catch (e) {
+      if (requestId && e instanceof ApiError && [400, 403, 404, 422].includes(e.status)) clearCompileRequest(requestId);
       alert(
         `생성에 실패했어요. 다시 시도해주세요.\n${e instanceof Error ? e.message : ""}`,
       );
@@ -250,25 +318,37 @@ export default function CreatePage() {
         personality: compiled.personality ?? undefined,
         speechStyles: compiled.speechStyles,
       });
-    } catch {
-      // 수정 저장 실패해도 진행
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '저장하지 못했어요. 다시 시도해주세요.');
+      return;
     } finally {
       setSaving(false);
     }
     setStep(7); // 사진 느낌 → 초상 선택
   }
 
-  async function confirmPortrait() {
-    if (!compiled) return;
-    if (selectedPortrait !== null) {
-      try {
-        await backend.selectPortrait(compiled.id, selectedPortrait);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "초상 선택 실패");
-        return;
-      }
+  async function confirmPortrait(recommend = false) {
+    if (!compiled || selectedPortrait === null) return;
+    try {
+      await backend.selectPortrait(compiled.id, selectedPortrait);
+      clearIncompleteCharacter(compiled.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "초상 선택 실패");
+      return;
     }
-    router.push("/home");
+    router.push(recommend ? `/community?from=${compiled.id}` : "/home");
+  }
+
+  async function startPortraits() {
+    if (!compiled || saving) return;
+    setSaving(true); setError(null);
+    try {
+      saveIncompleteCharacter({ characterId: compiled.id, photoFeelText, photoFeelChip });
+      if (process.env.NEXT_PUBLIC_LEGACY_BASELINE !== '1')
+        await backend.startPortraits(compiled.id, [photoFeelChip, photoFeelText.trim()].filter(Boolean).join(', '));
+      pollStartRef.current = Date.now(); setPortraitTimeout(false); setStep(5);
+    } catch (e) { setError(e instanceof Error ? e.message : '사진을 만들지 못했어요.'); }
+    finally { setSaving(false); }
   }
 
   // 갤러리 재조회 (도착한 사진 새로고침) — 안전한 읽기
@@ -278,14 +358,18 @@ export default function CreatePage() {
       const gallery = await backend.getGallery(compiled.id);
       const profiles = gallery.filter((p) => p.type === "PROFILE");
       if (profiles.length > 0) setPortraits(profiles);
-    } catch {
-      // 무시 — 다음 폴링/재시도
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '사진을 불러오지 못했어요. 다시 시도해주세요.');
     }
   }
 
   function setCardField(patch: Partial<CharacterDetail>) {
     setCompiled((c) => (c ? { ...c, ...patch } : c));
   }
+
+  if (restoring) return null;
+  if (restoreError) return <p className="caption" role="alert">{restoreError}</p>;
 
   // ── step 6: 캐릭터 카드 (FS-02) ──
   if (step === 6 && compiled) {
@@ -364,7 +448,7 @@ export default function CreatePage() {
               {c.name}
             </div>
             <div className="body2" style={{ color: "var(--gray-500)", marginTop: 4 }}>
-              {c.relationshipType}　∣　{c.age}　∣　{c.gender}
+              {[c.relationshipType, c.age > 0 ? String(c.age) : '', c.gender].filter(Boolean).join('　∣　')}
             </div>
           </div>
 
@@ -490,8 +574,9 @@ export default function CreatePage() {
         </div>
 
         <div style={{ padding: 20 }}>
-          <button className="cta" onClick={() => setStep(5)}>
-            이 느낌으로 사진 만들기
+          {error && <p className="caption" role="alert">{error}</p>}
+          <button className="cta" disabled={saving} onClick={() => void startPortraits()}>
+            {saving ? '요청 중…' : '이 느낌으로 사진 만들기'}
           </button>
         </div>
       </div>
@@ -529,7 +614,7 @@ export default function CreatePage() {
               className="body2"
               style={{ textAlign: "center", color: "var(--gray-500)", margin: "4px 0 12px" }}
             >
-              사진 생성이 지연되고 있어요. 나중에 마이페이지 갤러리에서 고를 수 있어요.
+              사진을 아직 확인하지 못했어요. 잠시 후 다시 확인해주세요.
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -616,7 +701,7 @@ export default function CreatePage() {
                 gap: 6,
               }}
             >
-              재생성 <RefreshIcon size={15} />
+              다시 확인 <RefreshIcon size={15} />
             </button>
             <button
               className="cta"
@@ -627,6 +712,8 @@ export default function CreatePage() {
               확정
             </button>
           </div>
+          {compiled && selectedPortrait !== null && <button className="chip" style={{ marginTop: 10 }}
+            onClick={() => void confirmPortrait(true)}>다른 캐릭터 둘러보기</button>}
           <button
             onClick={() => router.push("/home")}
             style={{

@@ -22,8 +22,8 @@ test('P0 preview to purchase, server persona, consented memories and second-orig
     package: { blobId: 'a'.repeat(43), contentHash: '0'.repeat(64), endEpoch: '2000' },
     policy: { perGiftLimitMist: '100', dailyLimitMist: '200', allowedGiftIds: [] } };
   const content = packageSchema.parse({ schemaVersion: 1, network: 'testnet', packageId: id('0x99'), listingId: listing.id,
-    character: { name: 'Fixture', personality: 'PRIVATE_PAID_PERSONA', callName: 'friend' },
-    preview: { name: 'Fixture', personality: 'PUBLIC_PREVIEW_PERSONA', callName: 'visitor' },
+    character: { name: 'Fixture', personality: 'PRIVATE_PAID_PERSONA' },
+    preview: { name: 'Fixture', personality: 'PUBLIC_PREVIEW_PERSONA' },
     examples: [{ role: 'assistant', content: 'PAID_EXAMPLE' }] });
   const providerInputs: string[] = [];
   const provider = createServer((req, res) => { const chunks: Buffer[] = []; req.on('data', chunk => chunks.push(chunk));
@@ -48,10 +48,23 @@ test('P0 preview to purchase, server persona, consented memories and second-orig
   const url = `/v1/market/listings/${listing.id}/turns`;
   const rejected = await app.inject({ method: 'POST', url, headers: headers(), payload: { ...turn, mode: 'licensed', licenseId: id('0x20') } });
   assert.equal(rejected.statusCode, 403); assert.equal(loads, 0);
+  await db.query('INSERT INTO ai_daily_budget(actor,used) VALUES($1,100)', [id('0xe')]);
+  const quotaRejected = await app.inject({ method: 'POST', url, headers: headers('e', origins[1]), payload: { ...turn, requestId: randomUUID() } });
+  assert.equal(quotaRejected.statusCode, 429);
+  assert.equal((await db.query('SELECT used FROM market_preview_budget WHERE owner=$1 AND listing_id=$2', [id('0xe'), listing.id])).rows.length, 0);
+  assert.equal(providerInputs.length, 0);
   assert.equal((await app.inject({ method: 'POST', url, headers: headers(), payload: { ...turn, character: content.character } })).statusCode, 400);
   const previews = await Promise.all([turn, turn, { ...turn, requestId: randomUUID() }, { ...turn, requestId: randomUUID() }].map(payload => app.inject({ method: 'POST', url, headers: headers(), payload })));
   assert.deepEqual(previews.map(r => r.statusCode).sort(), [200, 200, 403, 409]);
-  assert.ok(providerInputs.every(p => p.includes('PUBLIC_PREVIEW_PERSONA') && !p.includes('PRIVATE_PAID_PERSONA') && !p.includes('PAID_EXAMPLE')));
+  assert.ok(providerInputs.every(p => p.includes('PRIVATE_PAID_PERSONA') && p.includes('PAID_EXAMPLE')));
+  assert.ok(previews.every(response => !response.body.includes('PRIVATE_PAID_PERSONA') && !response.body.includes('PAID_EXAMPLE') && !response.body.includes('characterPackage')));
+  const publicPreview = await app.inject({ url: `/v1/market/listings/${listing.id}/preview`, headers: headers() });
+  assert.equal(publicPreview.statusCode, 200); assert.equal(publicPreview.json().character.personality, 'PUBLIC_PREVIEW_PERSONA');
+  assert.ok(!publicPreview.body.includes('PRIVATE_PAID_PERSONA') && !publicPreview.body.includes('PAID_EXAMPLE'));
+  for (const forbidden of [{ useMemory: true }, { episodeId: 'private-episode' }]) {
+    const blocked = await app.inject({ method: 'POST', url, headers: headers('a'), payload: { ...turn, requestId: randomUUID(), ...forbidden } });
+    assert.equal(blocked.statusCode, 400);
+  }
   owned = true;
   const paid = { ...turn, mode: 'licensed', requestId: randomUUID(), licenseId: id('0x20') };
   assert.equal((await app.inject({ method: 'POST', url, headers: headers(), payload: paid })).statusCode, 200);
@@ -93,8 +106,16 @@ test('P0 preview to purchase, server persona, consented memories and second-orig
 
 test('package schema rejects relationship data and streamed byte limits work without Content-Length', async () => {
   const valid = { schemaVersion: 1, network: 'testnet', packageId: id('0x99'), listingId: id('0x10'),
-    character: { name: 'Test', personality: 'Test', callName: 'friend' }, preview: { name: 'Test', personality: 'Test', callName: 'visitor' } };
+    character: { name: 'Test', personality: 'Test' }, preview: { name: 'Test', personality: 'Test' } };
   assert.throws(() => packageSchema.parse({ ...valid, memories: ['private'] }));
   assert.throws(() => packageSchema.parse({ ...valid, character: { ...valid.character, ownerMemory: 'private' } }));
+  assert.throws(() => packageSchema.parse({ ...valid, character: { ...valid.character, callName: 'private nickname' } }));
+  assert.throws(() => packageSchema.parse({ ...valid, preview: { ...valid.preview, callName: 'private nickname' } }));
+  assert.equal(packageSchema.parse({ ...valid, character: { ...valid.character, gender: '여성', relationshipType: '연인' } }).character.gender, '여성');
+  assert.throws(() => packageSchema.parse({ ...valid, character: { ...valid.character, gender: 'invalid' } }));
+  assert.throws(() => packageSchema.parse({ ...valid, character: { ...valid.character, relationshipType: 'private relationship history' } }));
+  assert.throws(() => packageSchema.parse({ ...valid, episodes: [
+    { id: 'one', title: 'First', setting: 'first setting' }, { id: 'one', title: 'Second', setting: 'different setting' },
+  ] }));
   await assert.rejects(readBytes(new Response(new ReadableStream({ start(c) { c.enqueue(new Uint8Array(8)); c.enqueue(new Uint8Array(8)); c.close(); } })), 10), { statusCode: 413 });
 });

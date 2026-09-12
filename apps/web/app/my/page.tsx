@@ -2,10 +2,10 @@
 
 // 마이페이지 — figma 42:3341.
 // everyday 로고 + 포인트 배지 / 프로필 행(아바타·유저명·구독 칩) / 메뉴 리스트.
-// 계정 데이터는 백엔드 /api/me. 미구현 메뉴는 인라인 토스트로 안내.
+// 계정 데이터는 백엔드 /api/me. 연결되지 않은 기존 메뉴는 비활성화한다.
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { backend, type MyPage as MyPageData } from "@/lib/api";
 import { BottomNav } from "../components";
 import { Icon } from "../icons";
@@ -13,50 +13,34 @@ import { Icon } from "../icons";
 type MenuRow = {
   label: string;
   href?: string;
-  soon?: boolean;
 };
 
 const MENU: MenuRow[] = [
   { label: "내 갤러리", href: "/gallery" },
-  { label: "정보 관리", soon: true },
-  { label: "구독 관리", href: "/subscription" },
-  { label: "포인트 사용 내역", soon: true },
-  { label: "포인트 결제 내역", soon: true },
-  { label: "설정", soon: true },
+  { label: "정보 관리" },
+  { label: "구독 관리", ...(process.env.NEXT_PUBLIC_LEGACY_BASELINE === '1' ? { href: '/subscription' } : {}) },
+  { label: "포인트 사용 내역" },
+  { label: "포인트 결제 내역" },
+  { label: "설정" },
 ];
 
 export default function MyPage() {
   const router = useRouter();
   const [me, setMe] = useState<MyPageData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         setMe(await backend.getMe());
       } catch (e) {
-        setError(e instanceof Error ? e.message : "백엔드 연결 실패");
+        setError(e instanceof Error ? e.message : "불러오지 못했어요. 다시 시도해주세요.");
       }
     })();
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-    };
-  }, []);
-
-  function showToast(msg: string) {
-    setToast(msg);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 1800);
-  }
-
   function onRow(row: MenuRow) {
     if (row.href) router.push(row.href);
-    else showToast("곧 만나요, 준비 중인 기능이에요");
   }
 
   if (error) {
@@ -68,7 +52,7 @@ export default function MyPage() {
   }
   if (!me) return null;
 
-  const userName = me.email.split("@")[0];
+  const userName = me.email.split("@")[0] || "사용자";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
@@ -104,6 +88,7 @@ export default function MyPage() {
         </span>
         <button
           onClick={() => router.push("/subscription")}
+          disabled={process.env.NEXT_PUBLIC_LEGACY_BASELINE !== '1'}
           className="chip"
           style={{
             flexShrink: 0,
@@ -123,6 +108,7 @@ export default function MyPage() {
           <button
             key={row.label}
             onClick={() => onRow(row)}
+            disabled={!row.href}
             style={{
               display: "flex",
               alignItems: "center",
@@ -133,11 +119,11 @@ export default function MyPage() {
               border: "none",
               borderBottom: "1px solid var(--gray-100)",
               font: "inherit",
-              cursor: "pointer",
+              cursor: row.href ? "pointer" : "default",
               textAlign: "left",
             }}
           >
-            <span className="body1" style={{ color: "var(--gray-800)" }}>
+            <span className="body1" style={{ color: row.href ? "var(--gray-800)" : "var(--gray-400)" }}>
               {row.label}
             </span>
             <Icon name="chevron-right" size={20} style={{ color: "var(--gray-400)" }} />
@@ -148,28 +134,6 @@ export default function MyPage() {
       <div style={{ flex: 1 }} />
       <BottomNav active="my" />
 
-      {/* 인라인 토스트 */}
-      {toast && (
-        <div
-          className="fade-in"
-          style={{
-            position: "fixed",
-            left: "50%",
-            transform: "translateX(-50%)",
-            bottom: 88,
-            padding: "10px 18px",
-            borderRadius: 999,
-            background: "rgba(30,30,30,0.86)",
-            color: "#fff",
-            fontSize: 13,
-            fontWeight: 600,
-            whiteSpace: "nowrap",
-            zIndex: 60,
-          }}
-        >
-          {toast}
-        </div>
-      )}
     </div>
   );
 }
