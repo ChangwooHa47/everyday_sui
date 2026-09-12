@@ -18,7 +18,7 @@ export default function CommunityPage() {
   const router = useRouter();
   const [hot, setHot] = useState<HotCharacter[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [points, setPoints] = useState<number | null>(null);
+  const [suiBalance, setSuiBalance] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [recommended, setRecommended] = useState(false);
   const [gifts, setGifts] = useState<NftGiftProduct[]>([]);
@@ -38,7 +38,13 @@ export default function CommunityPage() {
         imageUrl: previews[c.id]?.imageUrl ?? null, summary: previews[c.id]?.summary ?? '', emoji: '', price: c.priceMist,
         activity: catalog.engagement?.[c.id] ? `대화 ${catalog.engagement[c.id].turns}회 · 재방문 ${catalog.engagement[c.id].revisitPercent}%` : '' })));
     }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
-    void backend.getMe().then(me => { if (active) setPoints(me.points); }).catch(() => {});
+    void import('@/lib/wallet-auth').then(async ({ restoreWalletToken, walletKit }) => {
+      await restoreWalletToken();
+      const account = walletKit.stores.$connection.get().account;
+      if (!account) return;
+      const { balance } = await walletKit.getClient('testnet').getBalance({ owner: account.address });
+      if (active) setSuiBalance(balance.balance);
+    }).catch(() => {});
     void nftGifts.list().then(value => { if (active) setGifts(value.filter(gift => gift.active)); })
       .catch(() => { if (active) setGiftsError(true); }).finally(() => { if (active) setGiftsLoading(false); });
     return () => { active = false; };
@@ -49,9 +55,7 @@ export default function CommunityPage() {
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
       <header className="topbar">
         <span className="h3">커뮤니티</span>
-        <span className="point-badge">
-          <span className="p">P</span> {points?.toLocaleString() ?? ""}
-        </span>
+        <span className="point-badge">{suiBalance === null ? "SUI" : formatPrice(suiBalance)}</span>
       </header>
       {error && <p className="body2" role="alert" style={{ padding: '0 20px' }}>{error}</p>}
       {!error && (loading || hot.length === 0) && <p className="body2" style={{ padding: '0 20px' }}>{loading ? '불러오는 중…' : '아직 등록된 캐릭터가 없어요.'}</p>}
