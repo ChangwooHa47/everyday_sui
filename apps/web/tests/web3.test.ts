@@ -142,6 +142,37 @@ test('portrait creation resumes the same character and style only for its owner 
     if (prior) Object.defineProperty(globalThis, 'sessionStorage', prior); else Reflect.deleteProperty(globalThis, 'sessionStorage');
   }
 });
+
+test('storage refactoring preserves previously saved request keys and leaves them intact when a session expires', () => {
+  const prior = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
+  const owner = '0x' + 'a'.repeat(64), prefix = `everyday.v2.activeCharacterId.${owner}`;
+  const requestId = '12345678-1234-4234-8234-123456789abc';
+  const chat = { requestId, content: 'fictional pending message' };
+  const input = { relationshipType: '친구', gender: '여성', name: '가상' };
+  const compile = { ...input, requestId };
+  const portrait = { characterId: 42, photoFeelText: 'fictional style', photoFeelChip: null };
+  const values = new Map<string, string>([
+    [`${prefix}.message.42.regular`, JSON.stringify(chat)],
+    [`${prefix}.compile`, JSON.stringify(compile)],
+    [`${prefix}.incompleteCharacter`, JSON.stringify(portrait)],
+  ]);
+  const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) };
+  try {
+    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: storage });
+    storage.setItem('everyday.session.v1', JSON.stringify({ address: owner, expiresAt: new Date(Date.now() + 60000).toISOString() }));
+    assert.deepEqual(prepareChatRequest(42, null, chat.content), chat);
+    assert.deepEqual(prepareCompileRequest(input), compile);
+    assert.deepEqual(getIncompleteCharacter(), portrait);
+    const beforeExpiry = [...values.entries()].filter(([key]) => key !== 'everyday.session.v1');
+    storage.setItem('everyday.session.v1', JSON.stringify({ address: owner, expiresAt: new Date(0).toISOString() }));
+    assert.throws(() => getPendingChatRequest(42, null));
+    assert.throws(() => getPendingCompile());
+    assert.throws(() => getIncompleteCharacter());
+    assert.deepEqual([...values.entries()].filter(([key]) => key !== 'everyday.session.v1'), beforeExpiry);
+  } finally {
+    if (prior) Object.defineProperty(globalThis, 'sessionStorage', prior); else Reflect.deleteProperty(globalThis, 'sessionStorage');
+  }
+});
 test('canonical hashes ignore key insertion order and preserve large u64 versions',async () => {
   assert.equal(canonical({z:1,a:{y:2,x:3}}),canonical({a:{x:3,y:2},z:1}));
   assert.equal(await sha256(encode({z:1,a:2})),await sha256(encode({a:2,z:1})));

@@ -10,7 +10,7 @@ Node 24, npm 11, Java 21이 준비된 환경에서 루트 기준으로 비교 �
 apps/api/spring/gradlew.bat -p apps/api/spring bootTestRun --no-daemon
 ```
 
-[프론트 비교 실행 스크립트](scripts/baseline.mjs)는 API를 `http://127.0.0.1:18080`, 웹을 `http://127.0.0.1:13000`으로 고정한다. 별도 터미널에서 `npm.cmd run baseline:build` 후 `npm.cmd run start:baseline --workspace @everyday/web`을 사용한다. `NEXT_PUBLIC_LEGACY_BASELINE=1`은 이 비교 모드에만 사용한다.
+[프론트 비교 실행 스크립트](scripts/baseline.mjs)는 API를 `http://127.0.0.1:18080`, 웹을 `http://127.0.0.1:13000`으로 고정한다. 루트에서 `npm.cmd ci`로 의존성을 설치한 다음, 별도 터미널에서 `npm.cmd run baseline:build` 후 `npm.cmd run start:baseline --workspace @everyday/web`을 사용한다. 비교 빌드는 공유 DTO 패키지를 먼저 빌드하므로 최초 체크아웃에서도 실행할 수 있다. `NEXT_PUBLIC_LEGACY_BASELINE=1`은 이 비교 모드에만 사용한다.
 
 [브라우저 비교 테스트](tests/e2e/baseline.spec.ts)는 이전 인터뷰·생성 → 초상 선택 → 호칭 → 대화 → 에피소드 → 포토부스 → 갤러리 흐름을 기록한 수동 비교 자료다. 현재의 첫 인사·사진 작업 API 변경이 모두 반영된 테스트가 아니므로 현재 서비스의 통과 기준으로 사용하지 않는다. `npm.cmd run test:e2e` 명령과 비교용 실행 스크립트는 보존하지만, 실행 전에 현재 API와 테스트의 일치 여부를 확인해야 한다. 테스트 결과·스크린샷·실패 trace는 Git에서 제외한다.
 

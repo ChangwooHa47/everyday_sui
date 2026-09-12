@@ -25,17 +25,20 @@ public class ChatService {
     private final CharacterRepository characterRepository;
     private final LlmClient llmClient;
     private final ChatTurnRequests turns;
+    private final ConversationContext conversationContext;
     private final org.springframework.transaction.support.TransactionTemplate transaction;
 
     public ChatService(ChatMessageRepository chatMessageRepository, CharacterRepository characterRepository,
             LlmClient llmClient, com.everyday.backend.character.service.MarketProductService marketProducts,
             org.springframework.beans.factory.ObjectProvider<ChatTurnRequests> turns,
+            ConversationContext conversationContext,
             org.springframework.transaction.PlatformTransactionManager manager) {
         this.marketProducts = marketProducts;
         this.chatMessageRepository = chatMessageRepository;
         this.characterRepository = characterRepository;
         this.llmClient = llmClient;
         this.turns = turns.getIfAvailable();
+        this.conversationContext = conversationContext;
         this.transaction = new org.springframework.transaction.support.TransactionTemplate(manager);
     }
 
@@ -71,12 +74,7 @@ public class ChatService {
                 .content(content)
                 .build());
 
-        List<ChatMessage> recentHistory = lastMessages(characterId);
-        List<LlmMessage> context = recentHistory.stream()
-                .map(m -> m.getSender() == MessageSender.USER
-                        ? LlmMessage.user(m.getContent())
-                        : LlmMessage.assistant(m.getContent()))
-                .toList();
+        List<LlmMessage> context = conversationContext.forChat(characterId);
 
         String prompt = marketProducts.withApprovedMemory(characterId, character.getSystemPrompt(), content);
         llmClient.requireConfigured();
@@ -136,12 +134,6 @@ public class ChatService {
                 .sender(MessageSender.AI)
                 .content(reply)
                 .build());
-    }
-
-    private List<ChatMessage> lastMessages(Long characterId) {
-        var recent = new java.util.ArrayList<>(chatMessageRepository.findTop10ByCharacterIdAndCharacterEpisodeIdIsNullOrderByIdDesc(characterId));
-        java.util.Collections.reverse(recent);
-        return recent;
     }
 
     private Character getOwnedCharacter(Long userId, Long characterId) {

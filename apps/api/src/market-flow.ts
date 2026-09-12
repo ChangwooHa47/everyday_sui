@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { Transaction } from '@mysten/sui/transactions';
+import { Transaction, type TransactionArgument } from '@mysten/sui/transactions';
 import { fromHex } from '@mysten/sui/utils';
 import { addressSchema, authenticate, failure, hash, type AuthConfig } from './auth.js';
 import type { Database } from './database.js';
@@ -13,6 +13,16 @@ import type { MemoryProvider } from './memory-provider.js';
 import type { GiftService } from './gifts.js';
 
 export interface MarketRuntime { packages: PackageStore; previewTurns: number; }
+type MarketAction = 'register_creator' | 'create_gift' | 'create_listing' | 'publish';
+async function marketTransaction(packageId: string, sender: string, action: MarketAction,
+  args: (tx: Transaction) => TransactionArgument[] = () => []) {
+  const tx = new Transaction();
+  tx.setSender(sender);
+  tx.moveCall({ target: `${packageId}::market::${action}`, arguments: args(tx) });
+  // This prepares unsigned JSON only. User-owned capabilities remain Move inputs.
+  return tx.toJSON();
+}
+
 export function registerMarketFlow(app: FastifyInstance, db: Database, auth: AuthConfig, chain?: MarketChain,
   runtime?: MarketRuntime, ai?: AiConfig, memory?: MemoryProvider, gifts?: GiftService) {
   const service = () => {
@@ -33,20 +43,16 @@ export function registerMarketFlow(app: FastifyInstance, db: Database, auth: Aut
   });
   app.post('/v1/market/creator-transaction', async req => {
     const owner = await authenticate(req, db, auth); const current = service();
-    const tx = new Transaction(); tx.setSender(owner);
-    tx.moveCall({ target: `${current.chain.packageId}::market::register_creator` });
-    return { transaction: await tx.toJSON() };
+    return { transaction: await marketTransaction(current.chain.packageId, owner, 'register_creator') };
   });
   const amount = z.string().regex(/^(0|[1-9][0-9]{0,19})$/).refine(value => BigInt(value) <= 18446744073709551615n);
   app.post('/v1/market/gift-product-transaction', async req => {
     const owner = await authenticate(req, db, auth); const current = service();
     const data = z.object({ adminId: addressSchema, title: z.string().min(1).max(80), merchant: addressSchema,
       priceMist: amount.refine(value => BigInt(value) > 0n) }).strict().parse(req.body);
-    const tx = new Transaction(); tx.setSender(owner);
     // Preparing JSON grants no privilege: Move requires the signer's owned Admin cap.
-    tx.moveCall({ target: `${current.chain.packageId}::market::create_gift`, arguments: [tx.object(data.adminId),
-      tx.pure.string(data.title), tx.pure.address(data.merchant), tx.pure.u64(data.priceMist)] });
-    return { transaction: await tx.toJSON() };
+    return { transaction: await marketTransaction(current.chain.packageId, owner, 'create_gift', tx => [tx.object(data.adminId),
+      tx.pure.string(data.title), tx.pure.address(data.merchant), tx.pure.u64(data.priceMist)]) };
   });
   app.post('/v1/market/listing-transaction', async req => {
     const owner = await authenticate(req, db, auth); const current = service();
@@ -54,11 +60,9 @@ export function registerMarketFlow(app: FastifyInstance, db: Database, auth: Aut
       agentBps: z.number().int().min(0).max(10000), perGiftLimitMist: amount, dailyLimitMist: amount,
       allowedGiftIds: z.array(addressSchema).max(20).default([]) }).strict().parse(req.body);
     if (BigInt(data.perGiftLimitMist) > BigInt(data.dailyLimitMist)) throw failure(400, 'INVALID_GIFT_LIMIT');
-    const tx = new Transaction(); tx.setSender(owner);
-    tx.moveCall({ target: `${current.chain.packageId}::market::create_listing`, arguments: [tx.object(data.creatorId),
+    return { transaction: await marketTransaction(current.chain.packageId, owner, 'create_listing', tx => [tx.object(data.creatorId),
       tx.pure.address(current.packages.operator), tx.pure.string(data.title), tx.pure.u64(data.priceMist), tx.pure.u64(data.agentBps),
-      tx.pure.u64(data.perGiftLimitMist), tx.pure.u64(data.dailyLimitMist), tx.pure.vector('address', data.allowedGiftIds)] });
-    return { transaction: await tx.toJSON() };
+      tx.pure.u64(data.perGiftLimitMist), tx.pure.u64(data.dailyLimitMist), tx.pure.vector('address', data.allowedGiftIds)]) };
   });
   app.post('/v1/market/listings/:listingId/package', async req => {
     const actor = await authenticate(req, db, auth); const current = service();
@@ -88,10 +92,8 @@ export function registerMarketFlow(app: FastifyInstance, db: Database, auth: Aut
         throw failure(502, 'UPLOAD_RESULT_UNKNOWN_DO_NOT_AUTO_RETRY');
       }
     }
-    const tx = new Transaction(); tx.setSender(actor);
-    tx.moveCall({ target: `${current.chain.packageId}::market::publish`, arguments: [tx.object(listingId), tx.pure.string(ref.blobId),
-      tx.pure.vector('u8', fromHex(ref.contentHash)), tx.pure.u64(ref.endEpoch)] });
-    return { package: ref, transaction: await tx.toJSON() };
+    return { package: ref, transaction: await marketTransaction(current.chain.packageId, actor, 'publish', tx => [tx.object(listingId),
+      tx.pure.string(ref.blobId), tx.pure.vector('u8', fromHex(ref.contentHash)), tx.pure.u64(ref.endEpoch)]) };
   });
   app.get('/v1/market/listings/:listingId/character', async req => {
     const actor = await authenticate(req, db, auth); const current = service();

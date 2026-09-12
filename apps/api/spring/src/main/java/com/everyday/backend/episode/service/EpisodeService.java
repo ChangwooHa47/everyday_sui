@@ -6,6 +6,7 @@ import com.everyday.backend.chat.dto.ChatMessageResponse;
 import com.everyday.backend.chat.entity.ChatMessage;
 import com.everyday.backend.chat.entity.MessageSender;
 import com.everyday.backend.chat.repository.ChatMessageRepository;
+import com.everyday.backend.chat.service.ConversationContext;
 import com.everyday.backend.common.exception.CustomException;
 import com.everyday.backend.common.exception.ErrorCode;
 import com.everyday.backend.episode.dto.EpisodeResponse;
@@ -41,6 +42,7 @@ public class EpisodeService {
     private final com.everyday.backend.episode.MarketEpisodeCatalog catalog;
     private final com.everyday.backend.chat.service.ChatTurnRequests turns;
     private final com.everyday.backend.episode.EpisodeStarterRequests starterRequests;
+    private final ConversationContext conversationContext;
     private final org.springframework.transaction.support.TransactionTemplate transaction;
 
     public EpisodeService(EpisodeRepository episodeRepository, CharacterEpisodeRepository characterEpisodeRepository,
@@ -49,6 +51,7 @@ public class EpisodeService {
             org.springframework.beans.factory.ObjectProvider<com.everyday.backend.episode.MarketEpisodeCatalog> catalog,
             org.springframework.beans.factory.ObjectProvider<com.everyday.backend.chat.service.ChatTurnRequests> turns,
             org.springframework.beans.factory.ObjectProvider<com.everyday.backend.episode.EpisodeStarterRequests> starterRequests,
+            ConversationContext conversationContext,
             org.springframework.transaction.PlatformTransactionManager manager) {
         this.marketProducts = marketProducts;
         this.episodeRepository = episodeRepository;
@@ -60,6 +63,7 @@ public class EpisodeService {
         this.catalog = catalog.getIfAvailable();
         this.turns = turns.getIfAvailable();
         this.starterRequests = starterRequests.getIfAvailable();
+        this.conversationContext = conversationContext;
         this.transaction = new org.springframework.transaction.support.TransactionTemplate(manager);
     }
 
@@ -142,14 +146,7 @@ public class EpisodeService {
                 .content(content)
                 .build());
 
-        var recent = new java.util.ArrayList<>(chatMessageRepository.findTop10ByCharacterIdAndCharacterEpisodeIdOrderByIdDesc(
-                characterId, characterEpisode.getId()));
-        java.util.Collections.reverse(recent);
-        List<LlmMessage> context = recent.stream()
-                .map(m -> m.getSender() == MessageSender.USER
-                        ? LlmMessage.user(m.getContent())
-                        : LlmMessage.assistant(m.getContent()))
-                .toList();
+        List<LlmMessage> context = conversationContext.forEpisode(characterId, characterEpisode.getId());
 
         String episodeSystemPrompt = character.getSystemPrompt()
                 + "\n\n[현재 에피소드 상황]\n" + episode.getScenePromptSeed();

@@ -2,9 +2,7 @@ package com.everyday.backend.photo.service;
 
 import com.everyday.backend.character.entity.Character;
 import com.everyday.backend.character.repository.CharacterRepository;
-import com.everyday.backend.chat.entity.ChatMessage;
-import com.everyday.backend.chat.entity.MessageSender;
-import com.everyday.backend.chat.repository.ChatMessageRepository;
+import com.everyday.backend.chat.service.ConversationContext;
 import com.everyday.backend.common.exception.CustomException;
 import com.everyday.backend.common.exception.ErrorCode;
 import com.everyday.backend.image.ImageClient;
@@ -22,7 +20,6 @@ import com.everyday.backend.user.entity.User;
 import com.everyday.backend.user.repository.UserRepository;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,18 +34,18 @@ public class PhotoService {
 
     private final PhotoRepository photoRepository;
     private final CharacterRepository characterRepository;
-    private final ChatMessageRepository chatMessageRepository;
+    private final ConversationContext conversationContext;
     private final UserRepository userRepository;
     private final LlmClient llmClient;
     private final ImageClient imageClient;
 
     public PhotoService(PhotoRepository photoRepository, CharacterRepository characterRepository,
-            ChatMessageRepository chatMessageRepository, UserRepository userRepository, LlmClient llmClient,
+            ConversationContext conversationContext, UserRepository userRepository, LlmClient llmClient,
             ImageClient imageClient, com.everyday.backend.character.service.MarketProductService marketProducts) {
         this.marketProducts = marketProducts;
         this.photoRepository = photoRepository;
         this.characterRepository = characterRepository;
-        this.chatMessageRepository = chatMessageRepository;
+        this.conversationContext = conversationContext;
         this.userRepository = userRepository;
         this.llmClient = llmClient;
         this.imageClient = imageClient;
@@ -133,20 +130,12 @@ public class PhotoService {
         if (customPrompt != null && !customPrompt.isBlank()) {
             context.append("추가 요청: ").append(customPrompt).append('\n');
         }
-        String recentMood = recentConversationMood(character.getId());
+        String recentMood = conversationContext.photoMood(character.getId());
         if (!recentMood.isBlank()) {
             context.append("최근 대화 분위기: ").append(recentMood).append('\n');
         }
 
         return context.toString();
-    }
-
-    private String recentConversationMood(Long characterId) {
-        var recent = new java.util.ArrayList<>(chatMessageRepository.findTop5ByCharacterIdAndCharacterEpisodeIdIsNullOrderByIdDesc(characterId));
-        java.util.Collections.reverse(recent);
-        return recent.stream()
-                .map(m -> (m.getSender() == MessageSender.USER ? "유저: " : "캐릭터: ") + m.getContent())
-                .collect(Collectors.joining(" / "));
     }
 
     private Character getOwnedCharacter(Long userId, Long characterId) {

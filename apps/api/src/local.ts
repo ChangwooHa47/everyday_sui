@@ -1,3 +1,4 @@
+import { mkdirSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { buildApp } from './app.js';
 import { migration } from './database.js';
@@ -5,7 +6,12 @@ import { marketChainFromEnv } from './market-chain.js';
 import { runtimeFromEnv, aiFromEnv } from './runtime-config.js';
 
 // Explicit development entry point. The production entry point requires Postgres.
-const db = new PGlite(process.env.LOCAL_DATABASE_PATH ?? '../../.local-tools/everyday-pglite');
+const dataDir = process.env.LOCAL_DATABASE_PATH ?? '../../.local-tools/everyday-pglite';
+// Match PGlite's filesystem routing without changing relative-path or memory URI semantics.
+const filePath = dataDir.startsWith('file://') ? dataDir.slice(7)
+  : /^(?:memory|idb|opfs-ahp):\/\//.test(dataDir) ? undefined : dataDir;
+if (filePath) mkdirSync(filePath, { recursive: true });
+const db = new PGlite(dataDir);
 await db.exec(migration);
 const market = marketChainFromEnv();
 const app = buildApp(true,{ db, market, ...runtimeFromEnv(market, process.env, db), ai: aiFromEnv(),

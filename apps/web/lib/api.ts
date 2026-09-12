@@ -177,6 +177,7 @@ export const backend = {
 
 // ── 활성 캐릭터 id (클라이언트 상태) ──
 const ACTIVE_KEY = "everyday.v2.activeCharacterId";
+const REQUEST_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 function activeKey() {
   if (process.env.NEXT_PUBLIC_LEGACY_BASELINE === '1') return ACTIVE_KEY;
   try {
@@ -184,6 +185,11 @@ function activeKey() {
     if (/^0x[0-9a-f]{64}$/.test(session?.address) && Date.parse(session.expiresAt) > Date.now()) return `${ACTIVE_KEY}.${session.address}`;
   } catch {}
   return null;
+}
+function clientStateKey(suffix: string) {
+  const identity = activeKey();
+  if (!identity) throw Error('로그인해주세요.');
+  return `${identity}.${suffix}`;
 }
 export function getActiveCharacterId(): number | null {
   if (typeof window === "undefined") return null;
@@ -198,15 +204,13 @@ export function setActiveCharacterId(id: number) {
 
 type PendingChatRequest = { requestId: string; content: string };
 function chatRequestKey(characterId: number, episodeId: string | null) {
-  const identity = activeKey();
-  if (!identity) throw Error('로그인해주세요.');
-  return `${identity}.message.${characterId}.${episodeId ?? 'regular'}`;
+  return clientStateKey(`message.${characterId}.${episodeId ?? 'regular'}`);
 }
 export function getPendingChatRequest(characterId: number, episodeId: string | null): PendingChatRequest | null {
   const saved = sessionStorage.getItem(chatRequestKey(characterId, episodeId));
   if (!saved) return null;
   const value = JSON.parse(saved);
-  if (!value || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value.requestId)
+  if (!value || !REQUEST_UUID_PATTERN.test(value.requestId)
     || typeof value.content !== 'string' || !value.content.length) throw Error('이전 메시지의 전송 요청을 확인할 수 없어요.');
   return value;
 }
@@ -225,15 +229,13 @@ export function clearChatRequest(characterId: number, episodeId: string | null, 
 type CompileInput = Parameters<typeof backend.compile>[0];
 type PendingCompile = CompileInput & { requestId: string };
 function compileRequestKey() {
-  const identity = activeKey();
-  if (!identity) throw Error('로그인해주세요.');
-  return `${identity}.compile`;
+  return clientStateKey('compile');
 }
 export function getPendingCompile(): PendingCompile | null {
   const stored = sessionStorage.getItem(compileRequestKey());
   if (!stored) return null;
   const pending = JSON.parse(stored);
-  if (!pending || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(pending.requestId)
+  if (!pending || !REQUEST_UUID_PATTERN.test(pending.requestId)
     || typeof pending.name !== 'string' || typeof pending.relationshipType !== 'string' || typeof pending.gender !== 'string'
     || (pending.freeText !== undefined && typeof pending.freeText !== 'string')
     || (pending.birthday !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(pending.birthday))
@@ -260,9 +262,7 @@ export function clearCompileRequest(requestId: string) {
 
 type IncompleteCharacter = { characterId: number; photoFeelText: string; photoFeelChip: string | null };
 function incompleteCharacterKey() {
-  const identity = activeKey();
-  if (!identity) throw Error('로그인해주세요.');
-  return `${identity}.incompleteCharacter`;
+  return clientStateKey('incompleteCharacter');
 }
 export function getIncompleteCharacter(): IncompleteCharacter | null {
   const stored = sessionStorage.getItem(incompleteCharacterKey());

@@ -71,11 +71,23 @@ Spring은 Flyway V1–V11을 everyday schema에 적용하고 Hibernate는 valida
 
 배포 검사에서 Windows stdin 전달 시 붙은 UTF-8 BOM과 Spring의 내부 인증 URL 포트 누락을 발견해 변수 값을 수정했다. 현재 운영 변수는 원본과 정확히 대조했고 실제 import까지 다시 통과했다. DB readiness만으로 공급자·내부 서비스 연동 완료를 판단하지 않았다.
 
-## 공식 대조
+## 후속 리팩토링과 문서 검사
+
+문서 정리 커밋 `a96512a`의 GitHub Actions는 Move, Node 타입/단위/빌드/Docker, 현재 Spring/PostgreSQL 통합 작업 모두 통과했다. 오래된 `legacy/spring`·브라우저 비교 작업을 현재 서버 검사로 교체했다. 브라우저 테스트 소스는 과거 비교 자료로 보존하며 현재 서비스의 통과 증거로 사용하지 않는다.
+
+후속 리팩토링은 unsigned Move 거래 준비, 프론트의 사용자별 저장 키/UUID 검사, Spring의 최근 대화 문맥 조회·정렬·역할 변환을 공통 처리로 모은다. API 응답·지갑 권한·저장 키·트랜잭션·유료 호출 경계와 기존 화면은 유지한다. 별도 담당자가 교차 리뷰했고, API 24개·Move 20개·웹 13개·Spring 7개 및 실제 PostgreSQL 통합 검사가 통과했다. 추가 검사는 기존 저장 키와 세션 만료, 일반/에피소드 대화 분리와 최근 10개/5개 순서를 확인한다.
+
+비교 빌드는 공유 DTO 생성물이 없는 최초 checkout에서도 먼저 타입을 생성하도록 수정하고 실제 빈 생성물 상태에서 빌드했다. 이후 일반 전체 빌드로 복구했다. 문서나 회귀 검사에서 실 공급자·브라우저 검증을 했다고 확대해서 보고하지 않는다. 이전 공개 거래 증거는 원래 검증 시점의 기록으로 보존한다.
+
+로컬 PGlite는 최초 데이터 폴더가 없는 경우 먼저 생성하도록 수정했다. 새 중첩 상대 경로·같은 DB 재시작·file:// 경로·memory://에서 별도 프로세스의 readiness/liveness 200을 확인했다. 운영 PostgreSQL과 기존 로컬 DB는 변경하지 않았고, 이 검사에서 만든 임시 DB만 종료 후 제거했다.
+
+### 문서 무결성
 
 문서 정리 시점에 Git 관리 Markdown 23개를 확인했다. 현재 실행·기획 문서와 과거 기록을 분리하고, 원본 참고 문서는 당시 기록임을 표시했다. 중복 전환 안내인 루트 REFACTOR_PLAN.md는 제거했으며 현재 진입점은 루트 README다. 파일·문서 링크·UTF-8·충돌 표시는 `node infra/check-docs.mjs`로 재검사한다. API 경로·DTO·Compose 환경 주입·Flyway 목록과 공개 증거 JSON의 package ID, Move 소스 hash, 시드 수, MIST 분배 합계를 코드와 대조했다.
 
 문서가 참조하는 외부 HTTPS 주소 27개 중 Walrus 주소 6개는 기존 경로가 404였다. 공식 본문이 응답하는 `.html` 경로로 수정했다. HTTP 응답과 문서 제목 확인은 링크 접근성 검사이며 그 문서의 모든 주장이나 미래 가용성을 보증하지 않는다.
+
+## 공식 대조
 
 [Sui SDK](https://sdk.mystenlabs.com/sui), [Seal](https://sdk.mystenlabs.com/seal), [Walrus 저장 API](https://docs.wal.app/docs/http-api/storing-blobs.html), [Walrus epoch](https://docs.wal.app/docs/system-overview/operations.html), [testnet type origin](https://github.com/MystenLabs/walrus/blob/main/testnet-contracts/walrus/Published.toml), [MemWal TypeScript](https://docs.wal.app/walrus-memory/sdk/api-reference.html), [Claude Messages](https://platform.claude.com/docs/en/api/messages/create).
 
