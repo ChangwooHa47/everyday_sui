@@ -16,8 +16,8 @@ const noGifts: GiftPolicyInput = { perGiftLimitMist: '0', dailyLimitMist: '0', a
 
 /** Each authored edition has one durable identity; every tab resumes its first signed transaction. */
 export async function publishCharacter(characterId: number, price: string, giftPolicy: GiftPolicyInput = noGifts) {
-  const { walletKit, getWalletToken } = await import('./wallet-auth');
-  getWalletToken();
+  const { walletKit, getWalletToken, restoreWalletToken } = await import('./wallet-auth');
+  await restoreWalletToken();
   const connectedAccount = walletKit.stores.$connection.get().account;
   if (!connectedAccount) throw Error('로그인해주세요.');
   const account = connectedAccount;

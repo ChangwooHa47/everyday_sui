@@ -29,7 +29,7 @@ export class MarketRequestError extends Error {
   constructor(public readonly status: number, public readonly code: string | undefined, message: string) { super(message); }
 }
 
-export async function marketRequest<T>(path: string, body?: unknown, method?: 'DELETE' | 'PUT'): Promise<T> {
+export async function marketRequest<T>(path: string, body?: unknown, method?: 'DELETE' | 'PUT', retried = false): Promise<T> {
   const token = await ensureAuth();
   const res = await fetch(`${apiUrl}${path}`, { method: method ?? (body === undefined ? 'GET' : 'POST'),
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -37,6 +37,15 @@ export async function marketRequest<T>(path: string, body?: unknown, method?: 'D
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     if (data.error === 'PREVIEW_EXHAUSTED') throw new MarketRequestError(res.status, data.error, '미리보기 대화를 모두 사용했어요. 구매 후 계속 대화할 수 있어요.');
+    if (res.status === 401 && !retried) {
+      try {
+        await (await import('./wallet-auth')).refreshWalletToken();
+        return marketRequest<T>(path, body, method, true);
+      } catch {
+        if (typeof window !== 'undefined' && window.location.pathname !== '/') window.location.replace('/');
+        throw Error('다시 로그인해주세요.');
+      }
+    }
     if (res.status === 401) {
       if (typeof window !== 'undefined' && window.location.pathname !== '/') window.location.replace('/');
       throw Error('다시 로그인해주세요.');
@@ -99,7 +108,7 @@ export function pendingPreviewMessages(id: string): { role: 'user' | 'assistant'
 }
 
 const License = bcs.struct('License', { id: bcs.Address, listing: bcs.Address, buyer: bcs.Address });
-async function findLicense(owner: string, listingId: string) {
+export async function findLicense(owner: string, listingId: string) {
   const { walletKit } = await import('./wallet-auth');
   const client = walletKit.getClient('testnet'); const type = `${requirePackage()}::market::License`;
   let cursor: string | null = null;
@@ -118,8 +127,8 @@ async function findLicense(owner: string, listingId: string) {
 
 /** Check existing entitlement first; retrying a completed purchase only imports its personal copy. */
 export async function purchaseCharacter(displayed: MarketListing) {
-  const { getWalletToken, walletKit } = await import('./wallet-auth');
-  getWalletToken();
+  const { getWalletToken, restoreWalletToken, walletKit } = await import('./wallet-auth');
+  await restoreWalletToken();
   const account = walletKit.stores.$connection.get().account;
   if (!account) throw Error('로그인해주세요.');
   const owner = normalizeSuiAddress(account.address);

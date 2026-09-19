@@ -15,17 +15,20 @@ export default function Splash() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!legacyBaseline) return;
     (async () => {
       try {
         await ensureAuth();
         const list = await backend.listCharacters();
+        if (!legacyBaseline) {
+          router.replace(list.length > 0 ? "/home" : "/create");
+          return;
+        }
         setHasCharacter(list.length > 0);
       } catch {
-        setError(true);
+        if (legacyBaseline) setError(true);
       }
     })();
-  }, []);
+  }, [router]);
 
   return (
     <div

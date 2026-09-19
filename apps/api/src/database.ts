@@ -20,7 +20,18 @@ CREATE TABLE IF NOT EXISTS wallet_sessions (
  token_hash text PRIMARY KEY, address text NOT NULL, origin text NOT NULL,
  expires_at timestamptz NOT NULL
 );
+CREATE TABLE IF NOT EXISTS wallet_session_families (
+ token_hash text PRIMARY KEY REFERENCES wallet_sessions(token_hash) ON DELETE CASCADE,
+ family_id uuid NOT NULL
+);
+CREATE TABLE IF NOT EXISTS wallet_refresh_sessions (
+ token_hash text PRIMARY KEY, family_id uuid NOT NULL, address text NOT NULL, origin text NOT NULL,
+ expires_at timestamptz NOT NULL, rotated_at timestamptz
+);
 CREATE INDEX IF NOT EXISTS wallet_sessions_expiry ON wallet_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS wallet_session_families_family ON wallet_session_families(family_id);
+CREATE INDEX IF NOT EXISTS wallet_refresh_sessions_expiry ON wallet_refresh_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS wallet_refresh_sessions_family ON wallet_refresh_sessions(family_id);
 CREATE INDEX IF NOT EXISTS wallet_challenges_expiry ON wallet_challenges(expires_at);
 CREATE TABLE IF NOT EXISTS ai_requests (
  actor text NOT NULL, request_id uuid NOT NULL, input_hash text NOT NULL,
@@ -72,6 +83,16 @@ CREATE INDEX IF NOT EXISTS market_catalog_package_listing ON market_catalog(pack
 CREATE TABLE IF NOT EXISTS market_previews (
  listing_id text PRIMARY KEY REFERENCES market_catalog(listing_id),
  content_hash text NOT NULL, summary text NOT NULL, image_url text
+);
+-- Public-safe filter facets copied from the authored package at registration; never relationship data.
+ALTER TABLE market_previews ADD COLUMN IF NOT EXISTS relationship_type text;
+ALTER TABLE market_previews ADD COLUMN IF NOT EXISTS gender text;
+-- One short buyer review per wallet and listing. Reviews are opinions about the authored character,
+-- never conversation excerpts; writing requires a verified license at request time.
+CREATE TABLE IF NOT EXISTS market_reviews (
+ listing_id text NOT NULL REFERENCES market_catalog(listing_id), owner text NOT NULL,
+ rating integer NOT NULL CHECK(rating BETWEEN 1 AND 5), text text NOT NULL CHECK(char_length(text) BETWEEN 1 AND 100),
+ created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(listing_id,owner)
 );
 CREATE TABLE IF NOT EXISTS relationship_memory (
  owner text NOT NULL, listing_id text NOT NULL, provider text NOT NULL CHECK(provider IN ('seal-walrus','memwal')),

@@ -96,7 +96,7 @@ export function createMarketChain(packageId: string, client: Pick<SuiGrpcClient,
         || !Buffer.from(listingBcs.serialize(data).toBytes()).equals(Buffer.from(value.content))) throw Error('Invalid listing');
     } catch { throw failure(503, 'INVALID_CHAIN_OBJECT'); }
     return { id: data.id, creator: data.creator, operator: data.operator, title: data.title,
-      priceMist: data.price, agentBps: Number(data.agent_bps), treasuryMist: data.treasury,
+      priceMist: data.price, agentBps: Number(data.agent_bps), treasuryMist: data.treasury, buyerCount: data.buyers.size,
       published: data.published, active: data.active,
       package: { blobId: data.blob_id, contentHash: Buffer.from(data.content_hash).toString('hex'), endEpoch: data.end_epoch },
       policy: { perGiftLimitMist: data.per_gift_limit, dailyLimitMist: data.daily_limit, allowedGiftIds: data.allowed_gifts,

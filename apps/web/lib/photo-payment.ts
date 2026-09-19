@@ -2,8 +2,8 @@ import { Transaction } from '@mysten/sui/transactions';
 import { backend } from './api';
 
 export async function payForPhoto(characterId: number) {
-  const { getWalletToken, walletKit } = await import('./wallet-auth');
-  getWalletToken();
+  const { getWalletToken, restoreWalletToken, walletKit } = await import('./wallet-auth');
+  await restoreWalletToken();
   const account = walletKit.stores.$connection.get().account;
   if (!account) throw Error('로그인해주세요.');
   const payment = await backend.photoPaymentTransaction(characterId);

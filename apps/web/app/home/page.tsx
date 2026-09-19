@@ -20,6 +20,7 @@ export default function Home() {
   const [chars, setChars] = useState<CharacterSummary[] | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const [dayCounts, setDayCounts] = useState<Record<number, number>>({});
+  const [lastMessages, setLastMessages] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -35,6 +36,9 @@ export default function Home() {
         ? Math.max(1, Math.floor((Date.now() - Math.min(...times)) / 86_400_000) + 1)
         : 0;
       setDayCounts((prev) => ({ ...prev, [id]: days }));
+      // 채팅 탭을 홈에 합쳤으므로 카드가 마지막 메시지를 대신 보여준다.
+      const last = msgs[msgs.length - 1];
+      setLastMessages((prev) => ({ ...prev, [id]: last ? `${last.sender === "USER" ? "나: " : ""}${last.content}` : "" }));
     } catch { /* Leave unavailable counts unset instead of inventing relationship history. */ }
   }, []);
 
@@ -202,7 +206,9 @@ export default function Home() {
         <span className="logo" style={{ fontSize: 22, color: "var(--gray-800)" }}>
           Dear Mine
         </span>
-        <Icon name="bell" size={22} style={{ color: "var(--gray-700)" }} />
+        <Link href="/chatlist" aria-label="채팅 목록" style={{ color: "var(--gray-700)", display: "flex" }}>
+          <Icon name="chat" size={22} />
+        </Link>
       </header>
 
       {/* 캐릭터 카드 캐러셀 — 가로 스냅 스크롤, 오른쪽 peek */}
@@ -292,10 +298,10 @@ export default function Home() {
                   {divider}
                   <span style={{ opacity: 0.9 }}>{dayCounts[char.id] === undefined ? '' : dayCounts[char.id] === 0 ? '첫 대화 시작하기' : `${dayCounts[char.id]}일째 대화`}</span>
                 </div>
-                <div>
-                  <span style={{ fontWeight: 700 }}>에피소드</span>
+                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ fontWeight: 700 }}>최근</span>
                   {divider}
-                  <span style={{ opacity: 0.9 }}>진행 전</span>
+                  <span style={{ opacity: 0.9 }}>{lastMessages[char.id] || "아직 나눈 말이 없어요"}</span>
                 </div>
               </div>
             </div>

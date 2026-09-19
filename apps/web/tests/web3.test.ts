@@ -7,6 +7,7 @@ import { priceToMist } from '../lib/publish';
 import { formatPrice, recommendListings, loadMarketCatalog, submitPreviewTurn, MarketRequestError, pendingPreviewMessages } from '../lib/market';
 import { getActiveCharacterId, setActiveCharacterId, prepareChatRequest, getPendingChatRequest, clearChatRequest, prepareCompileRequest, getPendingCompile, clearCompileRequest, getIncompleteCharacter, saveIncompleteCharacter, clearIncompleteCharacter } from '../lib/api';
 import { giftPolicyFor, nftGiftImageUrl } from '../lib/gifts';
+import { sortCards, type CommunityCard } from '../lib/community';
 import { marketImageSources } from '../lib/market-images';
 const pkg = '0x'+'1'.repeat(64);
 const metadata = {schemaVersion:1,network:'testnet',appPackage:pkg,revision:'0',previousRef:null,createdAt:'2026-09-08T00:00:00.000Z'};
@@ -30,6 +31,20 @@ test('Walrus market images use strict reads and deployed seeds prefer their byte
     'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0',
   ]);
   assert.deepEqual(marketImageSources({ ...listing, id: pkg }, 'not a URL'), []);
+});
+
+test('community sorting keeps u64 values as exact decimal strings', () => {
+  const card = (id: string, priceMist: string, buyers: string, turns: string): CommunityCard => ({
+    listing: { id, title: id, active: true, published: true, creator: pkg, operator: pkg, priceMist, buyerCount: buyers,
+      agentBps: 0, treasuryMist: '0', package: { blobId: '', contentHash: '', endEpoch: '1' },
+      policy: { perGiftLimitMist: '0', dailyLimitMist: '0', allowedGiftIds: [] } },
+    preview: undefined,
+    engagement: { turns, revisitPercent: 0 },
+  });
+  const lower = card('lower', '9007199254740992', '18446744073709551614', '18446744073709551614');
+  const higher = card('higher', '9007199254740993', '18446744073709551615', '18446744073709551615');
+  assert.deepEqual(sortCards([lower, higher], 'popular').map(item => item.listing.id), ['higher', 'lower']);
+  assert.deepEqual(sortCards([higher, lower], 'price').map(item => item.listing.id), ['lower', 'higher']);
 });
 
 test('gift policy includes available external offers and external images always use the verified proxy', () => {

@@ -28,14 +28,17 @@ export function registerMarket(app: FastifyInstance, db: Database, auth: AuthCon
     if (listing.creator !== actor) throw failure(403, 'CREATOR_REQUIRED');
     if (!listing.published) throw failure(409, 'LISTING_NOT_PUBLISHED');
     if (!packages) throw failure(503, 'MARKET_RUNTIME_NOT_CONFIGURED');
-    const preview = (await packages.load(listing)).preview;
+    const loaded = await packages.load(listing);
+    const preview = loaded.preview;
+    // Relationship/gender are authored product facets (public detail already shows them); they power community filters.
     await db.query(`WITH registered AS (
       INSERT INTO market_catalog(listing_id,creator,package_id) VALUES($1,$2,$3)
       ON CONFLICT(listing_id) DO UPDATE SET creator=$2,package_id=$3 RETURNING listing_id
-    ) INSERT INTO market_previews(listing_id,content_hash,summary,image_url)
-      SELECT listing_id,$4,$5,$6 FROM registered
-      ON CONFLICT(listing_id) DO UPDATE SET content_hash=$4,summary=$5,image_url=$6`,
-      [listingId, actor, service.packageId, listing.package.contentHash, preview.summary ?? preview.personality.slice(0, 200), preview.imageUrl ?? null]);
+    ) INSERT INTO market_previews(listing_id,content_hash,summary,image_url,relationship_type,gender)
+      SELECT listing_id,$4,$5,$6,$7,$8 FROM registered
+      ON CONFLICT(listing_id) DO UPDATE SET content_hash=$4,summary=$5,image_url=$6,relationship_type=$7,gender=$8`,
+      [listingId, actor, service.packageId, listing.package.contentHash, preview.summary ?? preview.personality.slice(0, 200), preview.imageUrl ?? null,
+        loaded.character.relationshipType ?? null, loaded.character.gender ?? null]);
     return { listing };
   });
   app.get('/v1/market/listings', async req => {
@@ -44,10 +47,13 @@ export function registerMarket(app: FastifyInstance, db: Database, auth: AuthCon
     const { rows } = await db.query<{ listing_id: string }>('SELECT listing_id FROM market_catalog WHERE package_id=$1 AND listing_id>$2 ORDER BY listing_id LIMIT $3', [service.packageId, query.after ?? '', query.limit]);
     const ids = rows.map(row => row.listing_id);
     const listings = service.listings ? await service.listings(ids) : await Promise.all(ids.map(id => service.listing(id)));
-    const previewRows = await db.query<{ listing_id: string; content_hash: string; summary: string; image_url: string | null }>(
-      'SELECT listing_id,content_hash,summary,image_url FROM market_previews WHERE listing_id=ANY($1::text[])', [listings.map(l => l.id)]);
+    const previewRows = await db.query<{ listing_id: string; content_hash: string; summary: string; image_url: string | null;
+      relationship_type: string | null; gender: string | null; registered_at: Date | string }>(
+      `SELECT p.listing_id,p.content_hash,p.summary,p.image_url,p.relationship_type,p.gender,c.created_at AS registered_at
+       FROM market_previews p JOIN market_catalog c ON c.listing_id=p.listing_id WHERE p.listing_id=ANY($1::text[])`, [listings.map(l => l.id)]);
     const previews = Object.fromEntries(previewRows.rows.filter(p => listings.some(l => l.id === p.listing_id && l.package.contentHash === p.content_hash))
-      .map(p => [p.listing_id, { summary: p.summary, imageUrl: p.image_url }]));
+      .map(p => [p.listing_id, { summary: p.summary, imageUrl: p.image_url, relationshipType: p.relationship_type, gender: p.gender,
+        registeredAt: new Date(p.registered_at).toISOString() }]));
     const metrics = productMetrics ? await db.query<{ listing_id: string; turns: string; readers: string; returning_readers: string }>(
       'SELECT * FROM everyday.market_engagement WHERE listing_id=ANY($1::text[])', [listings.map(l => l.id)]) : { rows: [] };
     const engagement = Object.fromEntries(metrics.rows.map(row => [row.listing_id, { turns: row.turns,
@@ -57,6 +63,37 @@ export function registerMarket(app: FastifyInstance, db: Database, auth: AuthCon
   app.get('/v1/market/listings/:listingId', async req => {
     const { listingId } = paramsSchema.parse(req.params);
     return { listing: await chain().listing(listingId) };
+  });
+  // Community signals for one listing: buyer reviews and how often the character's treasury actually sent a gift.
+  const communityOf = async (listingId: string) => {
+    const reviews = await db.query<{ owner: string; rating: number; text: string; created_at: Date | string }>(
+      'SELECT owner,rating,text,created_at FROM market_reviews WHERE listing_id=$1 ORDER BY created_at DESC LIMIT 50', [listingId]);
+    const summary = await db.query<{ count: string; average: string | null }>('SELECT count(*)::text AS count,avg(rating)::text AS average FROM market_reviews WHERE listing_id=$1', [listingId]);
+    const gifts = await db.query<{ count: string }>("SELECT count(*)::text AS count FROM agent_gifts WHERE listing_id=$1 AND status='confirmed'", [listingId]);
+    const registered = await db.query<{ created_at: Date | string }>('SELECT created_at FROM market_catalog WHERE listing_id=$1', [listingId]);
+    return { reviews: reviews.rows.map(r => ({ owner: r.owner, rating: r.rating, text: r.text, createdAt: new Date(r.created_at).toISOString() })),
+      averageRating: summary.rows[0]?.average ? Math.round(Number(summary.rows[0].average) * 10) / 10 : null,
+      reviewCount: Number(summary.rows[0]?.count ?? 0), giftsSent: Number(gifts.rows[0]?.count ?? 0),
+      registeredAt: registered.rows[0] ? new Date(registered.rows[0].created_at).toISOString() : null };
+  };
+  app.get('/v1/market/listings/:listingId/community', async req => {
+    const { listingId } = paramsSchema.parse(req.params);
+    return communityOf(listingId);
+  });
+  const reviewSchema = z.object({ rating: z.number().int().min(1).max(5), text: z.string().trim().min(1).max(100), licenseId: addressSchema }).strict();
+  app.post('/v1/market/listings/:listingId/reviews', async req => {
+    const actor = await authenticate(req, db, auth);
+    const { listingId } = paramsSchema.parse(req.params);
+    const input = reviewSchema.parse(req.body);
+    // Only current license holders review, and creators cannot review their own character.
+    const service = chain();
+    const listing = await requireMarketAccess(service, actor, listingId, input.licenseId);
+    if (listing.creator === actor) throw failure(403, 'LICENSE_REQUIRED');
+    const registered = await db.query('SELECT 1 FROM market_catalog WHERE listing_id=$1 AND package_id=$2', [listingId, service.packageId]);
+    if (!registered.rows.length) throw failure(404, 'LISTING_NOT_FOUND');
+    await db.query(`INSERT INTO market_reviews(listing_id,owner,rating,text) VALUES($1,$2,$3,$4)
+      ON CONFLICT(listing_id,owner) DO UPDATE SET rating=$3,text=$4,created_at=now()`, [listingId, actor, input.rating, input.text]);
+    return communityOf(listingId);
   });
   app.get('/v1/market/listings/:listingId/access', async req => {
     const actor = await authenticate(req, db, auth);

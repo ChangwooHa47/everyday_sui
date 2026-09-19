@@ -24,17 +24,20 @@ function remember(value: Session | null) {
 }
 let generation = 0;
 let connected: string | undefined;
-function revoke(token: string) {
+function revoke(token: string | null, includeRefresh = true) {
   void fetch(`${apiUrl}/v1/auth/session`, { method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` }, keepalive: true }).catch(() => {});
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: includeRefresh ? 'include' : 'omit', keepalive: true }).catch(() => {});
 }
 walletKit.stores.$connection.subscribe(connection => {
   const address = connection.account?.address;
   if (address === connected) return;
+  const previous = connected;
   connected = address;
   generation++;
-  if (session && (!address || normalizeSuiAddress(address) !== session.address)) {
-    revoke(session.token); remember(null);
+  const accountChanged = previous && (!address || normalizeSuiAddress(address) !== normalizeSuiAddress(previous));
+  if (accountChanged || (session && (!address || normalizeSuiAddress(address) !== session.address))) {
+    revoke(session?.token ?? null); remember(null);
     if (typeof window !== 'undefined' && window.location.pathname !== '/') window.location.replace('/');
   }
 });
@@ -47,8 +50,8 @@ export function getWalletToken() {
   return session.token;
 }
 
-export async function restoreWalletToken() {
-  if (session && !connected && typeof window !== 'undefined') {
+async function waitForWalletConnection() {
+  if (!connected && typeof window !== 'undefined') {
     await new Promise<void>(resolve => {
       const timeout = setTimeout(() => { unsubscribe(); resolve(); }, 10000);
       const unsubscribe = walletKit.stores.$connection.listen(value => {
@@ -56,7 +59,36 @@ export async function restoreWalletToken() {
       });
     });
   }
-  return getWalletToken();
+}
+
+let refreshInFlight: Promise<string> | null = null;
+export function refreshWalletToken() {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    await waitForWalletConnection();
+    const account = walletKit.stores.$connection.get().account;
+    if (!account) { remember(null); throw Error('로그인해주세요.'); }
+    const owner = normalizeSuiAddress(account.address);
+    const response = await fetch(`${apiUrl}/v1/auth/session/refresh`, { method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(15000) });
+    if (!response.ok) { remember(null); throw Error('다시 로그인해주세요.'); }
+    const result = await response.json() as Session | null;
+    if (!result || typeof result.token !== 'string' || result.address !== owner || !Number.isFinite(Date.parse(result.expiresAt))
+        || Date.parse(result.expiresAt) <= Date.now()) {
+      if (result && typeof result.token === 'string') revoke(result.token);
+      remember(null);
+      throw Error('로그인 응답을 확인할 수 없습니다.');
+    }
+    remember(result);
+    return result.token;
+  })().finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
+}
+
+export async function restoreWalletToken() {
+  await waitForWalletConnection();
+  try { return getWalletToken(); }
+  catch { return refreshWalletToken(); }
 }
 
 export async function loginWithWallet() {
@@ -67,7 +99,8 @@ export async function loginWithWallet() {
   const check = () => { if (started !== generation) throw Error('다시 로그인해주세요.'); };
   async function post(path: string, body: unknown) {
     const response = await fetch(`${apiUrl}${path}`, { method: 'POST',
-      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(15000) });
+      headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+      body: JSON.stringify(body), signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw Error('로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
     return response.json();
   }
@@ -89,6 +122,6 @@ export async function loginWithWallet() {
   try { walletKit.switchAccount({ account }); }
   catch (error) { revoke(result.token); throw error; }
   check();
-  if (session) revoke(session.token);
+  if (session) revoke(session.token, false);
   remember(result);
 }
