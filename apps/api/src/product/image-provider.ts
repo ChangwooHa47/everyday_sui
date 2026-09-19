@@ -10,6 +10,9 @@ interface CustomReference { id?: string; status?: string; }
 export interface HiggsfieldConfig { apiKey?: string; apiSecret?: string; baseUrl?: string; }
 
 /** The existing Soul API protocol: one paid submission, followed by read-only polling. */
+/** Soul style catalog id for "iPhone" (natural light, casual framing). Override with HIGGSFIELD_STYLE_ID. */
+const SOUL_STYLE_ID = process.env.HIGGSFIELD_STYLE_ID ?? '1b798b54-03da-446a-93bf-12fcba1050d7';
+
 export function createHiggsfieldImageProvider(config: HiggsfieldConfig, options: {
   fetch?: typeof fetch; pollIntervalMs?: number; timeoutMs?: number; maxPollAttempts?: number;
 } = {}): ImageProvider {
@@ -48,7 +51,9 @@ export function createHiggsfieldImageProvider(config: HiggsfieldConfig, options:
         // Soul's prompt enhancer pushes every portrait toward the same golden-hour, film look.
         // Send the authored prompt as written so scene, outfit and lighting come from the character.
         enhance_prompt: false,
-        ...(referenceImageUrl?.trim() ? { image_reference: { type: 'image_url', image_url: referenceImageUrl } } : {}),
+        // Soul's "iPhone" style: natural light, casual framing, looks like a real phone photo.
+        // Soul rejects style_id together with an image reference, so it applies only to reference-free calls.
+        ...(referenceImageUrl?.trim() ? { image_reference: { type: 'image_url', image_url: referenceImageUrl } } : { style_id: SOUL_STYLE_ID }),
         ...(soulId === null ? {} : { custom_reference_id: soulId, custom_reference_strength: 1.0 }),
       } });
       if (!result?.id) throw imageError();

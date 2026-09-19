@@ -22,6 +22,12 @@ test('Soul provider submits exactly once and preserves image/reference parameter
     custom_reference_id: 'soul-id', custom_reference_strength: 1,
   } });
   assert.equal((calls[0]!.init!.headers as Record<string, string>).Authorization, 'Key fixture-key:fixture-secret');
+  // Reference-free portraits carry the iPhone style; Soul rejects style_id next to an image reference.
+  calls.length = 0;
+  assert.equal((await provider.generateImages('portrait', null, 4)).length, 4);
+  const params = JSON.parse(String(calls[0]!.init!.body)).params;
+  assert.equal(params.style_id, '1b798b54-03da-446a-93bf-12fcba1050d7');
+  assert.equal(params.image_reference, undefined); assert.equal(params.custom_reference_id, undefined);
 });
 
 test('uncertain image submissions and expired polling fail without paid automatic retry', async () => {
