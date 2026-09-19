@@ -112,13 +112,11 @@ export default function Home() {
           display: "flex",
           flexDirection: "column",
           height: "100dvh",
-          background: "linear-gradient(180deg, var(--orange-50) 0%, #fffdf7 55%, var(--orange-100) 100%)",
+          background: "linear-gradient(180deg, var(--key-50) 0%, #fff 55%, var(--key-100) 100%)",
         }}
       >
         <header className="topbar">
-          <span className="logo" style={{ fontSize: 22, color: "var(--gray-800)" }}>
-            Dear Mine
-          </span>
+          <span className="logo" style={{ fontSize: 24 }}>dear.</span>
           <Icon name="bell" size={22} style={{ color: "var(--gray-700)" }} />
         </header>
 
@@ -136,10 +134,10 @@ export default function Home() {
           <section
             style={{
               width: "100%",
-              borderRadius: 24,
-              background: "rgba(255,255,255,0.82)",
-              border: "1px solid var(--orange-200)",
-              boxShadow: "0 12px 36px rgba(82, 64, 42, 0.08)",
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.88)",
+              border: "1px solid var(--key-100)",
+              boxShadow: "0 12px 36px rgba(30, 24, 26, 0.08)",
               textAlign: "center",
               overflow: "hidden",
             }}
@@ -196,17 +194,14 @@ export default function Home() {
         display: "flex",
         flexDirection: "column",
         height: "100dvh",
-        background:
-          "linear-gradient(180deg, var(--orange-50) 0%, #fffdf7 42%, var(--orange-100) 100%)",
+        background: "#fff",
       }}
     >
       <style>{`.hcar::-webkit-scrollbar{display:none}`}</style>
 
       <header className="topbar">
-        <span className="logo" style={{ fontSize: 22, color: "var(--gray-800)" }}>
-          Dear Mine
-        </span>
-        <Link href="/chatlist" aria-label="채팅 목록" style={{ color: "var(--gray-700)", display: "flex" }}>
+        <span className="logo" style={{ fontSize: 24 }}>dear.</span>
+        <Link href="/chatlist" aria-label="채팅 목록" style={{ color: "var(--key)", display: "flex" }}>
           <Icon name="chat" size={22} />
         </Link>
       </header>
@@ -221,7 +216,7 @@ export default function Home() {
           minHeight: 0,
           display: "flex",
           gap: 12,
-          padding: "4px 20px 0",
+          padding: "12px 28px 0",
           overflowX: "auto",
           overflowY: "hidden",
           scrollSnapType: "x mandatory",
@@ -236,9 +231,9 @@ export default function Home() {
             data-card
             style={{
               position: "relative",
-              flex: "0 0 calc(min(375px, 100vw) - 72px)",
+              flex: "0 0 calc(min(375px, 100vw) - 56px)",
               scrollSnapAlign: "start",
-              borderRadius: 20,
+              borderRadius: 12,
               overflow: "hidden",
               background: "linear-gradient(160deg, var(--orange-100), var(--orange-400))",
             }}
@@ -265,8 +260,7 @@ export default function Home() {
                 right: 0,
                 bottom: 0,
                 padding: "56px 20px 20px",
-                background:
-                  "linear-gradient(transparent, rgba(20,18,16,0.35) 40%, rgba(20,18,16,0.82))",
+                background: "var(--overlay-scrim)",
                 color: "#fff",
               }}
             >
@@ -281,8 +275,8 @@ export default function Home() {
                     height: 44,
                     flexShrink: 0,
                     borderRadius: "50%",
-                    background: "#fff",
-                    color: "var(--gray-900)",
+                    background: "var(--key)",
+                    color: "#fff",
                     display: "grid",
                     placeItems: "center",
                     textDecoration: "none",
@@ -292,7 +286,7 @@ export default function Home() {
                 </Link>
               </div>
 
-              <div style={{ fontSize: 13, fontWeight: 500, lineHeight: "22px" }}>
+              <div style={{ fontSize: 16, fontWeight: 500, lineHeight: "24px", letterSpacing: "-0.02em" }}>
                 <div>
                   <span style={{ fontWeight: 700 }}>{char.relationshipType}</span>
                   {divider}
@@ -313,9 +307,9 @@ export default function Home() {
           onClick={() => router.push("/create?new=1")}
           aria-label="새 캐릭터 추가하기"
           style={{
-            flex: "0 0 calc(min(375px, 100vw) - 72px)",
+            flex: "0 0 calc(min(375px, 100vw) - 56px)",
             scrollSnapAlign: "start",
-            borderRadius: 20,
+            borderRadius: 12,
             border: "1.5px dashed var(--gray-800)",
             background: "transparent",
             display: "flex",
@@ -343,7 +337,7 @@ export default function Home() {
                 width: i === activeIdx ? 18 : 6,
                 height: 6,
                 borderRadius: 999,
-                background: i === activeIdx ? "var(--orange-500)" : "var(--gray-300)",
+                background: i === activeIdx ? "var(--key)" : "var(--gray-300)",
                 transition: "all 300ms var(--ease)",
               }}
             />

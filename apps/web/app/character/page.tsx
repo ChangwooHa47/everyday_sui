@@ -495,8 +495,8 @@ export default function CharacterPage() {
         .cp-pencil:active { background: var(--gray-100); }
 
         .cp-callBox {
-          margin-top: 10px; padding: 14px 16px; border-radius: 14px;
-          background: var(--orange-50); border: 1px solid var(--orange-200);
+          margin-top: 10px; padding: 14px 16px; border-radius: 8px;
+          background: var(--key-50); border: 1px solid var(--key-100);
         }
 
         /* 탭 */

@@ -1,6 +1,6 @@
-/* Dear Mine 디자인 토큰 (figma nKyolUAkQEK9hPqDAiOpGe node 0-1053) */
-@import url("https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css");
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,500;1,600&display=swap");
+/* Dear Mine 디자인 토큰 — 2026-09-19 비주얼 리프레시 (figma zmlIzbqYeSNtz9gJxl7kt1 Develop 페이지 기준)
+   키컬러 #ED2348, 모서리 4px 기본·버튼 8px, 검정 칩, Pretendard, 워드마크 "dear." Helvetica Bold */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
 
 :root {
   /* GrayScale */
@@ -15,15 +15,26 @@
   --gray-800: #3e404c;
   --gray-900: #282d36;
   --black: #1e1e1e;
-  /* Orange */
-  --orange-50: #fffeeb;
-  --orange-100: #fff6e0;
-  --orange-200: #fff0d5;
-  --orange-300: #ffe8c9;
-  --orange-400: #ffd9bc;
-  --orange-500: #ffc9ad;
-  --orange-600: #ffb197;
-  --orange-700: #ff9a78;
+  /* Key (pink) — 레퍼런스 #ED2348. 가격 강조는 --key-deep */
+  --key: #ed2348;
+  --key-deep: #ff002f;
+  --key-50: #fff1f3;
+  --key-100: #ffe3e8;
+  /* 기존 orange-* 토큰명은 유지하고 값만 키컬러 틴트로 옮겼다 (전 화면 자동 반영) */
+  --orange-50: #fff5f6;
+  --orange-100: #ffe9ec;
+  --orange-200: #ffdbe0;
+  --orange-300: #ffc7cf;
+  --orange-400: #ffaebb;
+  --orange-500: #ff8fa3;
+  --orange-600: #f96585;
+  --orange-700: #ed2348;
+  /* 이미지 위 오버레이 — 카드·홈 캐러셀이 공유한다 */
+  --overlay-scrim: linear-gradient(180deg, rgba(20,18,16,0) 0%, rgba(20,18,16,0.6) 36%, rgba(20,18,16,0.82) 100%);
+  --on-overlay-muted: rgba(255,255,255,0.6);
+  --chip-bg: #f7f7fa;
+  --chip-pill-bg: #e9e9ec;
+  --chip-pill-on: #343434;
 
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -35,7 +46,8 @@
 body {
   margin: 0;
   background: var(--gray-200);
-  font-family: "SUIT", -apple-system, "Apple SD Gothic Neo", sans-serif;
+  font-family: "Pretendard", -apple-system, "Apple SD Gothic Neo", sans-serif;
+  letter-spacing: -0.02em;
   color: var(--black);
 }
 
@@ -52,22 +64,25 @@ body {
 }
 
 /* ── 타이포 (figma 스타일 시트) ── */
-.h1 { font-size: 28px; font-weight: 700; line-height: 135%; letter-spacing: -0.02em; }
-.h2 { font-size: 24px; font-weight: 700; line-height: 135%; letter-spacing: -0.02em; }
-.h3 { font-size: 22px; font-weight: 700; line-height: 135%; letter-spacing: -0.02em; }
-.headline1 { font-size: 18px; font-weight: 700; line-height: 135%; letter-spacing: -0.02em; }
-.headline2 { font-size: 16px; font-weight: 500; line-height: 145%; letter-spacing: -0.02em; }
-.body1 { font-size: 16px; font-weight: 500; line-height: 150%; letter-spacing: -0.02em; }
-.body2 { font-size: 14px; font-weight: 500; line-height: 150%; letter-spacing: -0.01em; }
-.label1 { font-size: 16px; font-weight: 700; line-height: 130%; letter-spacing: -0.02em; }
-.caption { font-size: 12px; font-weight: 500; line-height: 150%; }
+.h1 { font-size: 28px; font-weight: 400; line-height: 130%; letter-spacing: -0.07em; }
+.h2 { font-size: 24px; font-weight: 500; line-height: 130%; letter-spacing: -0.05em; }
+.h3 { font-size: 22px; font-weight: 500; line-height: 130%; letter-spacing: -0.05em; }
+.headline1 { font-size: 18px; font-weight: 500; line-height: 135%; letter-spacing: -0.05em; }
+.headline2 { font-size: 16px; font-weight: 500; line-height: 145%; letter-spacing: -0.03em; }
+.body1 { font-size: 16px; font-weight: 400; line-height: 150%; letter-spacing: -0.03em; }
+.body2 { font-size: 14px; font-weight: 500; line-height: 150%; letter-spacing: -0.02em; }
+.label1 { font-size: 16px; font-weight: 500; line-height: 130%; letter-spacing: -0.05em; }
+.section-title { font-size: 20px; font-weight: 500; line-height: 130%; letter-spacing: -0.05em; color: var(--black); }
+.page-title { font-family: "Helvetica Neue", Helvetica, Arial, "Pretendard", sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.07em; color: var(--key); }
+.caption { font-size: 12px; font-weight: 500; line-height: 150%; letter-spacing: -0.02em; }
 
-/* Dear Mine 워드마크 — 세리프 이탤릭. 컬러 팔레트는 그대로 둔다. */
+/* 워드마크 "dear." — Helvetica Bold, 키컬러. 텍스트는 각 화면에서 "dear."로 넣는다 */
 .logo {
-  font-family: "Playfair Display", "Iowan Old Style", Georgia, "Times New Roman", serif;
-  font-style: italic;
-  font-weight: 500;
-  letter-spacing: -0.01em;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Pretendard", sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: -0.07em;
+  color: var(--key);
 }
 
 /* ── 공통 컴포넌트 ── */
@@ -140,29 +155,31 @@ body {
 .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--gray-200);
-  background: #fff;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: var(--chip-bg);
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
-  color: var(--gray-700);
+  letter-spacing: -0.04em;
+  color: var(--black);
   cursor: pointer;
   transition: all 200ms var(--ease);
 }
-.chip.selected {
-  background: var(--orange-400);
-  border-color: var(--orange-400);
-  color: var(--black);
-  font-weight: 700;
-}
+.chip.selected { background: var(--key); border-color: var(--key); color: #fff; }
+/* 둥근 필터 칩 (관계 등) — 선택 검정 */
+.chip.pill { border-radius: 999px; background: var(--chip-pill-bg); font-size: 13px; letter-spacing: -0.02em; }
+.chip.pill.selected { background: var(--chip-pill-on); border-color: var(--chip-pill-on); color: #fff; }
+/* 강조 태그 (# 23명과 대화 중) — 키컬러 사각 */
+.chip.tag { background: var(--key); color: #fff; padding: 10px; font-size: 16px; letter-spacing: -0.02em; cursor: default; }
+.chip.dark { background: var(--gray-900); color: #fff; border-radius: 999px; padding: 6px 12px; font-size: 13px; }
 
 /* 인풋 */
 .input {
   width: 100%;
   padding: 14px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  border: 1px solid transparent;
   background: var(--gray-50);
   font-family: inherit;
   font-size: 14px;
@@ -177,17 +194,19 @@ body {
 .cta {
   width: 100%;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 8px;
   border: none;
   background: var(--gray-900);
   color: #fff;
   font-family: inherit;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
+  letter-spacing: -0.05em;
   cursor: pointer;
   transition: all 200ms var(--ease);
 }
 .cta:disabled { background: var(--gray-200); color: var(--gray-500); cursor: default; }
+.cta.key { background: var(--key); }
 
 /* 바텀 내비 */
 .bottom-nav {
@@ -217,14 +236,14 @@ body {
   max-width: 78%;
   width: fit-content;
   padding: 11px 14px;
-  border-radius: 14px;
+  border-radius: 8px;
   font-size: 14px;
   line-height: 150%;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   white-space: pre-wrap;
   word-break: break-word;
 }
-.bubble.char { background: var(--orange-50); border: 1px solid var(--orange-200); border-top-left-radius: 4px; }
+.bubble.char { background: var(--gray-50); border-top-left-radius: 4px; }
 .bubble.user { background: var(--gray-900); color: #fff; border-top-right-radius: 4px; }
 
 /* 채팅 입력바 */
@@ -243,8 +262,8 @@ body {
   flex-shrink: 0;
   border-radius: 50%;
   border: none;
-  background: var(--orange-500);
-  color: var(--black);
+  background: var(--key);
+  color: #fff;
   font-size: 17px;
   cursor: pointer;
   transition: all 200ms var(--ease);
@@ -262,8 +281,8 @@ body {
   align-items: center;
   gap: 6px;
   padding: 16px 0 14px;
-  border-radius: 14px;
-  border: 1px solid var(--gray-100);
+  border-radius: 8px;
+  border: 1px solid transparent;
   background: #fff;
   font-family: inherit;
   font-size: 13px;
@@ -277,11 +296,11 @@ body {
 .home-action .ico { font-size: 22px; }
 /* 액션 아이콘 뱃지 (figma 0:199 — 피치 라운드 사각 안에 오렌지 아이콘) */
 .ico-badge {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: var(--orange-100);
-  color: var(--orange-700);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--key);
   display: grid;
   place-items: center;
 }
@@ -321,13 +340,15 @@ body {
   align-items: center;
   gap: 4px;
   white-space: nowrap;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--orange-100);
-  font-size: 13px;
-  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background: var(--key);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.07em;
 }
-.point-badge .p { color: var(--orange-700); }
+.point-badge .p { color: #fff; }
 
 .fade-in { animation: fadein 360ms var(--ease); }
 

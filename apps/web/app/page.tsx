@@ -44,20 +44,19 @@ export default function Splash() {
         alignItems: "center",
         justifyContent: "center",
         cursor: "pointer",
-        background:
-          "linear-gradient(180deg, var(--orange-50) 0%, #fff 62%, var(--orange-500) 140%)",
+        background: "var(--key)",
         minHeight: "100dvh",
       }}
     >
-      <div className="logo" style={{ fontSize: 44, color: "var(--gray-800)" }}>
-        Dear Mine
+      <div className="logo" style={{ fontSize: 72, color: "#fff", lineHeight: 1 }}>
+        dear.
       </div>
-      <div className="body2" style={{ color: "var(--gray-500)", marginTop: 8 }}>
+      <div className="body2" style={{ color: "rgba(255,255,255,0.72)", marginTop: 10 }}>
         나만의 캐릭터, 나만의 기억
       </div>
       <div
         className="caption fade-in"
-        style={{ position: "absolute", bottom: 64, color: "var(--gray-500)" }}
+        style={{ position: "absolute", bottom: 64, color: "rgba(255,255,255,0.85)" }}
       >
         {!legacyBaseline ? <WalletLogin onLogin={() => router.push('/home')} /> : error
           ? "불러오지 못했어요. 다시 시도해주세요."
