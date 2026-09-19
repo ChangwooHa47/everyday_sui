@@ -21,6 +21,7 @@ export default function MarketPage() {
   const [gifts, setGifts] = useState<NftGiftCatalogItem[] | null>(null);
   const [giftsError, setGiftsError] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [giftError, setGiftError] = useState<string | null>(null);
   const [suiBalance, setSuiBalance] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("popular");
   const [relationship, setRelationship] = useState<RelationshipFilter>("전체");

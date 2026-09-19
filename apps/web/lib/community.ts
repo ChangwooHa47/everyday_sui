@@ -40,18 +40,18 @@ export function sortCards(cards: CommunityCard[], sort: SortKey) {
 
 export function shortAddress(address: string) { return `${address.slice(0, 6)}…${address.slice(-4)}`; }
 
-/** buyerCount is an optional u64 string; render 0 rather than NaN for absent or malformed values. */
-export function buyerCount(listing: MarketListing): number {
-  const value = Number(listing.buyerCount ?? 0);
-  return Number.isFinite(value) && value > 0 ? value : 0;
-}
+/** Counts arrive as u64 decimal strings. Keep them as strings so large values stay exact,
+ * and fall back to '0' for absent or malformed values instead of rendering NaN. */
+const count = (value?: string) => (value && /^\d+$/.test(value) ? value : '0');
+export function buyerCount(listing: MarketListing): string { return count(listing.buyerCount); }
+export function turnCount(card: CommunityCard): string { return count(card.engagement?.turns); }
 
-/** Turn counts are u64 strings, so '0' is truthy; only a positive count replaces the first-buyer copy. */
+/** '0' is a truthy string, so compare explicitly before replacing the first-buyer copy. */
 export function buyersLabel(card: CommunityCard): string {
   const buyers = buyerCount(card.listing);
-  if (buyers > 0) return `${buyers}명과 함께`;
-  const turns = Number(card.engagement?.turns ?? 0);
-  return Number.isFinite(turns) && turns > 0 ? `대화 ${turns}회` : '첫 구매자를 기다려요';
+  if (buyers !== '0') return `${buyers}명과 함께`;
+  const turns = turnCount(card);
+  return turns !== '0' ? `대화 ${turns}회` : '첫 구매자를 기다려요';
 }
 
 /** Relative time for catalog registration dates. */

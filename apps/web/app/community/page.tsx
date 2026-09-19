@@ -9,14 +9,14 @@ import { useRouter } from "next/navigation";
 import { backend } from "@/lib/api";
 import { market, recommendListings } from "@/lib/market";
 import { marketImageSources } from "@/lib/market-images";
-import { buyerCount, filterCards, formatAgo, sortCards, toCards, type CommunityCard } from "@/lib/community";
+import { buyerCount, filterCards, formatAgo, sortCards, toCards, turnCount, type CommunityCard } from "@/lib/community";
 import { BottomNav, ResilientImage } from "../components";
 import { Icon } from "../icons";
 
 function Post({ card, onOpen }: { card: CommunityCard; onOpen: () => void }) {
-  const { listing, preview, engagement } = card;
+  const { listing, preview } = card;
   const buyers = buyerCount(listing);
-  const turns = Number(engagement?.turns ?? 0);
+  const turns = turnCount(card);
   // 시드 초상은 번들 사본을, Walrus 이미지는 일관성 검사 URL을 먼저 시도한다 (lib/market-images).
   const imageSources = marketImageSources(listing, preview?.imageUrl);
   return (
@@ -38,8 +38,8 @@ function Post({ card, onOpen }: { card: CommunityCard; onOpen: () => void }) {
       </div>
       <p style={{ margin: 0, padding: "2px 0 8px 32px", fontSize: 16, fontWeight: 400, lineHeight: 1.5, letterSpacing: "-0.03em", color: "#121212" }}>
         {preview?.summary || `${listing.title}(이)가 커뮤에 왔어요.`}
-        {(buyers > 0 || turns > 0) && (
-          <span style={{ color: "var(--gray-500)" }}> {[buyers > 0 ? `${buyers}명과 대화 중` : null, turns > 0 ? `대화 ${turns}회` : null].filter(Boolean).join(" · ")}</span>
+        {(buyers !== "0" || turns !== "0") && (
+          <span style={{ color: "var(--gray-500)" }}> {[buyers !== "0" ? `${buyers}명과 대화 중` : null, turns !== "0" ? `대화 ${turns}회` : null].filter(Boolean).join(" · ")}</span>
         )}
       </p>
       {imageSources.length > 0 && (
