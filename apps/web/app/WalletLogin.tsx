@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { useCurrentAccount } from '@mysten/dapp-kit-react';
 import { ConnectModal } from '@mysten/dapp-kit-react/ui';
-import { loginWithWallet } from '@/lib/wallet-auth';
+import { loginWithWallet, logoutWallet } from '@/lib/wallet-auth';
+import { supportsTestnet } from '@/lib/wallet-preflight';
 
 export default function WalletLogin({ onLogin }: { onLogin: () => void }) {
   return <LoginButton onLogin={onLogin} />;
@@ -18,7 +19,7 @@ function LoginButton({ onLogin }: { onLogin: () => void }) {
     if (busy) return;
     setBusy(true); setError('');
     try { await loginWithWallet(); onLogin(); }
-    catch { setError('로그인을 완료하지 못했어요. 다시 시도해주세요.'); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : '로그인을 완료하지 못했어요. 다시 시도해주세요.'); }
     finally { setBusy(false); }
   }
   useEffect(() => {
@@ -29,7 +30,15 @@ function LoginButton({ onLogin }: { onLogin: () => void }) {
   return <>
     {account
       ? <button type="button" className="caption" style={style} disabled={busy} onClick={() => void login()}>{busy ? '로그인 중...' : '로그인'}</button>
-      : <><button type="button" className="caption" style={style} onClick={() => { requested.current = true; if (modal.current) modal.current.open = true; }}>로그인</button><ConnectModal ref={modal} /></>}
+      : <button type="button" className="caption" style={style} onClick={() => { requested.current = true; if (modal.current) modal.current.open = true; }}>로그인</button>}
+    <ConnectModal ref={modal} filterFn={supportsTestnet} />
+    {account && <button type="button" className="caption" style={style} disabled={busy} onClick={async () => {
+      setBusy(true); setError('');
+      try { await logoutWallet(); requested.current = true; if (modal.current) modal.current.open = true; }
+      catch { setError('지갑 연결을 해제하지 못했어요. 다시 시도해주세요.'); }
+      finally { setBusy(false); }
+    }}>지갑 변경</button>}
+    <div className="caption">Sui 테스트넷 · Slush 등 지원 지갑으로 연결해주세요</div>
     {error && <div role="alert" className="caption">{error}</div>}
   </>;
 }

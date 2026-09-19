@@ -37,7 +37,8 @@ export async function connectMemory() {
     if (old) pending = JSON.parse(old);
     else {
       tx.setSender(owner);
-      const signed = await walletKit.signTransaction({ transaction: tx, account, network: 'testnet' }); check();
+      const { signWalletTransaction } = await import('./wallet-transaction');
+      const signed = await signWalletTransaction(tx, account); check();
       pending = { ...signed, digest: await Transaction.from(signed.bytes).getDigest() };
       sessionStorage.setItem(`${prefix}:${name}`, JSON.stringify(pending));
     }

@@ -3,6 +3,7 @@ import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import { apiUrl, rpcUrl } from './web3/config';
 import { endSession, refreshSession, type WalletSession } from './wallet-session';
+import { assertTestnetWallet } from './wallet-preflight';
 
 export const walletKit = createDAppKit({ networks: ['testnet'],
   slushWalletConfig: typeof window === 'undefined' ? null : { appName: 'everyday' },
@@ -95,6 +96,7 @@ export async function loginWithWallet() {
   if (loggingOut) throw Error('로그아웃 중입니다.');
   const account = walletKit.stores.$connection.get().account;
   if (!account) throw Error('로그인해주세요.');
+  assertTestnetWallet(walletKit.stores.$connection.get().wallet, account);
   const owner = normalizeSuiAddress(account.address);
   const started = generation;
   const check = () => { if (started !== generation) throw Error('다시 로그인해주세요.'); };

@@ -14,8 +14,56 @@ import { marketImageSources } from '../lib/market-images';
 import { endSession, refreshSession, type WalletSession } from '../lib/wallet-session';
 import { restoredLandingRoute } from '../lib/entry-route';
 import { executeGiftPurchase, nftPurchaseError } from '../lib/gift-purchase';
+import { Transaction } from '@mysten/sui/transactions';
+import { assertTestnetWallet, supportsTestnet, resolveWalletTransaction, preflightError } from '../lib/wallet-preflight';
 const pkg = '0x'+'1'.repeat(64);
 const metadata = {schemaVersion:1,network:'testnet',appPackage:pkg,revision:'0',previousRef:null,createdAt:'2026-09-08T00:00:00.000Z'};
+
+test('testnet login and transaction checks reject Phantom and mainnet-only accounts', () => {
+  const testnet = { chains: ['sui:testnet'] };
+  assert.equal(supportsTestnet({ name: 'Phantom', ...testnet }), false);
+  assert.throws(() => assertTestnetWallet({ name: 'Phantom', ...testnet }, testnet), /Phantom/);
+  assert.throws(() => assertTestnetWallet({ name: 'Wallet', ...testnet }, { chains: ['sui:mainnet'] }), /테스트넷/);
+  assert.throws(() => assertTestnetWallet(null, null), /로그인/);
+  assert.doesNotThrow(() => assertTestnetWallet({ name: 'Slush', ...testnet }, testnet));
+});
+
+test('preflight resolves gas before wallet handoff and detects account changes', async () => {
+  const owner = pkg;
+  const complete = async (tx: Transaction) => {
+    tx.setGasBudget('10000000'); tx.setGasPrice('1000');
+    tx.setGasPayment([{ objectId: '0x2', version: '1', digest: '11111111111111111111111111111111' }]);
+    return tx.build();
+  };
+  const tx = new Transaction(); tx.transferObjects([tx.gas], tx.pure.address(owner));
+  const ready = await resolveWalletTransaction(tx, owner, complete, () => true);
+  assert.equal(ready.isFullyResolved(), true);
+  assert.equal(ready.getData().sender, owner);
+  assert.equal(ready.getData().gasData.budget, '10000000');
+  const wrongSender = new Transaction(); wrongSender.setSender('0x2');
+  await assert.rejects(resolveWalletTransaction(wrongSender, owner, async () => { assert.fail('must not build'); }, () => true), /주소/);
+  let current = true;
+  await assert.rejects(resolveWalletTransaction(new Transaction(), owner, async tx => {
+    const bytes = await complete(tx); current = false; return bytes;
+  }, () => current), /계정이 변경/);
+});
+
+test('failed preflight never leaves a purchase pending or opens a wallet', async () => {
+  const values = new Map<string, string>();
+  const storage = { getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => { values.set(key, value); }, removeItem: (key: string) => { values.delete(key); } };
+  const options = { storage, key: 'nft', prepare: async () => {
+    await resolveWalletTransaction(new Transaction(), pkg, async () => { throw Error('No valid gas coins found'); }, () => true);
+    return async () => { assert.fail('wallet must not open'); };
+  } };
+  await assert.rejects(executeGiftPurchase(options), /테스트넷 SUI가 부족/);
+  await assert.rejects(executeGiftPurchase(options), /테스트넷 SUI가 부족/);
+  assert.equal(values.size, 0);
+  assert.match(preflightError(Error('MoveAbort(code=3)')).message, /컨트랙트/);
+  assert.match(preflightError(Error('Unable to calculate gas budget: MoveAbort(code=3)')).message, /컨트랙트/);
+  assert.match(preflightError(Error('RPC timeout fetching gas coins')).message, /테스트넷에서 거래/);
+  assert.match(preflightError(Error('RPC unavailable')).message, /아직 지갑 승인을 요청하지/);
+});
 
 test('NFT execution success survives reload and never needs a second RPC or API session', async () => {
   const values = new Map<string, string>();

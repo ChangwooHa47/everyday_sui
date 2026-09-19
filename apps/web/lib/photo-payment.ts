@@ -8,7 +8,8 @@ export async function payForPhoto(characterId: number) {
   if (!account) throw Error('로그인해주세요.');
   const payment = await backend.photoPaymentTransaction(characterId);
   if (payment.network !== 'testnet' || payment.priceMist !== '10000000') throw Error('사진 가격이 변경됐어요. 다시 확인해주세요.');
-  const result = await walletKit.signAndExecuteTransaction({ transaction: Transaction.from(payment.transaction), account, network: 'testnet' });
+  const { executeWalletTransaction } = await import('./wallet-transaction');
+  const result = await executeWalletTransaction(Transaction.from(payment.transaction), account);
   if (result.$kind !== 'Transaction' || !result.Transaction.status.success) throw Error('SUI 결제를 완료하지 못했어요.');
   await walletKit.getClient('testnet').waitForTransaction({ digest: result.Transaction.digest, timeout: 30000 });
   getWalletToken();

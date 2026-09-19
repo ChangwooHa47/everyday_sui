@@ -141,7 +141,8 @@ export async function purchaseCharacter(displayed: MarketListing) {
     const tx = new Transaction(); tx.setSender(owner);
     const [payment] = tx.splitCoins(tx.gas, [tx.pure.u64(listing.priceMist)]);
     tx.moveCall({ target: `${requirePackage()}::market::purchase`, arguments: [tx.object(listing.id), payment] });
-    const result = await walletKit.signAndExecuteTransaction({ transaction: tx, account, network: 'testnet' });
+    const { executeWalletTransaction } = await import('./wallet-transaction');
+    const result = await executeWalletTransaction(tx, account);
     if (result.$kind !== 'Transaction' || !result.Transaction.status.success) throw Error('구매를 완료하지 못했어요.');
     await walletKit.getClient('testnet').waitForTransaction({ digest: result.Transaction.digest, timeout: 30000 });
     licenseId = await findLicense(owner, listing.id);

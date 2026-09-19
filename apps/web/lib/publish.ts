@@ -64,7 +64,8 @@ export async function publishCharacter(characterId: number, price: string, giftP
     if (known && (known.$kind !== 'Transaction' || !known.Transaction.status.success)) { pending = null; known = null; }
     if (!pending) {
       tx.setSender(owner);
-      const signed = await walletKit.signTransaction({ transaction: tx, account, network: 'testnet' });
+      const { signWalletTransaction } = await import('./wallet-transaction');
+      const signed = await signWalletTransaction(tx, account);
       check();
       // The API atomically retains the first authorization, including requests from other tabs.
       pending = await marketRequest<SignedPublicationStep>(path, { ...signed, digest: await Transaction.from(signed.bytes).getDigest() });

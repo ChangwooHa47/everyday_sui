@@ -4,6 +4,7 @@ import type { ExternalNftCollection, ExternalNftGiftProduct, ExternalNftOfferDra
 import { marketRequest } from './market';
 import { apiUrl } from './web3/config';
 import { executeGiftPurchase } from './gift-purchase';
+import { assertTestnetWallet } from './wallet-preflight';
 
 // Byte-identical originals of the deployed testnet editions. Never match by title
 // or replace an external seller's artwork with an unrelated placeholder.
@@ -73,6 +74,7 @@ export const nftGifts = {
     await restoreWalletToken();
     const account = walletKit.stores.$connection.get().account;
     if (!account) throw Error('로그인해주세요.');
+    assertTestnetWallet(walletKit.stores.$connection.get().wallet, account);
     const key = `everyday.nft-purchase.v1:${apiUrl}:testnet:${account.address}:${displayed.id}`;
     if (!navigator.locks) throw Error('안전한 결제를 위해 최신 브라우저에서 다시 시도해주세요.');
     const digest = await navigator.locks.request(key, () => executeGiftPurchase({
@@ -85,7 +87,8 @@ export const nftGifts = {
         const transaction = Transaction.from(response.transaction);
         if (walletKit.stores.$connection.get().account?.address !== account.address || transaction.getData().sender !== account.address)
           throw Error('지갑 계정이 변경됐어요. 다시 로그인해주세요.');
-        return () => walletKit.signAndExecuteTransaction({ transaction, account, network: 'testnet' });
+        const { prepareWalletExecution } = await import('./wallet-transaction');
+        return prepareWalletExecution(transaction, account);
       },
     }));
     if (displayed.kind === 'external') {
@@ -103,7 +106,8 @@ export const nftGifts = {
     if (!account) throw Error('로그인해주세요.');
     const prepared = await marketRequest<{ transaction: string; packageId: string; objectType: string }>(
       '/v1/external-nft-offers/create-transaction', draft);
-    const result = await walletKit.signAndExecuteTransaction({ transaction: Transaction.from(prepared.transaction), account, network: 'testnet' });
+    const { executeWalletTransaction } = await import('./wallet-transaction');
+    const result = await executeWalletTransaction(Transaction.from(prepared.transaction), account);
     if (result.$kind !== 'Transaction' || !result.Transaction.status.success) throw Error('외부 NFT 등록을 완료하지 못했어요.');
     const confirmed = await walletKit.getClient('testnet').waitForTransaction({ digest: result.Transaction.digest,
       include: { objectTypes: true }, timeout: 30000 });
@@ -124,9 +128,8 @@ export const nftGifts = {
     const prepared = await marketRequest<{ transaction: string; objectId: string }>(
       `/v1/external-nft-offers/${encodeURIComponent(offer.id)}/withdraw-transaction`, {});
     if (prepared.objectId !== offer.objectId) throw Error('판매 등록 정보가 변경됐어요. 다시 확인해주세요.');
-    const result = await walletKit.signAndExecuteTransaction({
-      transaction: Transaction.from(prepared.transaction), account, network: 'testnet',
-    });
+    const { executeWalletTransaction } = await import('./wallet-transaction');
+    const result = await executeWalletTransaction(Transaction.from(prepared.transaction), account);
     if (result.$kind !== 'Transaction' || !result.Transaction.status.success) throw Error('NFT 회수를 완료하지 못했어요.');
     await walletKit.getClient('testnet').waitForTransaction({ digest: result.Transaction.digest, timeout: 30000 });
     getWalletToken();
