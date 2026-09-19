@@ -5,6 +5,7 @@ import type { SuiClientTypes } from '@mysten/sui/client';
 import type { MarketListing, MarketPreview, MarketCatalog, ProductDraft } from '@everyday/contracts';
 import { backend, ensureAuth, getPendingChatRequest, prepareChatRequest, clearChatRequest } from './api';
 import { apiUrl, requirePackage } from './web3/config';
+import { nftPurchaseError } from './gift-purchase';
 
 export function formatPrice(mist: string) {
   const value = BigInt(mist); const fraction = (value % 1_000_000_000n).toString().padStart(9, '0').replace(/0+$/, '');
@@ -51,9 +52,9 @@ export async function marketRequest<T>(path: string, body?: unknown, method?: 'D
       throw Error('다시 로그인해주세요.');
     }
     throw new MarketRequestError(res.status, typeof data.error === 'string' ? data.error : undefined,
-      data.error === 'MEMORY_RESULT_UNKNOWN_DO_NOT_AUTO_RETRY' ? '기억의 저장 결과를 확인 중이에요. 잠시 후 다시 확인해주세요.'
+      (path.endsWith('/purchase-transaction') ? nftPurchaseError(data.error) : undefined) ?? (data.error === 'MEMORY_RESULT_UNKNOWN_DO_NOT_AUTO_RETRY' ? '기억의 저장 결과를 확인 중이에요. 잠시 후 다시 확인해주세요.'
         : ['TURN_COMPLETED', 'TURN_UNKNOWN', 'PROVIDER_RESULT_UNKNOWN_DO_NOT_AUTO_RETRY'].includes(data.error) ? '이전 메시지의 응답을 확인할 수 없어요.'
-          : data.error === 'TURN_RUNNING' ? '이전 메시지를 처리하고 있어요.' : '요청을 처리하지 못했어요. 다시 시도해주세요.');
+          : data.error === 'TURN_RUNNING' ? '이전 메시지를 처리하고 있어요.' : '요청을 처리하지 못했어요. 다시 시도해주세요.'));
   }
   return res.status === 204 ? undefined as T : res.json();
 }
