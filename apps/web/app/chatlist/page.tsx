@@ -222,7 +222,7 @@ export default function ChatListPage() {
               left: "50%",
               transform: "translateX(-50%)",
               width: "100%",
-              maxWidth: 375,
+              maxWidth: "var(--app-max-width)",
               padding: "0 20px calc(16px + env(safe-area-inset-bottom))",
               boxSizing: "border-box",
               display: "flex",

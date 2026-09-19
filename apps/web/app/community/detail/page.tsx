@@ -65,9 +65,12 @@ function Reviews({ listingId, data, onChange }: { listingId: string; data: Marke
 }
 
 function MarketCharacterDetail() {
+  const listingId = useSearchParams().get("listing") ?? "";
+  return <CharacterProfile key={listingId} listingId={listingId} />;
+}
+
+function CharacterProfile({ listingId }: { listingId: string }) {
   const router = useRouter();
-  const params = useSearchParams();
-  const listingId = params.get("listing") ?? "";
   const [preview, setPreview] = useState<MarketPreview | null>(null);
   const [stats, setStats] = useState<MarketCommunity | null>(null);
   const [error, setError] = useState<string | null>(null);

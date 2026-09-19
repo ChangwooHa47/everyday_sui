@@ -5,6 +5,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { backend, ensureAuth } from "@/lib/api";
+import { restoredLandingRoute } from "@/lib/entry-route";
 import dynamic from 'next/dynamic';
 const WalletLogin = dynamic(() => import('./WalletLogin'), { ssr: false });
 const legacyBaseline = process.env.NEXT_PUBLIC_LEGACY_BASELINE === '1';
@@ -15,19 +16,22 @@ export default function Splash() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    let active = true;
     (async () => {
+      if (!legacyBaseline) {
+        const route = await restoredLandingRoute(ensureAuth, backend.listCharacters);
+        if (active && route) router.replace(route);
+        return;
+      }
       try {
         await ensureAuth();
         const list = await backend.listCharacters();
-        if (!legacyBaseline) {
-          router.replace(list.length > 0 ? "/home" : "/create");
-          return;
-        }
-        setHasCharacter(list.length > 0);
+        if (active) setHasCharacter(list.length > 0);
       } catch {
-        if (legacyBaseline) setError(true);
+        if (active) setError(true);
       }
     })();
+    return () => { active = false; };
   }, [router]);
 
   return (

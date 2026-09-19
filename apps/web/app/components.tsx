@@ -182,7 +182,7 @@ export function BottomNav({
     <>
       {/* 자리 확보 — fixed 네비바에 콘텐츠가 가리지 않도록 */}
       <div aria-hidden style={{ height: "calc(78px + env(safe-area-inset-bottom))", flexShrink: 0 }} />
-      {/* 375 프레임 하단 중앙에 고정 — 스크롤해도 항상 화면 하단 */}
+      {/* 앱 프레임과 같은 너비로 하단 중앙에 고정 */}
       <nav
         style={{
           position: "fixed",
@@ -190,7 +190,7 @@ export function BottomNav({
           left: "50%",
           transform: "translateX(-50%)",
           width: "100%",
-          maxWidth: 375,
+          maxWidth: "var(--app-max-width)",
           padding: "0 16px calc(10px + env(safe-area-inset-bottom))",
           boxSizing: "border-box",
           zIndex: 50,

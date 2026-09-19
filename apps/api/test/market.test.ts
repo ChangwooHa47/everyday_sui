@@ -197,6 +197,11 @@ test('verified external NFT offers use SUI, exact ownership, opt-in preferences 
     payload: { digest: 'confirmed-external-purchase-digest' } })).statusCode, 200);
   const owned = (await app.inject({ url: '/v1/me/nft-gifts', headers: buyerHeaders })).json().gifts;
   assert.equal(owned.length, 1); assert.equal(owned[0].kind, 'external'); assert.equal(owned[0].id, objectId);
+  const receipt = await app.inject({ url: `/v1/nft-gifts/${offerId}`, headers: buyerHeaders });
+  assert.equal(receipt.statusCode, 200);
+  assert.equal(receipt.json().gift.active, false);
+  assert.equal(receipt.json().gift.id, offerId);
+  assert.notEqual((await app.inject({ method: 'POST', url: `/v1/nft-gifts/${offerId}/purchase-transaction`, headers: buyerHeaders })).statusCode, 200);
 });
 
 test('catalog upgrades retain legacy rows but discover only listings verified for the configured package', async t => {

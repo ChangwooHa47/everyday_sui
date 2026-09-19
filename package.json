@@ -24,6 +24,7 @@
     "test": "npm run build --workspace @everyday/contracts && npm run test --workspace @everyday/api && npm run test:unit --workspace @everyday/web",
     "test:web3": "npm run test:web3 --workspace @everyday/web",
     "test:e2e": "npm run test:e2e --workspace @everyday/web",
+    "test:product": "npm run test:product --workspace @everyday/web",
     "baseline:build": "npm run build:baseline --workspace @everyday/web"
   }
 }
