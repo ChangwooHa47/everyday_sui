@@ -8,20 +8,18 @@ export interface CommunityCard {
   engagement: { turns: string; revisitPercent: number } | undefined;
 }
 
-export const RELATIONSHIP_FILTERS = ['전체', '연인', '썸', '친구', '짝사랑'] as const;
-export type RelationshipFilter = typeof RELATIONSHIP_FILTERS[number];
-export const SORTS = [{ key: 'popular', label: '인기순' }, { key: 'newest', label: '최신순' }, { key: 'price', label: '가격순' }] as const;
-export type SortKey = typeof SORTS[number]['key'];
+export type SortKey = 'popular' | 'newest' | 'price';
 
 export function toCards(catalog: MarketCatalog): CommunityCard[] {
   return catalog.listings.filter(l => l.active && l.published)
     .map(listing => ({ listing, preview: catalog.previews[listing.id], engagement: catalog.engagement?.[listing.id] }));
 }
 
-export function filterCards(cards: CommunityCard[], relationship: RelationshipFilter, query: string) {
+/** Name or public summary match; the paid package is never searched. */
+export function searchCards(cards: CommunityCard[], query: string) {
   const q = query.trim().toLowerCase();
-  return cards.filter(card => (relationship === '전체' || card.preview?.relationshipType === relationship)
-    && (!q || card.listing.title.toLowerCase().includes(q) || (card.preview?.summary ?? '').toLowerCase().includes(q)));
+  if (!q) return cards;
+  return cards.filter(card => card.listing.title.toLowerCase().includes(q) || (card.preview?.summary ?? '').toLowerCase().includes(q));
 }
 
 function compareU64(a: string, b: string) {
