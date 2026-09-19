@@ -73,6 +73,8 @@ test('Walrus market images use strict reads and deployed seeds prefer their byte
   assert.deepEqual(marketImageSources(listing,
     'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0'), [
     '/portraits/wangja-night-1.png',
+    // Walrus sends no Content-Type with nosniff, so the API re-serves the bytes with a real media type.
+    'http://127.0.0.1:3001/v1/market/listings/0xc8827e0c92569b4cc686f884462fc9c0ed58950d1549d128b18a2dc41cbee98e/preview-image',
     'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0?strict_consistency_check=true',
     'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0',
   ]);
