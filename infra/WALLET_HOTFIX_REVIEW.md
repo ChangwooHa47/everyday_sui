@@ -8,7 +8,15 @@ The server challenge remains bound to this application's testnet audience and
 continues to verify the same wallet address. Every asset transaction still
 explicitly targets testnet and retains the transaction compatibility guard.
 The initial login filter described below has been superseded by this follow-up.
+Wallet discovery defaults to mainnet because the SDK filters the modal by its
+current network before applying the app filter. Mainnet-only Phantom is therefore
+discoverable; wallets supporting only testnet are not shown in the login modal.
 Slush troubleshooting is a separate next step.
+
+Follow-up verification: 27 web unit tests and both focused browser tests pass.
+The browser login test uses a mainnet-only Wallet Standard fixture with real
+Ed25519 personal-message signing and local API signature verification. It does
+not prove a live Phantom extension approval or any asset transaction.
 
 ## Evidence and scope
 

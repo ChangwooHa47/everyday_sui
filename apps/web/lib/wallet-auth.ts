@@ -5,7 +5,9 @@ import { apiUrl, rpcUrl } from './web3/config';
 import { endSession, refreshSession, type WalletSession } from './wallet-session';
 import { loginSigningNetwork } from './wallet-preflight';
 
-export const walletKit = createDAppKit({ networks: ['testnet', 'mainnet'], defaultNetwork: 'testnet',
+// Wallet discovery uses mainnet so mainnet-only Phantom is visible. Asset
+// operations always pass testnet explicitly; this is not the settlement chain.
+export const walletKit = createDAppKit({ networks: ['testnet', 'mainnet'], defaultNetwork: 'mainnet',
   slushWalletConfig: typeof window === 'undefined' ? null : { appName: 'everyday' },
   createClient: network => new SuiGrpcClient({ network,
     baseUrl: network === 'testnet' ? rpcUrl : 'https://fullnode.mainnet.sui.io:443' }) });

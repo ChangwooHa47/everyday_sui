@@ -29,13 +29,13 @@ test('mainnet-only Phantom completes a signed testnet application login without 
   await expect(page).toHaveURL(/\/home$/);
 });
 
-test('login offers Phantom and Sui mainnet wallets alongside testnet wallets', async ({ page }) => {
+test('login offers Phantom and Sui mainnet-compatible wallets', async ({ page }) => {
   await page.addInitScript(() => {
     const icon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=';
     const wallets = [
       { name: 'Phantom', chains: ['sui:mainnet', 'sui:testnet'] },
       { name: 'Mainnet Only Fixture', chains: ['sui:mainnet'] },
-      { name: 'Testnet Supported Fixture', chains: ['sui:testnet'] },
+      { name: 'Testnet Supported Fixture', chains: ['sui:mainnet', 'sui:testnet'] },
     ].map(config => ({ ...config, version: '1.0.0', icon, accounts: [], features: {
       'standard:connect': { version: '1.0.0', connect: async () => ({ accounts: [] }) },
       'standard:events': { version: '1.0.0', on: () => () => {} },
