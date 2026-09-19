@@ -25,6 +25,22 @@ const gifts: NftGiftProduct[] = [{
   imageHash: '0'.repeat(64), merchant: id(99), priceMist: '1', maxSupply: '1', minted: '1', active: true,
 }];
 
+test('deployed latte detail renders original local artwork without requesting missing Walrus blob', async ({ page }) => {
+  await fixtures(page);
+  const product = { ...gifts[0], id: '0xa7b6eb56b1389c330887ecb532062598b35d222e2f2c9c4491e2ef5382adeadf',
+    title: '따뜻한 카페라테', imageHash: '651b718bd3d4d67a3d907fdf9a07e988516a7f8ecc4f148499cc97cb4c92751b',
+    imageUrl: 'https://aggregator.walrus-testnet.walrus.space/v1/blobs/-hr44B3p0eW-vbJoZ66D3QKzvmO_UhJRpf2Dzu8yIF4' };
+  const walrusRequests: string[] = [];
+  page.on('request', request => { if (request.url().includes('walrus.space')) walrusRequests.push(request.url()); });
+  await page.route(`**/v1/nft-gifts/${product.id}`, route => route.fulfill({ json: { gift: product } }));
+  await page.goto(`/community/gifts/detail?product=${product.id}`);
+  const artwork = page.getByRole('img', { name: product.title, exact: true });
+  await expect(artwork).toHaveAttribute('src', '/gifts/warm-cafe-latte.webp');
+  await expect.poll(() => artwork.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  await expect(page.getByRole('button', { name: '내 지갑으로 구매하기' })).toBeEnabled();
+  expect(walrusRequests).toEqual([]);
+});
+
 test('settings logout reports server failure, permits retry and returns to landing on success', async ({ page }) => {
   await fixtures(page);
   let calls = 0;

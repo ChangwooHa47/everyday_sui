@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import type { MarketCatalog, NftGiftCatalogItem } from '@everyday/contracts';
 import { assertContext, canonical, encode, publicSchema, sha256, u64, vaultSchema } from '../lib/web3/schema';
 import { parseReceipt, readLimited } from '../lib/web3/storage';
@@ -11,8 +13,73 @@ import { sortCards, type CommunityCard } from '../lib/community';
 import { marketImageSources } from '../lib/market-images';
 import { endSession, refreshSession, type WalletSession } from '../lib/wallet-session';
 import { restoredLandingRoute } from '../lib/entry-route';
+import { executeGiftPurchase, nftPurchaseError } from '../lib/gift-purchase';
 const pkg = '0x'+'1'.repeat(64);
 const metadata = {schemaVersion:1,network:'testnet',appPackage:pkg,revision:'0',previousRef:null,createdAt:'2026-09-08T00:00:00.000Z'};
+
+test('NFT execution success survives reload and never needs a second RPC or API session', async () => {
+  const values = new Map<string, string>();
+  const storage = { getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => { values.set(key, value); }, removeItem: (key: string) => { values.delete(key); } };
+  let executions = 0;
+  const options = { storage, key: 'wallet:product', prepare: async () => async () => {
+    executions++; return { $kind: 'Transaction', Transaction: { digest: 'receipt', status: { success: true } } };
+  } };
+  assert.equal(await executeGiftPurchase(options), 'receipt');
+  assert.equal(await executeGiftPurchase({ ...options, prepare: async () => { throw Error('expired session / offline RPC'); } }), 'receipt');
+  assert.equal(executions, 1);
+  await executeGiftPurchase({ ...options, confirmAdditionalPurchase: () => true });
+  assert.equal(executions, 2);
+  await executeGiftPurchase({ ...options, key: 'other-wallet:product' });
+  assert.equal(executions, 3);
+});
+
+test('unknown wallet outcomes remain blocked, but explicit rejection and failed effects allow retry', async () => {
+  for (const outcome of ['unknown', 'rejected', 'failed']) {
+    const values = new Map<string, string>();
+    const storage = { getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { values.set(key, value); }, removeItem: (key: string) => { values.delete(key); } };
+    let executions = 0;
+    const options = { storage, key: 'purchase', prepare: async () => async () => {
+      executions++;
+      if (outcome === 'unknown') throw Error('response lost after submission');
+      if (outcome === 'rejected') throw Object.assign(Error('reject'), { code: 4001 });
+      return { $kind: 'Transaction', Transaction: { digest: 'failed', status: { success: false } } };
+    } };
+    await assert.rejects(executeGiftPurchase(options));
+    await assert.rejects(executeGiftPurchase(options));
+    assert.equal(executions, outcome === 'unknown' ? 1 : 2);
+  }
+});
+
+test('unavailable or corrupt purchase storage fails closed before signing', async () => {
+  for (const corrupt of [false, true]) {
+    await assert.rejects(executeGiftPurchase({ key: 'purchase',
+      storage: { getItem: () => corrupt ? '{' : null, setItem: () => { throw Error('quota'); }, removeItem: () => {} },
+      prepare: async () => async () => { assert.fail('must not sign'); },
+    }), /구매 기록/);
+  }
+  assert.match(nftPurchaseError('NFT_GIFT_NOT_LIVE')!, /품절/);
+  assert.match(nftPurchaseError('NFT_GIFTS_NOT_CONFIGURED')!, /설정/);
+  assert.match(nftPurchaseError('CHAIN_UNAVAILABLE')!, /아직 결제를 요청하지/);
+  assert.match(nftPurchaseError('EXTERNAL_OFFER_MISMATCH')!, /검증/);
+  assert.equal(nftPurchaseError('UNKNOWN'), undefined);
+});
+
+test('deployed NFT artwork matches original bytes and owned NFTs resolve by product, not NFT id', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../../../contracts/everyday/deployments/nft-gifts-testnet.json', import.meta.url), 'utf8'));
+  for (const product of manifest.products) {
+    const gift: NftGiftCatalogItem = { id: product.productId, imageHash: product.imageSha256, kind: 'everyday',
+      title: product.title, description: product.description, imageUrl: product.imageUrl,
+      merchant: manifest.creator, priceMist: product.priceMist, maxSupply: product.maxSupply, minted: '0', active: true };
+    const path = nftGiftImageUrl(gift);
+    assert.match(path, /^\/gifts\/.*\.webp$/);
+    assert.equal(createHash('sha256').update(readFileSync(new URL(`../public${path}`, import.meta.url))).digest('hex'), gift.imageHash);
+    assert.equal(nftGiftImageUrl({ ...gift, id: pkg, productId: gift.id, edition: '1' }), path);
+    assert.equal(nftGiftImageUrl({ ...gift, imageHash: 'f'.repeat(64) }), gift.imageUrl);
+    assert.equal(nftGiftImageUrl({ ...gift, id: pkg }), gift.imageUrl);
+  }
+});
 
 test('logout revokes before clearing and disconnecting, and never treats an outage as success', async () => {
   for (const status of [204, 401]) {
