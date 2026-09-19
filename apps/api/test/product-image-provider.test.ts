@@ -17,11 +17,17 @@ test('Soul provider submits exactly once and preserves image/reference parameter
   assert.equal(calls.filter(call => call.init?.method === 'POST').length, 1);
   assert.equal(calls.length, 3);
   assert.deepEqual(JSON.parse(String(calls[0]!.init!.body)), { params: {
-    prompt: 'portrait', width_and_height: '1536x2048', quality: '1080p', batch_size: 4, enhance_prompt: true,
+    prompt: 'portrait', width_and_height: '1536x2048', quality: '1080p', batch_size: 4, enhance_prompt: false,
     image_reference: { type: 'image_url', image_url: 'https://images.invalid/reference' },
     custom_reference_id: 'soul-id', custom_reference_strength: 1,
   } });
   assert.equal((calls[0]!.init!.headers as Record<string, string>).Authorization, 'Key fixture-key:fixture-secret');
+  // Reference-free portraits carry the iPhone style; Soul rejects style_id next to an image reference.
+  calls.length = 0;
+  assert.equal((await provider.generateImages('portrait', null, 4)).length, 4);
+  const params = JSON.parse(String(calls[0]!.init!.body)).params;
+  assert.equal(params.style_id, '1b798b54-03da-446a-93bf-12fcba1050d7');
+  assert.equal(params.image_reference, undefined); assert.equal(params.custom_reference_id, undefined);
 });
 
 test('uncertain image submissions and expired polling fail without paid automatic retry', async () => {

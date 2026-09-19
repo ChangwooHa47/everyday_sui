@@ -292,6 +292,8 @@ test('buyer reviews require a verified license, one per wallet, and community st
   const review = { rating: 5, text: '말투가 진짜 사람 같아요.', licenseId: id('0x20') };
   // Unregistered listings have no community page to review.
   assert.equal((await app.inject({ method: 'POST', url: reviews, headers: headers('b'), payload: review })).statusCode, 404);
+  await db.query('INSERT INTO market_catalog(listing_id,creator,package_id) VALUES($1,$2,$3)', [listing.id, listing.creator, id('0x98')]);
+  assert.equal((await app.inject({ method: 'POST', url: reviews, headers: headers('b'), payload: review })).statusCode, 404);
   assert.equal((await app.inject({ method: 'POST', url: '/v1/market/listings', headers: headers('a'), payload: { listingId: listing.id } })).statusCode, 200);
   const catalog = (await app.inject({ url: '/v1/market/listings' })).json();
   assert.equal(catalog.previews[listing.id].relationshipType, '연인');

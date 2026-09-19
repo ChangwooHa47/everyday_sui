@@ -80,7 +80,7 @@ export default function MarketPage() {
                     <div className="label1" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{gift.title}</div>
                     <div className="caption" style={{ marginTop: 6, color: soldOut ? "var(--gray-500)" : "var(--orange-700)", fontWeight: 700 }}>
                       {soldOut ? "품절" : formatPrice(gift.priceMist)}
-                      {gift.kind !== "external" && !soldOut && <span style={{ color: "var(--gray-500)", fontWeight: 500 }}> · {Number(gift.maxSupply) - Number(gift.minted)}개 남음</span>}
+                      {gift.kind !== "external" && !soldOut && <span style={{ color: "var(--gray-500)", fontWeight: 500 }}> · {(BigInt(gift.maxSupply) - BigInt(gift.minted)).toString()}개 남음</span>}
                     </div>
                   </div>
                 </article>
