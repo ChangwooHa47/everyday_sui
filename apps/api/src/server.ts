@@ -20,7 +20,7 @@ for (const origin of origins) if (new URL(origin).origin !== origin) throw Error
 const market = marketChainFromEnv();
 const giftMarket = nftGiftChainFromEnv() ?? market;
 const app = buildApp(true, { db, auth: { origins, audience: process.env.API_AUDIENCE ?? 'http://127.0.0.1:3001', network: 'testnet' },
-  market, giftMarket, ...runtimeFromEnv(market, process.env, db), ai: aiFromEnv(), aiLimits: aiLimitsFromEnv(), product: productFromEnv() });
+  market, giftMarket, ...runtimeFromEnv(market, process.env, db, giftMarket), ai: aiFromEnv(), aiLimits: aiLimitsFromEnv(), product: productFromEnv() });
 app.addHook('onClose', () => db.end());
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {

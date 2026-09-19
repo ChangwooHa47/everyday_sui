@@ -59,7 +59,7 @@ export function buildApp(logger = false, options?: { db: Database; auth: AuthCon
         globalDailyLimit: options.aiLimits?.globalDailyLimit ?? options.ai?.globalDailyLimit });
       registerAi(app, options.db, options.auth, options.ai);
       registerMarket(app, options.db, options.auth, options.market, options.runtime?.packages, Boolean(options.product), options.giftMarket);
-      registerMarketFlow(app, options.db, options.auth, options.market, options.runtime, options.ai, options.memory, options.gifts);
+      registerMarketFlow(app, options.db, options.auth, options.market, options.runtime, options.ai, options.memory, options.gifts, options.giftMarket);
       registerPublications(app, options.db, options.auth, options.market);
       if (options.gifts) {
         let recovering = false;

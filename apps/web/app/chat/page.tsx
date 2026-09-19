@@ -19,12 +19,54 @@ import {
 } from "@/lib/api";
 import { Icon } from "../icons";
 import { market, formatPrice, purchaseCharacter, pendingPreviewMessages, MarketRequestError } from '@/lib/market';
-import type { MarketPreview } from '@everyday/contracts';
+import { nftGifts, explorerTxUrl } from '@/lib/gifts';
+import type { MarketPreview, NftGiftProduct } from '@everyday/contracts';
 
 type Msg = { role: "user" | "assistant"; content: string; id?: number; gift?: ChatMessage['gift'] };
 
 function toMsg(m: ChatMessage): Msg {
   return { id: m.id, role: m.sender === "USER" ? "user" : "assistant", content: m.content, gift: m.gift };
+}
+
+// 선물 판단·서명·확정 사이의 상태. declined/failed는 서버가 내려주지 않는다.
+const PENDING_GIFT = new Set(['evaluating', 'prepared', 'unknown']);
+const isPendingGift = (m: Msg) => Boolean(m.gift && PENDING_GIFT.has(m.gift.status));
+
+/** 확정 전에는 "확인 중"만, 확정 후에는 상품·캐릭터의 한마디·거래 링크. 거래 확정 전에 "보냈어"라고 말하지 않는다. */
+function GiftCard({ gift, product, onOpen }: { gift: NonNullable<Msg['gift']>; product?: NftGiftProduct; onOpen: () => void }) {
+  if (gift.status !== 'confirmed') {
+    return (
+      <div className="gift-card gift-pending" role="status" aria-live="polite">
+        <span className="gift-spinner" aria-hidden />
+        <div>
+          <strong className="body2">선물을 준비하고 있어요</strong>
+          <div className="caption" style={{ color: 'var(--gray-600)', marginTop: 2 }}>온체인 확인 중이에요. 잠시만요.</div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="gift-card gift-confirmed">
+      <button type="button" onClick={onOpen} className="gift-hero">
+        {product?.imageUrl
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={product.imageUrl} alt={product.title} className="gift-image" />
+          : <div className="gift-image skeleton" aria-hidden />}
+        <div style={{ minWidth: 0 }}>
+          <div className="caption" style={{ color: 'var(--orange-700)', fontWeight: 700 }}>🎁 NFT 선물이 도착했어요</div>
+          <strong className="body2" style={{ display: 'block', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {product?.title ?? '선물'}
+          </strong>
+          {product && <div className="caption" style={{ color: 'var(--gray-600)' }}>{formatPrice(product.priceMist)} · 캐릭터 금고에서 결제</div>}
+        </div>
+      </button>
+      {gift.reason && <p className="body2 gift-reason">“{gift.reason}”</p>}
+      <div className="gift-actions">
+        <button type="button" className="chip" onClick={onOpen}>내 선물 보기</button>
+        {gift.digest && <a className="chip" href={explorerTxUrl(gift.digest)} target="_blank" rel="noreferrer">거래 보기</a>}
+      </div>
+    </div>
+  );
 }
 
 function ChatInner() {
@@ -44,8 +86,41 @@ function ChatInner() {
   const [busy, setBusy] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [giftProducts, setGiftProducts] = useState<Record<string, NftGiftProduct>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
+  const requestedProducts = useRef(new Set<string>());
+
+  // 선물 카드에 필요한 상품 정보만 한 번씩 가져온다. 실패해도 재요청하지 않는다 (카드는 제목 없이도 표시).
+  useEffect(() => {
+    const missing = Array.from(new Set(messages.map(m => m.gift?.status === 'confirmed' ? m.gift.productId : undefined)
+      .filter((id): id is string => Boolean(id) && !requestedProducts.current.has(id!))));
+    if (!missing.length) return;
+    for (const id of missing) requestedProducts.current.add(id);
+    let active = true;
+    void Promise.all(missing.map(async id => [id, await nftGifts.detail(id).catch(() => null)] as const)).then(found => {
+      if (!active) return;
+      setGiftProducts(prev => Object.assign({}, prev, Object.fromEntries(found.filter(([, p]) => p).map(([id, p]) => [id, p!]))));
+    });
+    return () => { active = false; };
+  }, [messages]);
+
+  // 확정 전 선물이 있으면 이력을 다시 읽어 상태를 갱신한다 (서버 복구 루프는 30초 주기, 최대 3분).
+  useEffect(() => {
+    if (preview || !char || episodeId || !messages.some(isPendingGift)) return;
+    let attempts = 0;
+    const timer = setInterval(async () => {
+      attempts += 1;
+      try {
+        const history = await backend.getMessages(char.id);
+        const byId = new Map(history.map(m => [m.id, m.gift] as const));
+        setMessages(prev => prev.map(m => m.id && byId.has(m.id) ? { ...m, gift: byId.get(m.id) } : m));
+      } catch { /* 다음 주기에 다시 시도 */ }
+      if (attempts >= 18) clearInterval(timer);
+    }, 10000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview, char, episodeId, messages.some(isPendingGift)]);
 
   useEffect(() => {
     let active = true;
@@ -261,9 +336,9 @@ function ChatInner() {
                   )}
                 </div>
               ))}
-              {m.gift?.status === 'confirmed' && <button onClick={() => router.push('/my/gifts')} style={{ marginTop: 4, maxWidth: 240, padding: 14, borderRadius: 14, border: '1px solid var(--orange-300)', background: 'var(--orange-50)', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
-                <strong className="body2">🎁 NFT 선물이 도착했어요</strong><div className="caption" style={{ color: 'var(--gray-600)', marginTop: 4 }}>내 선물에서 확인하기</div>
-              </button>}
+              {m.gift && (m.gift.status === 'confirmed' || PENDING_GIFT.has(m.gift.status)) && (
+                <GiftCard gift={m.gift} product={m.gift.productId ? giftProducts[m.gift.productId] : undefined} onOpen={() => router.push('/my/gifts')} />
+              )}
             </div>
           );
         })}
@@ -350,6 +425,36 @@ export default function ChatPage() {
   return (
     <Suspense>
       <ChatInner />
+      {/* 페이지 전용 스타일 — globals.css는 원본 유지 원칙에 따라 손대지 않는다. */}
+      <style>{`
+        .gift-card {
+          margin-top: 6px; max-width: 260px; width: 100%; padding: 12px; border-radius: 16px;
+          border: 1px solid var(--orange-300); background: var(--orange-50);
+          animation: gift-pop 360ms var(--ease);
+        }
+        .gift-pending { display: flex; align-items: center; gap: 10px; border-style: dashed; }
+        .gift-spinner {
+          width: 18px; height: 18px; flex: 0 0 auto; border-radius: 50%;
+          border: 2px solid var(--orange-300); border-top-color: var(--orange-700);
+          animation: gift-spin 900ms linear infinite;
+        }
+        .gift-hero {
+          display: flex; gap: 12px; align-items: center; width: 100%; padding: 0; border: 0;
+          background: transparent; text-align: left; cursor: pointer; font: inherit; color: inherit;
+        }
+        .gift-image {
+          width: 64px; height: 64px; flex: 0 0 auto; border-radius: 12px; object-fit: cover;
+          background: var(--orange-100); display: block;
+        }
+        .gift-reason { margin: 10px 0 0; color: var(--gray-800); }
+        .gift-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .gift-actions .chip { text-decoration: none; }
+        @keyframes gift-pop {
+          from { opacity: 0; transform: translateY(6px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes gift-spin { to { transform: rotate(360deg); } }
+      `}</style>
     </Suspense>
   );
 }

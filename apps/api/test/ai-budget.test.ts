@@ -48,7 +48,7 @@ test('one atomic daily cap covers different wallets, AI turns, product generatio
   let giftDecisions = 0, giftSignatures = 0;
   const transport: GiftTransport = { products: async () => [{ id: 'gift', title: 'Gift', priceMist: '1' }],
     prepare: async () => { giftSignatures++; throw Error('must not sign'); }, execute: async () => 'confirmed' };
-  const gifts = createGiftService(db, transport, async () => { giftDecisions++; return 'gift'; }, owner => reserveAiBudget(db, owner, 2, 3));
+  const gifts = createGiftService(db, transport, async () => { giftDecisions++; return { productId: 'gift' }; }, owner => reserveAiBudget(db, owner, 2, 3));
   await gifts.propose(address('b'), { id: 'listing' } as MarketListing, 'turn', []);
   assert.equal(giftDecisions, 0); assert.equal(giftSignatures, 0);
   assert.equal((await db.query<{ used: number }>('SELECT used FROM ai_global_daily_budget')).rows[0].used, 3);

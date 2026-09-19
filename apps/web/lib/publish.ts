@@ -16,16 +16,22 @@ export function priceToMist(value: string) {
   return mist.toString();
 }
 
+/** Gift policy is fixed at Listing creation (market.move has no later override), so it is part of the publication fingerprint. */
+export interface GiftPolicyInput { perGiftLimitMist: string; dailyLimitMist: string; allowedGiftIds: string[] }
+const noGifts: GiftPolicyInput = { perGiftLimitMist: '0', dailyLimitMist: '0', allowedGiftIds: [] };
+
 /** Each authored edition has one durable identity; every tab resumes its first signed transaction. */
-export async function publishCharacter(characterId: number, price: string) {
+export async function publishCharacter(characterId: number, price: string, giftPolicy: GiftPolicyInput = noGifts) {
   const { walletKit, getWalletToken } = await import('./wallet-auth');
   getWalletToken();
   const connectedAccount = walletKit.stores.$connection.get().account;
   if (!connectedAccount) throw Error('로그인해주세요.');
   const account = connectedAccount;
   const owner = normalizeSuiAddress(account.address), pkg = requirePackage(), priceMist = priceToMist(price);
-  const config = await marketRequest<{ packageId: string; operator: string | null }>('/v1/market/config');
+  const config = await marketRequest<{ packageId: string; operator: string | null; nftGiftPackageId?: string | null }>('/v1/market/config');
   if (config.packageId !== pkg || !config.operator) throw Error('지금은 등록할 수 없어요.');
+  if (giftPolicy.allowedGiftIds.length && config.nftGiftPackageId !== pkg) throw Error('지금은 선물 기능을 켠 캐릭터를 등록할 수 없어요.');
+  if (BigInt(giftPolicy.perGiftLimitMist) > BigInt(giftPolicy.dailyLimitMist) || giftPolicy.allowedGiftIds.length > 20) throw Error('선물 설정을 확인해주세요.');
   const client = walletKit.getClient('testnet');
   const source = await backend.productDraft(characterId);
   const character: ProductCharacter = { name: source.name, personality: source.personality ?? '',
@@ -39,7 +45,7 @@ export async function publishCharacter(characterId: number, price: string) {
     ...(source.examples.length ? { examples: source.examples } : {}),
     episodes: SCENARIOS.map(s => ({ id: s.id, title: s.title, setting: s.scene })) };
   const fingerprint = await sha256(encode({ characterId, characterPackage, priceMist, operator: config.operator,
-    agentBps: 2000, perGiftLimitMist: '0', dailyLimitMist: '0', allowedGiftIds: [] }));
+    agentBps: 2000, perGiftLimitMist: giftPolicy.perGiftLimitMist, dailyLimitMist: giftPolicy.dailyLimitMist, allowedGiftIds: giftPolicy.allowedGiftIds }));
   const { publicationId } = await marketRequest<PublicationIdentity>('/v1/me/publications', { characterId, fingerprint });
   const check = () => {
     getWalletToken();
@@ -92,7 +98,7 @@ export async function publishCharacter(characterId: number, price: string) {
   const create = new Transaction();
   create.moveCall({ target: `${pkg}::market::create_listing`, arguments: [create.object(creatorId), create.pure.address(config.operator),
     create.pure.string(character.name), create.pure.u64(priceMist), create.pure.u64(2000),
-    create.pure.u64('0'), create.pure.u64('0'), create.pure.vector('address', [])] });
+    create.pure.u64(giftPolicy.perGiftLimitMist), create.pure.u64(giftPolicy.dailyLimitMist), create.pure.vector('address', giftPolicy.allowedGiftIds)] });
   const created = await step('listing', create, 'create_listing');
   const listingId = Object.entries(created.objectTypes).find(([, type]) => type === `${pkg}::market::Listing`)?.[0];
   if (!listingId) throw Error('등록 정보를 확인할 수 없어요.');

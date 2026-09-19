@@ -24,7 +24,7 @@ async function marketTransaction(packageId: string, sender: string, action: Mark
 }
 
 export function registerMarketFlow(app: FastifyInstance, db: Database, auth: AuthConfig, chain?: MarketChain,
-  runtime?: MarketRuntime, ai?: AiConfig, memory?: MemoryProvider, gifts?: GiftService) {
+  runtime?: MarketRuntime, ai?: AiConfig, memory?: MemoryProvider, gifts?: GiftService, giftMarket?: MarketChain) {
   const service = () => {
     if (!chain || !runtime) throw failure(503, 'MARKET_RUNTIME_NOT_CONFIGURED');
     return { chain, ...runtime };
@@ -33,6 +33,8 @@ export function registerMarketFlow(app: FastifyInstance, db: Database, auth: Aut
   app.get('/v1/market/config', async () => ({ network: 'testnet', packageId: chain?.packageId ?? null,
     operator: runtime?.packages.operator ?? null, previewTurns: runtime?.previewTurns ?? 0,
     chatConfigured: Boolean(runtime && ai), memoryConfigured: Boolean(memory),
+    // Creators may only allow NFT gifts on a new Listing when the catalog products share the market package.
+    giftsEnabled: Boolean(gifts), nftGiftPackageId: giftMarket?.packageId ?? chain?.packageId ?? null,
     memoryPackageId: memory?.packageId ?? null, memoryRegistryId: memory?.registryId ?? null }));
   app.get('/v1/market/listings/:listingId/preview', async req => {
     await authenticate(req, db, auth);

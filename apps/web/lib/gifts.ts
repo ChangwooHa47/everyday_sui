@@ -2,6 +2,15 @@ import { Transaction } from '@mysten/sui/transactions';
 import type { NftGiftProduct, OwnedNftGift } from '@everyday/contracts';
 import { marketRequest } from './market';
 
+/** Demo policy: every active catalog product is allowed, one gift may cost the priciest product, three of them per day. */
+export function giftPolicyFor(products: NftGiftProduct[]) {
+  const active = products.filter(p => p.active && BigInt(p.minted) < BigInt(p.maxSupply));
+  const perGift = active.reduce((max, p) => BigInt(p.priceMist) > max ? BigInt(p.priceMist) : max, 0n);
+  return { perGiftLimitMist: perGift.toString(), dailyLimitMist: (perGift * 3n).toString(), allowedGiftIds: active.map(p => p.id).slice(0, 20) };
+}
+
+export function explorerTxUrl(digest: string) { return `https://suiscan.xyz/testnet/tx/${encodeURIComponent(digest)}`; }
+
 export const nftGifts = {
   list: async () => (await marketRequest<{ gifts: NftGiftProduct[] }>('/v1/nft-gifts')).gifts,
   detail: async (id: string) => (await marketRequest<{ gift: NftGiftProduct }>(`/v1/nft-gifts/${encodeURIComponent(id)}`)).gift,
