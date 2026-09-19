@@ -27,17 +27,17 @@ function Reviews({ listingId, data, onChange }: { listingId: string; data: Marke
   return (
     <div style={{ marginTop: 28 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-        <h2 className="label1" style={{ margin: 0 }}>
+        <h2 className="section-title" style={{ margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
           구매자 후기 {data && data.reviewCount > 0 && <span className="caption" style={{ color: "var(--gray-500)", fontWeight: 500 }}>{data.averageRating} · {data.reviewCount}개</span>}
         </h2>
-        <button type="button" className="chip" style={{ padding: "6px 12px", fontSize: 13 }} onClick={() => setOpen(v => !v)}>후기 쓰기</button>
+        <button type="button" className="chip dark" onClick={() => setOpen(v => !v)}>후기 쓰기</button>
       </div>
       {open && (
-        <div style={{ marginTop: 10, padding: 14, borderRadius: 14, background: "var(--orange-50)", border: "1px solid var(--orange-200)" }}>
+        <div style={{ marginTop: 10, padding: 14, borderRadius: 8, background: "var(--key-50)", border: "1px solid var(--key-100)" }}>
           <div role="radiogroup" aria-label="별점" style={{ display: "flex", gap: 4, marginBottom: 8 }}>
             {[1, 2, 3, 4, 5].map(n => (
               <button key={n} type="button" role="radio" aria-checked={rating === n} onClick={() => setRating(n)}
-                style={{ border: 0, background: "transparent", fontSize: 22, cursor: "pointer", color: n <= rating ? "var(--orange-700)" : "var(--gray-300)", padding: 0 }}>★</button>
+                style={{ border: 0, background: "transparent", fontSize: 22, cursor: "pointer", color: n <= rating ? "var(--key)" : "var(--gray-300)", padding: 0 }}>★</button>
             ))}
           </div>
           <input className="input" maxLength={100} value={text} onChange={e => setText(e.target.value)} placeholder="이 캐릭터, 어땠어요? (100자)" disabled={busy} />
@@ -52,7 +52,7 @@ function Reviews({ listingId, data, onChange }: { listingId: string; data: Marke
       {data && data.reviews.map(review => (
         <div key={review.owner} style={{ padding: "12px 0", borderBottom: "1px solid var(--gray-100)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-            <span className="caption" style={{ color: "var(--orange-700)", letterSpacing: 1 }}>{stars(review.rating)}</span>
+            <span className="caption" style={{ color: "var(--key)", letterSpacing: 1 }}>{stars(review.rating)}</span>
             <span className="caption" style={{ color: "var(--gray-400)", fontFamily: "ui-monospace, Menlo, monospace" }}>{shortAddress(review.owner)}</span>
           </div>
           <p className="body2" style={{ margin: "4px 0 0", color: "var(--gray-800)" }}>{review.text}</p>
@@ -122,14 +122,14 @@ function MarketCharacterDetail() {
   const metadata = [character.gender].filter(Boolean);
 
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", background: "var(--gray-50)" }}>
+    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", background: "#fff" }}>
       <header className="topbar" style={{ background: "#fff" }}>
-        <button className="nav-btn nav-prev" onClick={() => router.back()} aria-label="이전">
+        <button className="nav-btn nav-prev" onClick={() => router.back()} aria-label="이전" style={{ color: "var(--black)" }}>
           <Icon name="chevron-left" size={24} />
         </button>
-        <span className="headline1">프로필</span>
+        <span className="page-title">Profile</span>
         <button className="nav-btn" aria-pressed={saved} aria-label={saved ? "찜 해제" : "찜하기"} onClick={() => setSaved(toggleSaved(listing.id).includes(listing.id))}
-          style={{ color: saved ? "var(--orange-700)" : "var(--gray-400)", display: "flex", transition: "color 200ms var(--ease)" }}>
+          style={{ color: saved ? "var(--key)" : "var(--gray-400)", display: "flex", transition: "color 200ms var(--ease)" }}>
           <Icon name="heart" size={22} />
         </button>
       </header>
@@ -139,9 +139,9 @@ function MarketCharacterDetail() {
           style={{
             position: "relative",
             width: "100%",
-            aspectRatio: "4 / 5",
+            aspectRatio: "335 / 372",
             overflow: "hidden",
-            borderRadius: 24,
+            borderRadius: 4,
             background: "linear-gradient(160deg, var(--orange-100), var(--orange-400))",
           }}
         >
@@ -153,23 +153,24 @@ function MarketCharacterDetail() {
           )}
         </div>
 
-        <section style={{ padding: "24px 4px 0" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
-            <div style={{ minWidth: 0 }}>
-              <h1 className="h2" style={{ margin: 0 }}>{character.name}</h1>
-              {metadata.length > 0 && (
-                <div className="body2" style={{ marginTop: 6, color: "var(--gray-500)" }}>{metadata.join(" · ")}</div>
+        <section style={{ padding: "20px 0 0" }}>
+          {/* Mine. 라벨 + 이름 28 Regular + 평점 */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingBottom: 4 }}>
+            <span style={{ fontSize: 24, fontWeight: 500, letterSpacing: "-0.05em", color: "var(--key)" }}>Mine.</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <h1 className="h1" style={{ margin: 0 }}>{character.name}</h1>
+              {stats && stats.reviewCount > 0 && (
+                <span style={{ fontSize: 16, fontWeight: 500, letterSpacing: "-0.03em", color: "var(--key)" }}>★ {stats.averageRating} <span style={{ color: "var(--gray-500)" }}>({stats.reviewCount})</span></span>
               )}
+              {metadata.length > 0 && <span className="body2" style={{ color: "var(--gray-500)" }}>{metadata.join(" · ")}</span>}
             </div>
-            <span className="point-badge" style={{ flexShrink: 0 }}>{formatPrice(listing.priceMist)}</span>
           </div>
 
-          {/* 커뮤니티 신호 — 구매자 수, 후기 평점, 캐릭터가 실제로 보낸 선물 수, 제작자 */}
-          <div className="chip-row" style={{ marginTop: 14 }}>
-            <span className="chip" style={{ cursor: "default", padding: "6px 12px", fontSize: 13 }}>👥 {Number(listing.buyerCount ?? 0)}명과 대화 중</span>
-            {stats && stats.reviewCount > 0 && <span className="chip" style={{ cursor: "default", padding: "6px 12px", fontSize: 13 }}>★ {stats.averageRating} ({stats.reviewCount})</span>}
-            {stats && stats.giftsSent > 0 && <span className="chip" style={{ cursor: "default", padding: "6px 12px", fontSize: 13 }}>🎁 선물 {stats.giftsSent}번 보냄</span>}
-            <button type="button" className="chip" style={{ padding: "6px 12px", fontSize: 13 }}
+          {/* 커뮤니티 신호 — 키컬러 태그 + 제작자 */}
+          <div className="chip-row" style={{ padding: "4px 0" }}>
+            <span className="chip tag"># {Number(listing.buyerCount ?? 0)}명과 대화 중</span>
+            {stats && stats.giftsSent > 0 && <span className="chip tag"># 선물 {stats.giftsSent}번 보냄</span>}
+            <button type="button" className="chip" style={{ padding: "10px", fontSize: 16 }}
               onClick={() => router.push(`/community/creator?address=${encodeURIComponent(listing.creator)}`)}>
               제작자 {shortAddress(listing.creator)}
             </button>
@@ -177,28 +178,28 @@ function MarketCharacterDetail() {
 
           {character.summary && (
             <div style={{ marginTop: 20 }}>
-              <h2 className="label1" style={{ margin: "0 0 8px" }}>한 줄 소개</h2>
-              <p className="body1" style={{ margin: 0, color: "var(--gray-700)" }}>{character.summary}</p>
+              <h2 className="section-title" style={{ margin: "0 0 12px" }}>Introduce</h2>
+              <p className="body1" style={{ margin: 0, color: "var(--gray-700)", letterSpacing: "-0.05em" }}>{character.summary}</p>
             </div>
           )}
 
           {character.background && (
             <div style={{ marginTop: 28 }}>
-              <h2 className="label1" style={{ margin: "0 0 8px" }}>나에 대해</h2>
+              <h2 className="section-title" style={{ margin: "0 0 12px" }}>나에 대해</h2>
               <p className="body2" style={{ margin: 0, color: "var(--gray-700)", whiteSpace: "pre-wrap" }}>{character.background}</p>
             </div>
           )}
 
           {character.interests && (
             <div style={{ marginTop: 28 }}>
-              <h2 className="label1" style={{ margin: "0 0 8px" }}>요즘 빠진 것</h2>
+              <h2 className="section-title" style={{ margin: "0 0 12px" }}>요즘 빠진 것</h2>
               <p className="body2" style={{ margin: 0, color: "var(--gray-700)" }}>{character.interests}</p>
             </div>
           )}
 
           {character.relationshipType && (
             <div style={{ marginTop: 24 }}>
-              <h2 className="label1" style={{ margin: "0 0 10px" }}>원하는 관계</h2>
+              <h2 className="section-title" style={{ margin: "0 0 12px" }}>원하는 관계</h2>
               <div className="chip-row">
                 <span className="chip">{character.relationshipType}</span>
               </div>
@@ -207,21 +208,21 @@ function MarketCharacterDetail() {
 
           {character.personality && (
             <div style={{ marginTop: 28 }}>
-              <h2 className="label1" style={{ margin: "0 0 8px" }}>이런 사람이에요</h2>
+              <h2 className="section-title" style={{ margin: "0 0 12px" }}>이런 사람이에요</h2>
               <p className="body2" style={{ margin: 0, color: "var(--gray-700)", whiteSpace: "pre-wrap" }}>{character.personality}</p>
             </div>
           )}
 
           {character.appearance && (
             <div style={{ marginTop: 24 }}>
-              <h2 className="label1" style={{ margin: "0 0 8px" }}>첫인상</h2>
+              <h2 className="section-title" style={{ margin: "0 0 12px" }}>첫인상</h2>
               <p className="body2" style={{ margin: 0, color: "var(--gray-700)", whiteSpace: "pre-wrap" }}>{character.appearance}</p>
             </div>
           )}
 
           {character.speechStyles && character.speechStyles.length > 0 && (
             <div style={{ marginTop: 24 }}>
-              <h2 className="label1" style={{ margin: "0 0 10px" }}>대화 스타일</h2>
+              <h2 className="section-title" style={{ margin: "0 0 12px" }}>대화 스타일</h2>
               <div className="chip-row">
                 {character.speechStyles.map((style) => <span className="chip" key={style}>{style}</span>)}
               </div>
@@ -229,7 +230,7 @@ function MarketCharacterDetail() {
           )}
 
           <Reviews listingId={listing.id} data={stats} onChange={setStats} />
-          <p className="caption" style={{ margin: "20px 0 0", color: "var(--gray-500)" }}>
+          <p className="caption" style={{ margin: "24px 0 0", color: "var(--gray-500)" }}>
             개인 이용권이에요. 캐릭터 설정만 받고, 대화·기억은 나만의 것으로 새로 시작해요. 판매액의 {listing.agentBps / 100}%는 이 캐릭터의 선물 금고에 쌓여요.
           </p>
         </section>
@@ -238,10 +239,10 @@ function MarketCharacterDetail() {
       <div style={{ position: "sticky", bottom: 0, padding: "12px 20px calc(16px + env(safe-area-inset-bottom))", background: "rgba(255,255,255,0.96)", borderTop: "1px solid var(--gray-100)" }}>
         {buyError && <p role="alert" className="caption" style={{ margin: "0 0 8px", color: "#d64545", textAlign: "center" }}>{buyError}</p>}
         <div style={{ display: "flex", gap: 10 }}>
-          <button className="cta" style={{ flex: 1.3 }} disabled={buying} onClick={() => router.push(`/chat?listing=${listing.id}`)}>
+          <button className="cta" style={{ flex: 1 }} disabled={buying} onClick={() => router.push(`/chat?listing=${listing.id}`)}>
             먼저 대화해보기 · {preview.previewTurns}회
           </button>
-          <button className="cta" style={{ flex: 1, background: "#fff", color: "var(--gray-900)", border: "1.5px solid var(--gray-900)" }} disabled={buying} onClick={() => void buy()}>
+          <button className="cta key" style={{ flex: 1 }} disabled={buying} onClick={() => void buy()}>
             {buying ? "구매 중…" : `${formatPrice(listing.priceMist)}에 구매`}
           </button>
         </div>
