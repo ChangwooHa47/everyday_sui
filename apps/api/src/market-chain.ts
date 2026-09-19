@@ -99,7 +99,9 @@ export function createMarketChain(packageId: string, client: Pick<SuiGrpcClient,
       priceMist: data.price, agentBps: Number(data.agent_bps), treasuryMist: data.treasury,
       published: data.published, active: data.active,
       package: { blobId: data.blob_id, contentHash: Buffer.from(data.content_hash).toString('hex'), endEpoch: data.end_epoch },
-      policy: { perGiftLimitMist: data.per_gift_limit, dailyLimitMist: data.daily_limit, allowedGiftIds: data.allowed_gifts } };
+      policy: { perGiftLimitMist: data.per_gift_limit, dailyLimitMist: data.daily_limit, allowedGiftIds: data.allowed_gifts,
+        // market.move resets `spent` when the clock day advances; mirror that so stale spend never hides today's budget.
+        spentTodayMist: BigInt(data.day) === BigInt(Math.floor(Date.now() / 86400000)) ? data.spent : '0' } };
   }
   function exactObject(id: string, value: SuiClientTypes.Object<{ content: true }> | Error,
     expectedType: string, expectedOwner: 'Shared' | string,

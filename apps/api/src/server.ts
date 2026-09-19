@@ -21,7 +21,7 @@ const market = marketChainFromEnv();
 const giftMarket = nftGiftChainFromEnv() ?? market;
 const app = buildApp(true, { db, auth: { origins, audience: process.env.API_AUDIENCE ?? 'http://127.0.0.1:3001', network: 'testnet' },
   market, giftMarket, externalNftImageOrigins: externalNftImageOriginsFromEnv(),
-  ...runtimeFromEnv(market, process.env, db), ai: aiFromEnv(), aiLimits: aiLimitsFromEnv(), product: productFromEnv() });
+  ...runtimeFromEnv(market, process.env, db, giftMarket), ai: aiFromEnv(), aiLimits: aiLimitsFromEnv(), product: productFromEnv() });
 app.addHook('onClose', () => db.end());
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {

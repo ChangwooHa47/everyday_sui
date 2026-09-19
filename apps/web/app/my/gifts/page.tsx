@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { OwnedNftGiftItem } from '@everyday/contracts';
 import { nftGiftImageUrl, nftGifts } from '@/lib/gifts';
 import { Icon } from '../../icons';
+import { BottomNav } from '../../components';
 
 export default function MyGiftsPage() {
   const router = useRouter(); const [gifts, setGifts] = useState<OwnedNftGiftItem[]>([]); const [error, setError] = useState(''); const [loading, setLoading] = useState(true);
@@ -41,5 +42,6 @@ export default function MyGiftsPage() {
           {gift.kind === 'external' ? `외부 NFT · ${gift.collectionName}` : `#${gift.edition}`}</div></div>
       </article>)}</div>
     </main>
+    <BottomNav active="my" />
   </div>;
 }

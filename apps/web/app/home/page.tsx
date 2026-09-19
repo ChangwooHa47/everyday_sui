@@ -125,6 +125,8 @@ export default function Home() {
             display: "flex",
             alignItems: "center",
             padding: "20px",
+            // 짧은 화면·확대 글씨에서 CTA가 고정 네비 아래로 밀리지 않도록 본문만 스크롤한다.
+            overflowY: "auto",
           }}
         >
           <section
@@ -142,7 +144,7 @@ export default function Home() {
               aria-hidden
               style={{
                 position: "relative",
-                height: 220,
+                height: "min(220px, 28dvh)",
                 background: "var(--orange-100)",
               }}
             >

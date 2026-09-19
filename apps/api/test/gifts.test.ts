@@ -23,7 +23,7 @@ test('agent gifts claim one intent and recover ambiguous execution with identica
     prepare: async (_listing, _product, recipient) => { preparations++; assert.equal(recipient, id('0xb')); return { bytes: 'same-signed-bytes', signature: 'same-signature', digest: 'same-digest' }; },
     execute: async bytes => { sends++; observed.push(bytes); if (sends === 1) throw Error('timeout after submission'); return 'confirmed'; },
   };
-  const service = createGiftService(db, transport, async () => { decisions++; return id('0xd'); });
+  const service = createGiftService(db, transport, async () => { decisions++; return { productId: id('0xd'), reason: '오늘 고생했으니까, 이건 내가 쏠게.' }; });
   const results = await Promise.all([1, 2].map(() => service.propose(id('0xb'), listing, 'turn-one', [{ role: 'user', content: 'PRIVATE_BIRTHDAY' }], persona)));
   assert.ok(results.some(r => r.status === 'unknown')); assert.equal(decisions, 1); assert.equal(preparations, 1);
   await service.recover();
@@ -32,14 +32,28 @@ test('agent gifts claim one intent and recover ambiguous execution with identica
   assert.deepEqual(observed, ['same-signed-bytes', 'same-signed-bytes']);
   assert.equal(decisions, 1); assert.equal(preparations, 1);
   assert.ok(!JSON.stringify((await db.query('SELECT * FROM agent_gifts')).rows).includes('PRIVATE_BIRTHDAY'));
+  const stored = (await db.query<{ reason: string | null; character_id: string | null }>('SELECT reason,character_id FROM agent_gifts')).rows[0];
+  assert.equal(stored.reason, '오늘 고생했으니까, 이건 내가 쏠게.'); assert.equal(stored.character_id, null);
+  const replay = await service.propose(id('0xb'), listing, 'turn-one', []);
+  assert.equal(replay.reason, '오늘 고생했으니까, 이건 내가 쏠게.'); assert.equal(replay.productId, id('0xd'));
+});
+test('gift proposals remember the chat reply that triggered them', async t => {
+  const db = new PGlite(); await db.exec(migration); t.after(() => db.close());
+  const transport: GiftTransport = { products: async () => [{ id: id('0xd'), title: 'Allowed', description: 'Fixture', priceMist: '100' }],
+    prepare: async () => ({ bytes: 'b', signature: 's', digest: 'd' }), execute: async () => 'confirmed' };
+  const service = createGiftService(db, transport, async () => ({ productId: id('0xd') }));
+  const result = await service.propose(id('0xb'), listing, 'turn-linked', [], persona, { characterId: '42', messageId: '7' });
+  assert.equal(result.status, 'confirmed'); assert.equal(result.reason, undefined);
+  const { rows } = await db.query<{ character_id: string; message_id: string; status: string }>('SELECT character_id::text,message_id::text,status FROM agent_gifts WHERE character_id=42 AND message_id=7');
+  assert.deepEqual(rows, [{ character_id: '42', message_id: '7', status: 'confirmed' }]);
 });
 test('invalid LLM product and declined proposals never reach signing', async t => {
   const db = new PGlite(); await db.exec(migration); t.after(() => db.close());
   let preparations = 0;
   const transport: GiftTransport = { products: async () => [{ id: id('0xd'), title: 'Allowed', description: 'Fixture', priceMist: '100' }],
     prepare: async () => { preparations++; throw Error('must not sign'); }, execute: async () => 'confirmed' };
-  assert.equal((await createGiftService(db, transport, async () => id('0xe')).propose(id('0xb'), listing, 'bad', [], persona)).status, 'unknown');
-  assert.equal((await createGiftService(db, transport, async () => null).propose(id('0xb'), listing, 'no', [], persona)).status, 'declined');
+  assert.equal((await createGiftService(db, transport, async () => ({ productId: id('0xe') })).propose(id('0xb'), listing, 'bad', [], persona)).status, 'unknown');
+  assert.equal((await createGiftService(db, transport, async () => ({ productId: null, reason: 'ignored' })).propose(id('0xb'), listing, 'no', [], persona)).status, 'declined');
   assert.equal((await createGiftService(db, transport, async () => { throw Error('must not decide'); })
     .propose(id('0xb'), listing, 'disabled', [])).status, 'declined');
   assert.equal(preparations, 0);
@@ -55,7 +69,7 @@ test('external NFT gifts require recipient opt-in and respect collection blocks 
       return { bytes: 'external-bytes', signature: 'external-signature', digest: 'external-digest' }; },
     execute: async () => 'confirmed',
   };
-  const service = createGiftService(db, transport, async products => { decisions++; return products[0].id; });
+  const service = createGiftService(db, transport, async products => { decisions++; return { productId: products[0].id }; });
   const externalPersona = { ...persona, cooldownHours: 0 };
   assert.equal((await service.propose(id('0xb'), listing, 'external-off', [], externalPersona)).status, 'declined');
   assert.equal(decisions, 0); assert.equal(signatures, 0);
