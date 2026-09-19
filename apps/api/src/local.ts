@@ -2,8 +2,8 @@ import { mkdirSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { buildApp } from './app.js';
 import { migration } from './database.js';
-import { marketChainFromEnv } from './market-chain.js';
-import { runtimeFromEnv, aiFromEnv } from './runtime-config.js';
+import { marketChainFromEnv, nftGiftChainFromEnv } from './market-chain.js';
+import { runtimeFromEnv, aiFromEnv, externalNftImageOriginsFromEnv } from './runtime-config.js';
 import { migrateProduct } from './product/migrations.js';
 import { seedEpisodeCatalog } from './product/episodes.js';
 import { productFromEnv } from './product/index.js';
@@ -19,8 +19,13 @@ await db.exec(migration);
 await migrateProduct(db);
 await seedEpisodeCatalog(db);
 const market = marketChainFromEnv();
-const app = buildApp(true,{ db, market, ...runtimeFromEnv(market, process.env, db), ai: aiFromEnv(), product: productFromEnv(),
-  auth:{origins:(process.env.WEB_ORIGINS ?? 'http://127.0.0.1:3000,http://127.0.0.1:3002').split(','),audience:'http://127.0.0.1:3001',network:'testnet'} });
+const giftMarket = nftGiftChainFromEnv() ?? market;
+const port = Number.parseInt(process.env.PORT ?? '3001', 10);
+if (!Number.isInteger(port) || port < 1 || port > 65_535) throw Error('PORT must be a valid TCP port');
+const audience = process.env.API_AUDIENCE ?? `http://127.0.0.1:${port}`;
+const app = buildApp(true,{ db, market, giftMarket, externalNftImageOrigins: externalNftImageOriginsFromEnv(),
+  ...runtimeFromEnv(market, process.env, db, giftMarket), ai: aiFromEnv(), product: productFromEnv(),
+  auth:{origins:(process.env.WEB_ORIGINS ?? 'http://127.0.0.1:3000,http://127.0.0.1:3002').split(','),audience,network:'testnet'} });
 app.addHook('onClose',() => db.close());
 for (const signal of ['SIGINT','SIGTERM'] as const) process.once(signal,() => {void app.close();});
-await app.listen({host:'127.0.0.1',port:3001});
+await app.listen({host:'127.0.0.1',port});

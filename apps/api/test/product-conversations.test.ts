@@ -2,16 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { migrateProduct } from '../src/product/migrations.js';
+import { migration } from '../src/database.js';
 import Fastify from 'fastify';
 import { PGlite } from '@electric-sql/pglite';
 import type { CharacterRow, LlmMessage, ProductContext } from '../src/product/core.js';
 import { productError } from '../src/product/core.js';
-import { conversationContext, photoMood, registerProductConversations, saveMessage } from '../src/product/conversations.js';
+import { completedMessage, conversationContext, photoMood, registerProductConversations, saveMessage } from '../src/product/conversations.js';
 import { importPackageEpisodes, parseEpisodeStarters, registerProductEpisodes, seedEpisodeCatalog } from '../src/product/episodes.js';
-import type { MarketListing } from '@everyday/contracts';
+import type { GiftPersona, MarketListing } from '@everyday/contracts';
 
 test('ported conversation and episode behavior preserves transactions, replay safety and isolation', async t => {
   const db = new PGlite();
+  await db.exec(migration);
   await migrateProduct(db);
   await db.exec("INSERT INTO everyday.users(id,email,points) VALUES(1,'first@example.test',100),(2,'second@example.test',100)");
   for (const [id, owner] of [['1', '1'], ['2', '2'], ['3', '1'], ['4', '1']]) await db.query(
@@ -92,14 +94,31 @@ test('ported conversation and episode behavior preserves transactions, replay sa
       title: 'Gift character', priceMist: '1000', agentBps: 2000, treasuryMist: '200', published: true, active: true,
       package: { blobId: 'a'.repeat(43), contentHash: '0'.repeat(64), endEpoch: '100' },
       policy: { perGiftLimitMist: '100', dailyLimitMist: '200', allowedGiftIds: ['0x' + 'e'.repeat(64)] } };
-    ctx.licensedListing = async () => listing;
-    ctx.gifts = { propose: async (_owner, actual, _turn, messages) => { assert.equal(actual, listing); observed.push(messages); throw Error('gift provider unavailable'); }, recover: async () => {} };
+    const persona: GiftPersona = { enabled: true, archetype: 'caretaker', generosity: 30, spontaneity: 5,
+      triggers: ['comfort'], preferredTags: ['practical'], blockedTags: ['high-value'], cooldownHours: 168 };
+    ctx.licensedGiftContext = async () => ({ listing, persona });
+    ctx.gifts = { propose: async (_owner, actual, _turn, messages, actualPersona) => {
+      assert.equal(actual, listing); assert.equal(actualPersona, persona); observed.push(messages); throw Error('gift provider unavailable');
+    }, recover: async () => {} };
     const response = await post(base + '/messages', { requestId: randomUUID(), content: 'today matters' });
     assert.equal(response.statusCode, 200, response.body);
     assert.equal(response.json().data.gift.status, 'unknown');
     assert.match(observed[0].at(-1)!.content, /APPROVED_PRIVATE_MEMORY/);
     assert.equal((await db.query<{ count: number }>('SELECT count(*)::integer AS count FROM everyday.chat_messages WHERE content=$1', ['today matters'])).rows[0].count, 1);
-    ctx.gifts = undefined; ctx.licensedListing = undefined;
+    ctx.gifts = undefined; ctx.licensedGiftContext = undefined;
+  });
+
+  await t.test('history re-attaches delivered or pending gifts to their reply and hides declined decisions', async () => {
+    const replies = (await db.query<{ id: string }>("SELECT id FROM everyday.chat_messages WHERE character_id=1 AND sender='AI' AND character_episode_id IS NULL ORDER BY id DESC LIMIT 2")).rows;
+    await db.query(`INSERT INTO agent_gifts(intent,owner,listing_id,product_id,status,digest,reason,character_id,message_id)
+      VALUES('intent-confirmed','0xowner','0xlisting','0xproduct','confirmed','digest-1','오늘은 내가 살게.',1,$1),
+             ('intent-declined','0xowner','0xlisting',NULL,'declined',NULL,NULL,1,$2)`, [replies[0].id, replies[1].id]);
+    const history = (await app.inject({ url: base + '/messages/history', headers: { 'x-user': '1' } })).json().data as { id: number; gift?: { status: string; reason?: string; digest?: string } }[];
+    const delivered = history.find(m => m.id === Number(replies[0].id))!, declined = history.find(m => m.id === Number(replies[1].id))!;
+    assert.deepEqual(delivered.gift, { status: 'confirmed', productId: '0xproduct', digest: 'digest-1', reason: '오늘은 내가 살게.' });
+    assert.deepEqual((await completedMessage(db, replies[0].id)).gift, delivered.gift);
+    assert.equal(declined.gift, undefined);
+    await db.query("DELETE FROM agent_gifts WHERE intent IN ('intent-confirmed','intent-declined')");
   });
 
   await t.test('failures before a provider release claims; uncertain provider calls roll back messages and cannot silently retry', async () => {

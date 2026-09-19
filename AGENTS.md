@@ -1,4 +1,6 @@
-# Everyday character marketplace
+# Dear Mine character marketplace
+
+The product is named Dear Mine; `everyday` remains in repository, service, package, schema and storage identifiers on purpose.
 
 This folder is one npm monorepo. Read `docs/MARKET_PIVOT.md` before market work.
 Keep changes in apps/web, apps/api, packages/contracts, contracts/everyday and infra.

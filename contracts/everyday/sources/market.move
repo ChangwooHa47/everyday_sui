@@ -1,9 +1,11 @@
 module everyday::market;
 
 use std::string::String;
+use std::type_name;
 use sui::balance::{Self, Balance};
 use sui::coin::{Self, Coin};
 use sui::clock::{Self, Clock};
+use sui::dynamic_object_field;
 use sui::event;
 use sui::sui::SUI;
 use sui::table::{Self, Table};
@@ -69,6 +71,30 @@ public struct GiftNft has key, store {
 public struct GiftReceipt has key {
     id: UID, listing: ID, product: ID, recipient: address, price: u64,
 }
+// External collections are explicitly approved by Admin and bound to one exact
+// transferable Move type. Package/module targets are never supplied at runtime.
+public struct ExternalCollectionPolicy has key {
+    id: UID,
+    name: String,
+    type_name: String,
+    active: bool,
+}
+// Metadata and the SUI price are visible without parsing the deposited external
+// NFT. The NFT itself remains a child object until this offer is atomically consumed.
+public struct ExternalNftOffer has key {
+    id: UID,
+    policy: ID,
+    seller: address,
+    item: ID,
+    type_name: String,
+    title: String,
+    description: String,
+    image_url: String,
+    image_hash: vector<u8>,
+    price: u64,
+    active: bool,
+}
+public struct ExternalItemKey has copy, drop, store {}
 public struct Listed has copy, drop { listing: ID, creator: address, operator: address }
 public struct PackagePublished has copy, drop { listing: ID, blob_id: String, end_epoch: u64 }
 public struct Purchased has copy, drop {
@@ -79,6 +105,10 @@ public struct GiftSent has copy, drop {
 }
 public struct NftGiftCreated has copy, drop { product: ID, merchant: address, price: u64, max_supply: u64 }
 public struct NftGiftMinted has copy, drop { product: ID, nft: ID, recipient: address, edition: u64 }
+public struct ExternalCollectionApproved has copy, drop { policy: ID }
+public struct ExternalNftOffered has copy, drop { offer: ID, policy: ID, item: ID, seller: address, price: u64 }
+public struct ExternalNftWithdrawn has copy, drop { offer: ID, policy: ID, item: ID, seller: address }
+public struct ExternalNftSold has copy, drop { offer: ID, policy: ID, item: ID, seller: address, buyer: address, price: u64 }
 
 fun init(ctx: &mut TxContext) { transfer::transfer(Admin { id: object::new(ctx) }, ctx.sender()); }
 public fun register_creator(ctx: &mut TxContext) {
@@ -177,6 +207,76 @@ public fun purchase_nft_gift(product: &mut NftGiftProduct, payment: Coin<SUI>, c
     transfer::public_transfer(payment, merchant);
     mint_nft(product, ctx.sender(), ctx);
 }
+fun external_type_name<T>(): String {
+    std::string::utf8(type_name::with_original_ids<T>().into_string().into_bytes())
+}
+fun delete_external_nft_offer(offer: ExternalNftOffer) {
+    let ExternalNftOffer { id, policy: _, seller: _, item: _, type_name: _, title: _,
+        description: _, image_url: _, image_hash: _, price: _, active: _ } = offer;
+    id.delete();
+}
+public fun approve_external_collection<T: key + store>(_: &Admin, name: String, ctx: &mut TxContext) {
+    assert!(name.length() > 0 && name.length() <= 240, EInvalid);
+    let policy = ExternalCollectionPolicy {
+        id: object::new(ctx), name, type_name: external_type_name<T>(), active: true,
+    };
+    event::emit(ExternalCollectionApproved { policy: object::id(&policy) });
+    transfer::share_object(policy);
+}
+public fun set_external_collection_active(_: &Admin, policy: &mut ExternalCollectionPolicy, active: bool) {
+    policy.active = active;
+}
+public fun create_external_nft_offer<T: key + store>(policy: &ExternalCollectionPolicy, item: T,
+    title: String, description: String, image_url: String, image_hash: vector<u8>, price: u64,
+    ctx: &mut TxContext) {
+    let type_name = external_type_name<T>();
+    assert!(policy.active && policy.type_name == type_name, EPolicy);
+    assert!(price > 0 && title.length() > 0 && title.length() <= 240, EInvalid);
+    assert!(description.length() <= 2000 && image_url.length() > 0 && image_url.length() <= 2000, EInvalid);
+    assert!(image_hash.length() == 32, EInvalid);
+    let item_id = object::id(&item);
+    let mut offer = ExternalNftOffer { id: object::new(ctx), policy: object::id(policy),
+        seller: ctx.sender(), item: item_id, type_name, title, description, image_url, image_hash,
+        price, active: true };
+    dynamic_object_field::add(&mut offer.id, ExternalItemKey {}, item);
+    event::emit(ExternalNftOffered { offer: object::id(&offer), policy: object::id(policy),
+        item: item_id, seller: ctx.sender(), price });
+    transfer::share_object(offer);
+}
+public fun set_external_nft_offer_active(offer: &mut ExternalNftOffer, active: bool, ctx: &TxContext) {
+    assert!(offer.seller == ctx.sender(), EOwner);
+    offer.active = active;
+}
+public fun withdraw_external_nft_offer<T: key + store>(mut offer: ExternalNftOffer,
+    policy: &ExternalCollectionPolicy, ctx: &mut TxContext) {
+    assert!(offer.seller == ctx.sender(), EOwner);
+    assert!(offer.policy == object::id(policy) && offer.type_name == policy.type_name
+        && offer.type_name == external_type_name<T>(), EPolicy);
+    let item = dynamic_object_field::remove<ExternalItemKey, T>(&mut offer.id, ExternalItemKey {});
+    assert!(object::id(&item) == offer.item, EPolicy);
+    event::emit(ExternalNftWithdrawn { offer: object::id(&offer), policy: object::id(policy),
+        item: offer.item, seller: ctx.sender() });
+    delete_external_nft_offer(offer);
+    transfer::public_transfer(item, ctx.sender());
+}
+public fun purchase_external_nft<T: key + store>(mut offer: ExternalNftOffer,
+    policy: &ExternalCollectionPolicy, payment: Coin<SUI>, ctx: &mut TxContext) {
+    assert!(offer.active && policy.active, ENotLive);
+    assert!(offer.policy == object::id(policy) && offer.type_name == policy.type_name
+        && offer.type_name == external_type_name<T>(), EPolicy);
+    assert!(payment.value() == offer.price, EPayment);
+    let offer_id = object::id(&offer);
+    let seller = offer.seller;
+    let price = offer.price;
+    let item = dynamic_object_field::remove<ExternalItemKey, T>(&mut offer.id, ExternalItemKey {});
+    let item_id = object::id(&item);
+    assert!(item_id == offer.item, EPolicy);
+    delete_external_nft_offer(offer);
+    transfer::public_transfer(payment, seller);
+    transfer::public_transfer(item, ctx.sender());
+    event::emit(ExternalNftSold { offer: offer_id, policy: object::id(policy), item: item_id,
+        seller, buyer: ctx.sender(), price });
+}
 // There is deliberately no unrestricted withdrawal, merchant override, or limit-raising entry point.
 public fun send_gift(listing: &mut Listing, gift: &GiftProduct, recipient: address,
     intent: vector<u8>, clock: &Clock, ctx: &mut TxContext) {
@@ -218,6 +318,39 @@ public fun send_nft_gift(listing: &mut Listing, gift: &mut NftGiftProduct, recip
         receipt: object::id(&receipt), amount: gift.price, intent });
     transfer::transfer(receipt, recipient);
 }
+public fun send_external_nft_gift<T: key + store>(listing: &mut Listing, mut offer: ExternalNftOffer,
+    policy: &ExternalCollectionPolicy, recipient: address, intent: vector<u8>, clock: &Clock,
+    ctx: &mut TxContext) {
+    assert!(ctx.sender() == listing.operator, EOwner);
+    assert!(listing.buyers.contains(recipient), EAccess);
+    assert!(intent.length() == 32 && !listing.intents.contains(intent), EReplay);
+    let offer_id = object::id(&offer);
+    assert!(offer.active && policy.active && listing.allowed_gifts.contains(&offer_id), EPolicy);
+    assert!(offer.policy == object::id(policy) && offer.type_name == policy.type_name
+        && offer.type_name == external_type_name<T>(), EPolicy);
+    let day = clock::timestamp_ms(clock) / 86400000;
+    if (day > listing.day) { listing.day = day; listing.spent = 0; };
+    assert!(offer.price <= listing.per_gift_limit && offer.price <= listing.daily_limit - listing.spent, EPolicy);
+    assert!(offer.price <= listing.treasury.value(), EPayment);
+    listing.spent = listing.spent + offer.price;
+    listing.intents.add(intent, true);
+    let seller = offer.seller;
+    let price = offer.price;
+    let item = dynamic_object_field::remove<ExternalItemKey, T>(&mut offer.id, ExternalItemKey {});
+    let item_id = object::id(&item);
+    assert!(item_id == offer.item, EPolicy);
+    delete_external_nft_offer(offer);
+    let payment = coin::from_balance(listing.treasury.split(price), ctx);
+    transfer::public_transfer(payment, seller);
+    transfer::public_transfer(item, recipient);
+    let receipt = GiftReceipt { id: object::new(ctx), listing: object::id(listing),
+        product: offer_id, recipient, price };
+    event::emit(GiftSent { listing: object::id(listing), product: offer_id, recipient,
+        receipt: object::id(&receipt), amount: price, intent });
+    event::emit(ExternalNftSold { offer: offer_id, policy: object::id(policy), item: item_id,
+        seller, buyer: recipient, price });
+    transfer::transfer(receipt, recipient);
+}
 #[test_only]
 public fun init_for_testing(ctx: &mut TxContext) { init(ctx); }
 #[test_only]
@@ -226,3 +359,9 @@ public fun treasury_value(listing: &Listing): u64 { listing.treasury.value() }
 public fun nft_product_id(product: &NftGiftProduct): ID { object::id(product) }
 #[test_only]
 public fun nft_edition(nft: &GiftNft): u64 { nft.edition }
+#[test_only]
+public fun external_policy_id(policy: &ExternalCollectionPolicy): ID { object::id(policy) }
+#[test_only]
+public fun external_offer_id(offer: &ExternalNftOffer): ID { object::id(offer) }
+#[test_only]
+public fun external_offer_item(offer: &ExternalNftOffer): ID { offer.item }

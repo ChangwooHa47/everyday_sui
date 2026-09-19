@@ -8,6 +8,15 @@ import type { Database } from './database.js';
 import { createGiftService, createGiftTransport, giftDecision } from './gifts.js';
 import { reserveAiBudget } from './ai-budget.js';
 const httpsUrl = z.string().url().refine(value => new URL(value).protocol === 'https:').transform(value => value.replace(/\/$/, ''));
+export function externalNftImageOriginsFromEnv(env: NodeJS.ProcessEnv = process.env) {
+  const origins = (env.EXTERNAL_NFT_IMAGE_ORIGINS ?? '').split(',').map(value => value.trim()).filter(Boolean);
+  for (const origin of origins) {
+    const url = new URL(origin);
+    if (url.protocol !== 'https:' || url.origin !== origin) throw Error('EXTERNAL_NFT_IMAGE_ORIGINS must contain exact HTTPS origins');
+  }
+  if (new Set(origins).size !== origins.length) throw Error('EXTERNAL_NFT_IMAGE_ORIGINS must not contain duplicates');
+  return origins;
+}
 export function aiLimitsFromEnv(env: NodeJS.ProcessEnv = process.env) {
   return { dailyLimit: z.coerce.number().int().min(1).max(10000).parse(env.AI_DAILY_LIMIT ?? 50),
     globalDailyLimit: z.coerce.number().int().min(1).max(100000).parse(env.AI_GLOBAL_DAILY_LIMIT ?? 100) };
@@ -23,7 +32,7 @@ export function aiFromEnv(env: NodeJS.ProcessEnv = process.env): AiConfig | unde
   return { apiKey: z.string().min(1).parse(env.AI_API_KEY), endpoint: z.string().url().parse(env.AI_ENDPOINT),
     model: z.string().min(1).parse(env.AI_MODEL), ...limits };
 }
-export function runtimeFromEnv(chain: MarketChain | undefined, env: NodeJS.ProcessEnv = process.env, db?: Database) {
+export function runtimeFromEnv(chain: MarketChain | undefined, env: NodeJS.ProcessEnv = process.env, db?: Database, giftChain?: MarketChain) {
   const rpcUrl = httpsUrl.parse(env.SUI_GRPC_URL ?? 'https://fullnode.testnet.sui.io:443');
   let runtime; let memory;
   if (env.SUI_OPERATOR_KEY) {
@@ -35,7 +44,7 @@ export function runtimeFromEnv(chain: MarketChain | undefined, env: NodeJS.Proce
         threshold: z.coerce.number().int().min(2).max(servers.length).parse(env.SEAL_THRESHOLD ?? 2),
         publisher: httpsUrl.parse(env.WALRUS_PUBLISHER), aggregator: httpsUrl.parse(env.WALRUS_AGGREGATOR),
         walrusTypeOrigin: env.WALRUS_TYPE_ORIGIN ? addressSchema.parse(env.WALRUS_TYPE_ORIGIN) : undefined,
-        epochs: z.coerce.number().int().min(1).max(53).parse(env.WALRUS_EPOCHS ?? 7) }) };
+        epochs: z.coerce.number().int().min(1).max(53).parse(env.WALRUS_EPOCHS ?? 53) }) };
   }
   if (env.MEMWAL_DELEGATE_MASTER_KEY) {
     if (!chain) throw Error('SUI_MARKET_PACKAGE_ID is required for memory');
@@ -47,7 +56,12 @@ export function runtimeFromEnv(chain: MarketChain | undefined, env: NodeJS.Proce
   if (env.AGENT_GIFTS_ENABLED === '1') {
     const ai = aiFromEnv(env);
     if (!db || !chain || !runtime || !ai || !env.SUI_OPERATOR_KEY) throw Error('Agent gifts require DB, market runtime and AI configuration');
-    gifts = createGiftService(db, createGiftTransport(chain.packageId, rpcUrl, env.SUI_OPERATOR_KEY), giftDecision(ai),
+    // send_nft_gift takes the Listing and the NftGiftProduct in one Move call, so both must live in one package.
+    // Fail closed instead of signing transactions the chain would reject.
+    const giftPackage = (giftChain ?? chain).packageId;
+    if (giftPackage !== chain.packageId) throw Error('Agent gifts require NFT_GIFT_PACKAGE_ID to equal SUI_MARKET_PACKAGE_ID: send_nft_gift needs the Listing and NftGiftProduct in the same package');
+    gifts = createGiftService(db, createGiftTransport(giftPackage, rpcUrl, env.SUI_OPERATOR_KEY, undefined,
+      (giftChain ?? chain).externalCollectionPolicyIds ?? []), giftDecision(ai),
       owner => reserveAiBudget(db, owner, ai.dailyLimit, ai.globalDailyLimit));
   }
   return { runtime, memory, gifts };

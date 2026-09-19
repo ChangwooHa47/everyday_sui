@@ -29,7 +29,7 @@ export class MarketRequestError extends Error {
   constructor(public readonly status: number, public readonly code: string | undefined, message: string) { super(message); }
 }
 
-export async function marketRequest<T>(path: string, body?: unknown, method?: 'DELETE'): Promise<T> {
+export async function marketRequest<T>(path: string, body?: unknown, method?: 'DELETE' | 'PUT'): Promise<T> {
   const token = await ensureAuth();
   const res = await fetch(`${apiUrl}${path}`, { method: method ?? (body === undefined ? 'GET' : 'POST'),
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

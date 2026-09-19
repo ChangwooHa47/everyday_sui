@@ -1,11 +1,11 @@
 'use client';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { DAppKitProvider, useCurrentAccount } from '@mysten/dapp-kit-react';
+import { useCurrentAccount } from '@mysten/dapp-kit-react';
 import { ConnectModal } from '@mysten/dapp-kit-react/ui';
-import { walletKit, loginWithWallet } from '@/lib/wallet-auth';
+import { loginWithWallet } from '@/lib/wallet-auth';
 
 export default function WalletLogin({ onLogin }: { onLogin: () => void }) {
-  return <DAppKitProvider dAppKit={walletKit}><LoginButton onLogin={onLogin} /></DAppKitProvider>;
+  return <LoginButton onLogin={onLogin} />;
 }
 function LoginButton({ onLogin }: { onLogin: () => void }) {
   const account = useCurrentAccount();
