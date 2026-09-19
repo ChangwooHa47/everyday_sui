@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { OwnedNftGiftItem } from '@everyday/contracts';
-import { nftGiftImageUrl, nftGifts } from '@/lib/gifts';
+import { nftGiftImageSources, nftGifts } from '@/lib/gifts';
 import { Icon } from '../../icons';
 import { BottomNav, ResilientImage } from '../../components';
 
@@ -48,7 +48,7 @@ export default function MyGiftsPage() {
       {loading && <p className="body2">불러오는 중…</p>}{error && <p role="alert" className="body2">{error}</p>}
       {!loading && !error && gifts.length === 0 && <div style={{ padding: '72px 24px', textAlign: 'center' }}><div style={{ fontSize: 44 }}>🎁</div><p className="headline2">아직 받은 NFT 선물이 없어요.</p><button className="chip" onClick={() => router.push('/market')}>선물 둘러보기</button></div>}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>{gifts.map(gift => <article key={gift.id} style={{ background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 16, overflow: 'hidden' }}>
-        <div style={{ aspectRatio: '1', background: 'var(--orange-100)' }}><ResilientImage sources={[nftGiftImageUrl(gift)]} alt={gift.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/></div>
+        <div style={{ aspectRatio: '1', background: 'var(--orange-100)' }}><ResilientImage sources={nftGiftImageSources(gift)} alt={gift.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/></div>
         <div style={{ padding: 12 }}><strong className="body2">{gift.title}</strong><div className="caption" style={{ color: 'var(--gray-500)', marginTop: 4 }}>
           {gift.kind === 'external' ? `외부 NFT · ${gift.collectionName}` : `#${gift.edition}`}</div></div>
       </article>)}</div>

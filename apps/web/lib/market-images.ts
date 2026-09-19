@@ -1,20 +1,21 @@
 import type { MarketListing } from '@everyday/contracts';
 import { apiUrl } from './web3/config';
 
-// These are byte-identical local copies of the immutable images recorded in
-// contracts/everyday/deployments/market-seed.json. They keep the demo catalog
-// usable when the public testnet aggregator or its CDN temporarily returns 404.
+// Bundled portraits for the ten seeded characters, served ahead of the aggregator.
+// NOTE: since 2026-09-19 these are the refreshed Soul portraits, so they no longer
+// match the images inside the published Walrus packages. Re-upload the same files
+// and republish the listings to bring the chain back in step.
 const seedImageFallbacks: Readonly<Record<string, string>> = Object.freeze({
-  '0xfe481d4e933065cf4c6e2568e51ca4947ac5d3d88d1e5549dd28c3780f4dfd25': '/portraits/wangja-profile-0.png',
-  '0x65fed12c7635f3c0706e571c6bd3b1ec28fb3f8c37e79e99ff987148631f0fc0': '/portraits/eonni-profile-2.png',
-  '0x66d75c14a2524260bd86dfdc252a989df68cd3b390facb6c40cc54c588a74544': '/portraits/mindi-profile-10.png',
-  '0x5baeecc27ff1cba3fd64f1d62a7b62feba49ef2e29761c99f5c077757a612604': '/portraits/oppa-profile-9.png',
-  '0x5456762d7ba641fc37e8c5781259294ce9bfae0cde31a3f83f55b65db88336e4': '/portraits/menhera-profile-6.png',
-  '0xfb628855e5d4a5b71f4428513c8d40af495b568747c3f78ad25725e5478c2350': '/portraits/amper-profile-7.png',
-  '0xd4f59f751dbc442b92987cc2a9978f99dca4213da980756c106780917e16f7fe': '/portraits/amper2-profile-17.png',
-  '0x443a243b74177568ba149a040f3e0d924b9e9d2f52f03d0e509ae6cd7e877010': '/portraits/eonni-cafe-5.png',
-  '0xc8827e0c92569b4cc686f884462fc9c0ed58950d1549d128b18a2dc41cbee98e': '/portraits/wangja-night-1.png',
-  '0xdd868558e50779d0e3b8ad41847a176838e0c7a42dc4a60a4a27775e8d6128dc': '/portraits/mindi-cafe-12.png',
+  '0xfe481d4e933065cf4c6e2568e51ca4947ac5d3d88d1e5549dd28c3780f4dfd25': '/portraits/seed/doyun.jpg',
+  '0x65fed12c7635f3c0706e571c6bd3b1ec28fb3f8c37e79e99ff987148631f0fc0': '/portraits/seed/seoyeon.jpg',
+  '0x66d75c14a2524260bd86dfdc252a989df68cd3b390facb6c40cc54c588a74544': '/portraits/seed/minji.jpg',
+  '0x5baeecc27ff1cba3fd64f1d62a7b62feba49ef2e29761c99f5c077757a612604': '/portraits/seed/jihu.jpg',
+  '0x5456762d7ba641fc37e8c5781259294ce9bfae0cde31a3f83f55b65db88336e4': '/portraits/seed/harin.jpg',
+  '0xfb628855e5d4a5b71f4428513c8d40af495b568747c3f78ad25725e5478c2350': '/portraits/seed/taeo.jpg',
+  '0xd4f59f751dbc442b92987cc2a9978f99dca4213da980756c106780917e16f7fe': '/portraits/seed/yuna.jpg',
+  '0x443a243b74177568ba149a040f3e0d924b9e9d2f52f03d0e509ae6cd7e877010': '/portraits/seed/subin.jpg',
+  '0xc8827e0c92569b4cc686f884462fc9c0ed58950d1549d128b18a2dc41cbee98e': '/portraits/seed/siu.jpg',
+  '0xdd868558e50779d0e3b8ad41847a176838e0c7a42dc4a60a4a27775e8d6128dc': '/portraits/seed/yerin.jpg',
 });
 
 /** Return trusted candidates in priority order. Deployed seeds use their

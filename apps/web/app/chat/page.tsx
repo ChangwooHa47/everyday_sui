@@ -20,7 +20,7 @@ import {
 import { Icon } from "../icons";
 import { ResilientImage } from '../components';
 import { market, formatPrice, purchaseCharacter, pendingPreviewMessages, MarketRequestError } from '@/lib/market';
-import { nftGiftImageUrl, nftGifts, explorerTxUrl } from '@/lib/gifts';
+import { nftGiftImageSources, nftGifts, explorerTxUrl } from '@/lib/gifts';
 import type { MarketPreview, NftGiftCatalogItem } from '@everyday/contracts';
 
 type Msg = { role: "user" | "assistant"; content: string; id?: number; gift?: ChatMessage['gift'] };
@@ -50,7 +50,7 @@ function GiftCard({ gift, product, onOpen }: { gift: NonNullable<Msg['gift']>; p
     <div className="gift-card gift-confirmed">
       <button type="button" onClick={onOpen} className="gift-hero">
         {product?.imageUrl
-          ? <div className="gift-image"><ResilientImage sources={[nftGiftImageUrl(product)]} alt={product.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
+          ? <div className="gift-image"><ResilientImage sources={nftGiftImageSources(product)} alt={product.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
           : <div className="gift-image skeleton" aria-hidden />}
         <div style={{ minWidth: 0 }}>
           <div className="caption" style={{ color: 'var(--key)', fontWeight: 700 }}>🎁 NFT 선물이 도착했어요</div>

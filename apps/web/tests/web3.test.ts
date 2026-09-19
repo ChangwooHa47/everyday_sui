@@ -65,14 +65,14 @@ test('market prices preserve a single MIST and u64 maximum without floating poin
   assert.equal(formatPrice('18446744073709551615'), '18446744073.709551615 SUI');
 });
 
-test('Walrus market images use strict reads and deployed seeds prefer their byte-identical local copy', () => {
+test('Walrus market images use strict reads and deployed seeds prefer their bundled portrait', () => {
   const listing = { id: '0xc8827e0c92569b4cc686f884462fc9c0ed58950d1549d128b18a2dc41cbee98e', title: '시우',
     active: true, published: true, creator: pkg, operator: pkg, priceMist: '1', agentBps: 0, treasuryMist: '0',
     package: { blobId: 'a'.repeat(43), contentHash: '1234567890abcdef' + '0'.repeat(48), endEpoch: '578' },
     policy: { perGiftLimitMist: '0', dailyLimitMist: '0', allowedGiftIds: [] } };
   assert.deepEqual(marketImageSources(listing,
     'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0'), [
-    '/portraits/wangja-night-1.png',
+    '/portraits/seed/siu.jpg',
     // Walrus sends no Content-Type with nosniff, so the API re-serves the bytes with a real media type.
     'http://127.0.0.1:3001/v1/market/listings/0xc8827e0c92569b4cc686f884462fc9c0ed58950d1549d128b18a2dc41cbee98e/preview-image',
     'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0?strict_consistency_check=true',

@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { NftGiftCatalogItem } from "@everyday/contracts";
-import { nftGiftImageUrl, nftGifts } from "@/lib/gifts";
+import { nftGiftImageSources, nftGifts } from "@/lib/gifts";
 import { formatPrice } from "@/lib/market";
 import { BottomNav, ResilientImage } from "../components";
 import { Icon } from "../icons";
@@ -93,7 +93,7 @@ export default function MarketPage() {
               return (
                 <article key={gift.id} role="link" tabIndex={0} onClick={() => detail(gift.id)} onKeyDown={e => { if (e.key === "Enter") detail(gift.id); }}
                   style={{ position: "relative", aspectRatio: "159.5 / 252.5", borderRadius: 4, overflow: "hidden", cursor: "pointer", background: "var(--orange-100)", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-                  <ResilientImage sources={[nftGiftImageUrl(gift)]} alt={gift.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                  <ResilientImage sources={nftGiftImageSources(gift)} alt={gift.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
                   <div style={{ position: "relative", padding: "28px 10px 16px", display: "flex", flexDirection: "column", gap: 4, background: "var(--overlay-scrim)" }}>
                     <strong style={{ color: "#fff", fontSize: 16, fontWeight: 500, letterSpacing: "-0.07em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{gift.title}</strong>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", overflowWrap: "anywhere" }}>

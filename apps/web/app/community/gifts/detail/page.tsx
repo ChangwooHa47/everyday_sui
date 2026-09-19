@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { NftGiftCatalogItem } from '@everyday/contracts';
-import { nftGiftImageUrl, nftGifts } from '@/lib/gifts';
+import { nftGiftImageSources, nftGifts } from '@/lib/gifts';
 import { formatPrice } from '@/lib/market';
 import { Icon } from '../../../icons';
 import { ResilientImage } from '../../../components';
@@ -40,7 +40,7 @@ function GiftProduct({ id }: { id: string }) {
     <main style={{ flex: 1, padding: '16px 20px 28px' }}>
       {gift && <>
         <div style={{ aspectRatio: '1', borderRadius: 24, overflow: 'hidden', background: 'var(--orange-100)' }}>
-          <ResilientImage sources={[nftGiftImageUrl(gift)]} alt={gift.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+          <ResilientImage sources={nftGiftImageSources(gift)} alt={gift.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
         </div>
         <section style={{ padding: '24px 4px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
