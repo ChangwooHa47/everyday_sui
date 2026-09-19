@@ -4,7 +4,9 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MarketPreview } from "@everyday/contracts";
 import { formatPrice, market } from "@/lib/market";
+import { marketImageSources } from "@/lib/market-images";
 import { Icon } from "../../icons";
+import { ResilientImage } from "../../components";
 
 function MarketCharacterDetail() {
   const router = useRouter();
@@ -47,6 +49,7 @@ function MarketCharacterDetail() {
   if (!preview) return null;
   const { character, listing } = preview;
   const metadata = [character.gender].filter(Boolean);
+  const imageSources = marketImageSources(listing, character.imageUrl);
 
   return (
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", background: "var(--gray-50)" }}>
@@ -69,12 +72,9 @@ function MarketCharacterDetail() {
             background: "linear-gradient(160deg, var(--orange-100), var(--orange-400))",
           }}
         >
-          {character.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={character.imageUrl} alt={character.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 72 }}>🙂</div>
-          )}
+          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 72 }} aria-hidden>🙂</div>
+          <ResilientImage sources={imageSources} alt={character.name}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
         </div>
 
         <section style={{ padding: "24px 4px 0" }}>
