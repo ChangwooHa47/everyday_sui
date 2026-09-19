@@ -8,8 +8,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { backend } from "@/lib/api";
 import { market, recommendListings } from "@/lib/market";
+import { marketImageSources } from "@/lib/market-images";
 import { filterCards, sortCards, toCards, type CommunityCard } from "@/lib/community";
-import { BottomNav } from "../components";
+import { BottomNav, ResilientImage } from "../components";
 import { Icon } from "../icons";
 
 function ago(iso?: string) {
@@ -25,16 +26,16 @@ function ago(iso?: string) {
 
 function Post({ card, onOpen }: { card: CommunityCard; onOpen: () => void }) {
   const { listing, preview, engagement } = card;
-  const buyers = listing.buyerCount ? Number(listing.buyerCount) : 0;
-  const images = [preview?.imageUrl].filter((u): u is string => Boolean(u));
+  const buyers = listing.buyerCount ?? "0";
+  const imageSources = marketImageSources(listing, preview?.imageUrl);
   return (
     <article style={{ display: "flex", flexDirection: "column", gap: 4, padding: "0 20px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          {preview?.imageUrl
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={preview.imageUrl} alt="" style={{ width: 42, height: 42, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-            : <div style={{ width: 42, height: 42, borderRadius: "50%", background: "var(--orange-100)", flexShrink: 0 }} />}
+          <div style={{ position: "relative", width: 42, height: 42, borderRadius: "50%", overflow: "hidden", background: "var(--orange-100)", flexShrink: 0 }}>
+            <ResilientImage sources={imageSources} alt=""
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
             <span style={{ fontSize: 18, fontWeight: 500, letterSpacing: "-0.07em", color: "var(--black)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{listing.title}</span>
             <span style={{ fontSize: 13, fontWeight: 400, letterSpacing: "-0.07em", color: "var(--gray-500)", whiteSpace: "nowrap" }}>{ago(preview?.registeredAt)}</span>
@@ -47,19 +48,17 @@ function Post({ card, onOpen }: { card: CommunityCard; onOpen: () => void }) {
       </div>
       <p style={{ margin: 0, padding: "2px 0 8px 32px", fontSize: 16, fontWeight: 400, lineHeight: 1.5, letterSpacing: "-0.03em", color: "#121212" }}>
         {preview?.summary || `${listing.title}(이)가 커뮤에 왔어요.`}
-        {(buyers > 0 || engagement) && (
-          <span style={{ color: "var(--gray-500)" }}> {[buyers ? `${buyers}명과 대화 중` : null, engagement ? `대화 ${engagement.turns}회` : null].filter(Boolean).join(" · ")}</span>
+        {(buyers !== "0" || engagement) && (
+          <span style={{ color: "var(--gray-500)" }}> {[buyers !== "0" ? `${buyers}명과 대화 중` : null, engagement ? `대화 ${engagement.turns}회` : null].filter(Boolean).join(" · ")}</span>
         )}
       </p>
-      {images.length > 0 && (
+      {imageSources.length > 0 && (
         <div style={{ display: "flex", gap: 17, paddingLeft: 32, overflowX: "auto", scrollbarWidth: "none" }}>
-          {images.map((src, i) => (
-            <button key={i} type="button" onClick={onOpen} aria-label="프로필 보기"
-              style={{ width: 267, height: 267, flexShrink: 0, borderRadius: 4, overflow: "hidden", border: 0, padding: 0, background: "var(--orange-100)", cursor: "pointer" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            </button>
-          ))}
+          <button type="button" onClick={onOpen} aria-label="프로필 보기"
+            style={{ position: "relative", width: 267, height: 267, flexShrink: 0, borderRadius: 4, overflow: "hidden", border: 0, padding: 0, background: "var(--orange-100)", cursor: "pointer" }}>
+            <ResilientImage sources={imageSources} alt=""
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          </button>
         </div>
       )}
     </article>

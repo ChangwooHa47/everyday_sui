@@ -15,8 +15,8 @@ export function ListingCard({ card, saved, onToggleSave }: { card: CommunityCard
   const router = useRouter();
   const { listing, preview, engagement } = card;
   const href = `/community/detail?listing=${encodeURIComponent(listing.id)}`;
-  const buyers = listing.buyerCount ? Number(listing.buyerCount) : 0;
-  const meta = buyers ? `${buyers}명과 함께` : engagement ? `대화 ${engagement.turns}회` : '첫 구매자를 기다려요';
+  const buyers = listing.buyerCount ?? '0';
+  const meta = buyers !== '0' ? `${buyers}명과 함께` : engagement ? `대화 ${engagement.turns}회` : '첫 구매자를 기다려요';
   const imageSources = marketImageSources(listing, preview?.imageUrl);
   return (
     <article role="link" tabIndex={0} onClick={() => router.push(href)} onKeyDown={e => { if (e.key === 'Enter') router.push(href); }}

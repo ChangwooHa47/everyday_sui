@@ -20,6 +20,7 @@ export default function MarketPage() {
   const [cards, setCards] = useState<CommunityCard[] | null>(null);
   const [gifts, setGifts] = useState<NftGiftCatalogItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [giftError, setGiftError] = useState<string | null>(null);
   const [suiBalance, setSuiBalance] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("popular");
   const [relationship, setRelationship] = useState<RelationshipFilter>("전체");
@@ -31,7 +32,8 @@ export default function MarketPage() {
     setSaved(savedListingIds());
     void market.list().then(catalog => { if (active) setCards(toCards(catalog)); })
       .catch(e => { if (active) setError(e instanceof Error ? e.message : "캐릭터를 불러오지 못했어요."); });
-    void nftGifts.list().then(value => { if (active) setGifts(value.filter(gift => gift.active)); }).catch(() => { if (active) setGifts([]); });
+    void nftGifts.list().then(value => { if (active) setGifts(value.filter(gift => gift.active)); })
+      .catch(() => { if (active) setGiftError("NFT 선물 목록을 불러오지 못했어요."); });
     void import("@/lib/wallet-auth").then(async ({ restoreWalletToken, walletKit }) => {
       await restoreWalletToken();
       const account = walletKit.stores.$connection.get().account;
@@ -67,7 +69,7 @@ export default function MarketPage() {
       <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "0 20px 6px", scrollbarWidth: "none" }}>
         {SORTS.map(s => (
           <button key={s.key} type="button" className={`chip ${sort === s.key ? "selected" : ""}`} onClick={() => setSort(s.key)}
-            style={{ flexShrink: 0, color: sort === s.key ? "#fff" : "#767676" }}>{s.label}순</button>
+            style={{ flexShrink: 0, color: sort === s.key ? "#fff" : "#767676" }}>{s.label.endsWith("순") ? s.label : `${s.label}순`}</button>
         ))}
       </div>
       {availableRelationships.length > 1 && (
@@ -106,12 +108,13 @@ export default function MarketPage() {
           </div>
         </div>
         <p className="caption" style={{ margin: "-4px 0 0", color: "var(--gray-500)" }}>직접 사서 소장하거나, 캐릭터가 대화 중에 자기 금고로 골라 보내는 선물이에요.</p>
-        {gifts !== null && gifts.length === 0 && <p className="body2" style={{ color: "var(--gray-500)", margin: 0 }}>판매 준비 중인 NFT 선물이 있어요.</p>}
-        {gifts !== null && gifts.length > 0 && (
+        {giftError && <p role="alert" className="body2" style={{ color: "var(--gray-500)", margin: 0 }}>{giftError}</p>}
+        {!giftError && gifts !== null && gifts.length === 0 && <p className="body2" style={{ color: "var(--gray-500)", margin: 0 }}>판매 준비 중인 NFT 선물이 있어요.</p>}
+        {!giftError && gifts !== null && gifts.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {gifts.map(gift => {
               const soldOut = gift.kind === "external" ? !gift.active : BigInt(gift.minted) >= BigInt(gift.maxSupply);
-              const remain = gift.kind === "external" ? null : Number(gift.maxSupply) - Number(gift.minted);
+              const remain = gift.kind === "external" ? null : (BigInt(gift.maxSupply) - BigInt(gift.minted)).toString();
               return (
                 <article key={gift.id} role="link" tabIndex={0} onClick={() => giftDetail(gift.id)} onKeyDown={e => { if (e.key === "Enter") giftDetail(gift.id); }}
                   style={{ position: "relative", aspectRatio: "159.5 / 252.5", borderRadius: 4, overflow: "hidden", cursor: "pointer", background: "var(--orange-100)", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>

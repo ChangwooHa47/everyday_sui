@@ -168,7 +168,7 @@ function MarketCharacterDetail() {
 
           {/* 커뮤니티 신호 — 키컬러 태그 + 제작자 */}
           <div className="chip-row" style={{ padding: "4px 0" }}>
-            <span className="chip tag"># {Number(listing.buyerCount ?? 0)}명과 대화 중</span>
+            <span className="chip tag"># {listing.buyerCount ?? '0'}명과 대화 중</span>
             {stats && stats.giftsSent > 0 && <span className="chip tag"># 선물 {stats.giftsSent}번 보냄</span>}
             <button type="button" className="chip" style={{ padding: "10px", fontSize: 16 }}
               onClick={() => router.push(`/community/creator?address=${encodeURIComponent(listing.creator)}`)}>
