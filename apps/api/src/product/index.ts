@@ -17,6 +17,7 @@ import { AnthropicLlmClient } from './llm.js';
 import { createHiggsfieldImageProvider } from './image-provider.js';
 import type { GiftService } from '../gifts.js';
 import { createPhotoPaymentProvider } from './photo-payment.js';
+import { startAutomaticMemoryWorker } from './automatic-memory.js';
 
 export function productFromEnv(env: NodeJS.ProcessEnv = process.env): ProductOptions {
   return {
@@ -56,8 +57,13 @@ export function registerProduct(app: FastifyInstance, options: {
     registerProductLibrary(product, context, options.chain, options.packages);
   });
   if (options.providers.workers !== false) {
-    let stop: (() => Promise<void>) | undefined;
-    app.addHook('onReady', async () => { stop = startProductImageWorkers(context, () => app.log.error('Product background job failed')); });
-    app.addHook('preClose', async () => { await stop?.(); });
+    const stops: (() => Promise<void>)[] = [];
+    app.addHook('onReady', async () => {
+      stops.push(startProductImageWorkers(context, () => app.log.error('Product background job failed')));
+      if (options.memory) stops.push(startAutomaticMemoryWorker(options.db, options.providers.llm, options.memory,
+        { dailyLimit: options.dailyLimit ?? 50, globalDailyLimit: options.globalDailyLimit ?? 100 },
+        () => app.log.error('Automatic memory background job failed')));
+    });
+    app.addHook('preClose', async () => { await Promise.all(stops.map(stop => stop())); });
   }
 }

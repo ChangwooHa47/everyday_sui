@@ -103,8 +103,10 @@ CREATE TABLE IF NOT EXISTS market_preview_budget (
  owner text NOT NULL, listing_id text NOT NULL, used integer NOT NULL CHECK(used>0), PRIMARY KEY(owner,listing_id)
 );
 CREATE TABLE IF NOT EXISTS memory_accounts (
- owner text PRIMARY KEY, account_id text NOT NULL UNIQUE, enabled boolean NOT NULL DEFAULT true
+ owner text PRIMARY KEY, account_id text NOT NULL UNIQUE, enabled boolean NOT NULL DEFAULT true,
+ auto_store boolean NOT NULL DEFAULT false
 );
+ALTER TABLE memory_accounts ADD COLUMN IF NOT EXISTS auto_store boolean NOT NULL DEFAULT false;
 CREATE TABLE IF NOT EXISTS memory_jobs (
  owner text NOT NULL, request_id uuid NOT NULL, listing_id text NOT NULL, account_id text NOT NULL,
  input_hash text NOT NULL, job_id text, status text NOT NULL CHECK(status IN ('running','accepted','unknown')),

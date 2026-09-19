@@ -5,6 +5,7 @@ import type { Database } from './database.js';
 import type { MemoryProvider } from './memory-provider.js';
 import type { MarketChain } from './market-chain.js';
 import { requireMarketAccess } from './market.js';
+import { activeRecalledRelationshipMemories } from './product/automatic-memory.js';
 
 export async function memoryAccount(db: Database, owner: string) {
   const { rows } = await db.query<{ account_id: string }>('SELECT account_id FROM memory_accounts WHERE owner=$1 AND enabled=true', [owner]);
@@ -16,7 +17,7 @@ export function registerMemory(app: FastifyInstance, db: Database, auth: AuthCon
   const params = z.object({ listingId: addressSchema });
   app.get('/v1/me/memory-account', async req => {
     const owner = await authenticate(req, db, auth);
-    const { rows } = await db.query('SELECT account_id AS "accountId",enabled FROM memory_accounts WHERE owner=$1', [owner]);
+    const { rows } = await db.query('SELECT account_id AS "accountId",enabled,auto_store AS "autoStore" FROM memory_accounts WHERE owner=$1', [owner]);
     return { account: rows[0] ?? null };
   });
   app.post('/v1/me/memory-account/transaction', async req => {
@@ -28,13 +29,25 @@ export function registerMemory(app: FastifyInstance, db: Database, auth: AuthCon
     const owner = await authenticate(req, db, auth);
     const data = z.object({ accountId: addressSchema, consent: z.literal(true) }).strict().parse(req.body);
     await service().verify(owner, data.accountId);
-    await db.query(`INSERT INTO memory_accounts(owner,account_id,enabled) VALUES($1,$2,true)
-      ON CONFLICT(owner) DO UPDATE SET account_id=$2,enabled=true`, [owner, data.accountId]);
-    return { accountId: data.accountId };
+    // Connecting the private memory account is the one-time opt-in. Individual
+    // conversations stay interruption-free after this explicit wallet/delegate flow.
+    await db.query(`INSERT INTO memory_accounts(owner,account_id,enabled,auto_store) VALUES($1,$2,true,true)
+      ON CONFLICT(owner) DO UPDATE SET account_id=$2,enabled=true,auto_store=true`, [owner, data.accountId]);
+    return { accountId: data.accountId, autoStore: true };
   });
   app.delete('/v1/me/memory-account', async (req, reply) => {
     const owner = await authenticate(req, db, auth);
-    await db.query('UPDATE memory_accounts SET enabled=false WHERE owner=$1', [owner]);
+    await db.query('UPDATE memory_accounts SET enabled=false,auto_store=false WHERE owner=$1', [owner]);
+    const productTables = await db.query<{ count: number }>(`SELECT count(*)::integer AS count FROM information_schema.tables
+      WHERE table_schema='everyday' AND table_name IN ('users','automatic_memory_extractions','automatic_memories')`);
+    if (productTables.rows[0]?.count === 3) await db.query(`WITH product_user AS (
+        SELECT id FROM everyday.users WHERE wallet_address=$1
+      ), skipped AS (
+        UPDATE everyday.automatic_memory_extractions SET status='skipped',updated_at=now()
+        WHERE user_id IN (SELECT id FROM product_user) AND status IN ('pending','running')
+      ) UPDATE everyday.automatic_memories SET status='filtered',updated_at=now()
+        WHERE user_id IN (SELECT id FROM product_user)
+          AND status IN ('pending','submitting','submitted','checking')`, [owner]);
     return reply.code(204).send();
   });
   app.post('/v1/me/relationships/:listingId/remember', async (req, reply) => {
@@ -77,6 +90,9 @@ export function registerMemory(app: FastifyInstance, db: Database, auth: AuthCon
     const owner = await authenticate(req, db, auth);
     const { listingId } = params.parse(req.params);
     const { query } = z.object({ query: z.string().trim().min(1).max(2000) }).strict().parse(req.body);
-    return service().recall(owner, await memoryAccount(db, owner), listingId, query);
+    const recalled = await service().recall(owner, await memoryAccount(db, owner), listingId, query);
+    const active = new Set(await activeRecalledRelationshipMemories(db, owner, listingId, recalled.results.map(item => item.text)));
+    const results = recalled.results.filter(item => active.has(item.text));
+    return { ...recalled, results, total: results.length };
   });
 }

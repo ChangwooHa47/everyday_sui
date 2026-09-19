@@ -264,8 +264,27 @@ export interface MarketCatalog { listings: MarketListing[]; previews: Record<str
 /** One short buyer review per wallet and listing. Conversation text never appears here. */
 export interface MarketReview { owner: string; rating: number; text: string; createdAt: string; }
 export interface MarketCommunity { reviews: MarketReview[]; averageRating: number | null; reviewCount: number; giftsSent: number; registeredAt: string | null; }
-export interface MemoryAccountBinding { account: { accountId: string; enabled: boolean } | null; }
+export interface MemoryAccountBinding { account: { accountId: string; enabled: boolean; autoStore: boolean } | null; }
 export interface MemorySearchResult { results: { text: string; blob_id: string; distance: number }[]; total: number; }
+export type AutomaticMemoryKind = 'preference' | 'promise' | 'shared_experience' | 'anniversary' | 'relationship_change';
+export type AutomaticMemoryStatus = 'pending' | 'submitting' | 'submitted' | 'checking' | 'stored' | 'failed' | 'unknown' | 'superseded' | 'filtered';
+export type PromiseMemoryStatus = 'planned' | 'completed' | 'cancelled';
+/** Private server-side mapping for an automatically extracted long-term memory. */
+export interface AutomaticMemoryRecord {
+  id: string;
+  characterId: number;
+  listingId: string;
+  sourceUserMessageId: number;
+  sourceAiMessageId: number;
+  kind: AutomaticMemoryKind;
+  summary: string;
+  confidence: number;
+  eventDate: string | null;
+  promiseStatus: PromiseMemoryStatus | null;
+  status: AutomaticMemoryStatus;
+  supersedesId: string | null;
+  createdAt: string;
+}
 export interface PublicationIdentity { publicationId: string; }
 /** Private authenticated transport only; never put signed transaction bytes in a public response or environment. */
 export interface SignedPublicationStep { bytes: string; signature: string; digest: string; }

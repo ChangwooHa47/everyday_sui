@@ -25,5 +25,5 @@ test('history mismatch or damaged schema fails startup without clearing or repla
   await db.query("UPDATE everyday.flyway_schema_history SET checksum=1081842246 WHERE version='11'");
   await db.query('ALTER TABLE everyday.characters DROP COLUMN soul_ready');
   await assert.rejects(migrateProduct(db), /required product columns/);
-  assert.equal((await db.query<{ count: number }>('SELECT count(*)::int AS count FROM everyday.flyway_schema_history')).rows[0].count, 11);
+  assert.equal((await db.query<{ count: number }>('SELECT count(*)::int AS count FROM everyday.flyway_schema_history')).rows[0].count, 12);
 });
