@@ -16,7 +16,7 @@ import { registerProduct } from './product/index.js';
 import type { ProductOptions } from './product/context.js';
 import { registerPublications } from './publications.js';
 
-export function buildApp(logger = false, options?: { db: Database; auth: AuthConfig; ai?: AiConfig; aiLimits?: Pick<AiConfig, 'dailyLimit' | 'globalDailyLimit'>; market?: MarketChain; giftMarket?: MarketChain; runtime?: MarketRuntime; memory?: MemoryProvider; gifts?: GiftService; product?: ProductOptions }) {
+export function buildApp(logger = false, options?: { db: Database; auth: AuthConfig; ai?: AiConfig; aiLimits?: Pick<AiConfig, 'dailyLimit' | 'globalDailyLimit'>; market?: MarketChain; giftMarket?: MarketChain; externalNftImageOrigins?: string[]; runtime?: MarketRuntime; memory?: MemoryProvider; gifts?: GiftService; product?: ProductOptions }) {
   const app = Fastify({
     logger: logger ? { redact: ['req.headers.authorization', 'req.headers.cookie'] } : false,
     bodyLimit: 1024 * 1024,
@@ -58,7 +58,8 @@ export function buildApp(logger = false, options?: { db: Database; auth: AuthCon
         dailyLimit: options.aiLimits?.dailyLimit ?? options.ai?.dailyLimit,
         globalDailyLimit: options.aiLimits?.globalDailyLimit ?? options.ai?.globalDailyLimit });
       registerAi(app, options.db, options.auth, options.ai);
-      registerMarket(app, options.db, options.auth, options.market, options.runtime?.packages, Boolean(options.product), options.giftMarket);
+      registerMarket(app, options.db, options.auth, options.market, options.runtime?.packages, Boolean(options.product),
+        options.giftMarket, options.externalNftImageOrigins);
       registerMarketFlow(app, options.db, options.auth, options.market, options.runtime, options.ai, options.memory, options.gifts, options.giftMarket);
       registerPublications(app, options.db, options.auth, options.market);
       if (options.gifts) {

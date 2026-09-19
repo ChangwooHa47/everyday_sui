@@ -5,6 +5,7 @@ import type { MarketChain } from '../market-chain.js';
 import { requireMarketAccess } from '../market.js';
 import type { MemoryProvider } from '../memory-provider.js';
 import type { GiftService } from '../gifts.js';
+import type { PackageStore } from '../market-package.js';
 import { productError, productId, type CharacterRow, type ProductContext, type ProductIdentity, type ProductLlm, type ProductImageProvider, type PhotoPaymentProvider } from './core.js';
 
 export interface ProductOptions {
@@ -13,7 +14,7 @@ export interface ProductOptions {
   workers?: boolean;
 }
 export function createProductContext(db: Database, auth: AuthConfig, providers: ProductOptions,
-  chain?: MarketChain, memory?: MemoryProvider, gifts?: GiftService): ProductContext {
+  chain?: MarketChain, memory?: MemoryProvider, gifts?: GiftService, packages?: PackageStore): ProductContext {
   const identities = new WeakMap<FastifyRequest, ProductIdentity>();
   const licensed = async (characterId: string, source = db) =>
     (await source.query<{ listing_id: string; license_id: string; base_prompt: string }>(
@@ -64,6 +65,17 @@ export function createProductContext(db: Database, auth: AuthConfig, providers: 
       if (!binding) return null;
       if (!chain) throw productError(503);
       try { return await chain.listing(binding.listing_id); } catch { throw productError(503); }
+    },
+    async licensedGiftContext(characterId, source = db) {
+      const binding = await licensed(characterId, source);
+      if (!binding) return null;
+      if (!chain || !packages) throw productError(503);
+      try {
+        const listing = await chain.listing(binding.listing_id);
+        const characterPackage = await packages.load(listing);
+        if (characterPackage.listingId !== listing.id) throw Error('Package mismatch');
+        return { listing, persona: characterPackage.giftPersona };
+      } catch { throw productError(503); }
     },
     async personalizedPrompt(characterId, fallback, callName, source = db) {
       const binding = await licensed(characterId, source);

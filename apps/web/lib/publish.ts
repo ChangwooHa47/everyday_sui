@@ -7,14 +7,8 @@ import { marketRequest } from './market';
 import { requirePackage } from './web3/config';
 import { SCENARIOS } from './scenarios';
 import { encode, sha256 } from './web3/schema';
-
-export function priceToMist(value: string) {
-  if (!/^(0|[1-9]\d{0,10})(\.\d{1,9})?$/.test(value)) throw Error('가격을 확인해주세요.');
-  const [whole, fraction = ''] = value.split('.');
-  const mist = BigInt(whole) * 1_000_000_000n + BigInt(fraction.padEnd(9, '0'));
-  if (mist <= 0n || mist > 18446744073709551615n) throw Error('가격을 확인해주세요.');
-  return mist.toString();
-}
+import { priceToMist } from './sui-amount';
+export { priceToMist } from './sui-amount';
 
 /** Gift policy is fixed at Listing creation (market.move has no later override), so it is part of the publication fingerprint. */
 export interface GiftPolicyInput { perGiftLimitMist: string; dailyLimitMist: string; allowedGiftIds: string[] }

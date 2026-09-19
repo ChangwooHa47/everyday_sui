@@ -33,6 +33,7 @@ export interface MarketListing {
 
 /** On-chain limited-edition gift product; SUI amounts remain decimal MIST strings. */
 export interface NftGiftProduct {
+  kind?: 'everyday';
   id: string;
   title: string;
   description: string;
@@ -47,6 +48,7 @@ export interface NftGiftProduct {
 
 /** NFT gift currently owned by the authenticated wallet. */
 export interface OwnedNftGift {
+  kind?: 'everyday';
   id: string;
   productId: string;
   title: string;
@@ -54,6 +56,77 @@ export interface OwnedNftGift {
   imageUrl: string;
   imageHash: string;
   edition: string;
+}
+
+/** Admin-approved, seller-deposited external NFT offered for a fixed SUI price. */
+export interface ExternalNftGiftProduct {
+  kind: 'external';
+  id: string;
+  collectionId: string;
+  collectionName: string;
+  objectId: string;
+  objectType: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  imageHash: string;
+  merchant: string;
+  priceMist: string;
+  active: boolean;
+  verified: true;
+}
+
+export type NftGiftCatalogItem = NftGiftProduct | ExternalNftGiftProduct;
+
+/** A deposited external NFT whose exact object is currently owned by this wallet. */
+export interface OwnedExternalNftGift {
+  kind: 'external';
+  id: string;
+  productId: string;
+  collectionId: string;
+  collectionName: string;
+  objectType: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  imageHash: string;
+  verified: true;
+}
+
+export type OwnedNftGiftItem = OwnedNftGift | OwnedExternalNftGift;
+
+export interface ExternalNftCollection {
+  id: string;
+  name: string;
+  objectType: string;
+  active: boolean;
+}
+
+export interface ExternalNftOfferDraft {
+  policyId: string;
+  objectId: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  imageHash: string;
+  priceMist: string;
+}
+
+export interface ExternalNftPreferences {
+  receiveEnabled: boolean;
+  blockedPolicyIds: string[];
+}
+
+/** Author-authored gift behavior. It contains no buyer-specific relationship or memory data. */
+export interface GiftPersona {
+  enabled: boolean;
+  archetype: 'caretaker' | 'playful' | 'minimalist' | 'celebratory' | 'practical';
+  generosity: number;
+  spontaneity: number;
+  triggers: ('comfort' | 'milestone' | 'celebration' | 'encouragement')[];
+  preferredTags: string[];
+  blockedTags: string[];
+  cooldownHours: number;
 }
 
 export interface ProductCharacter {

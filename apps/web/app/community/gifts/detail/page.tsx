@@ -2,15 +2,15 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { NftGiftProduct } from '@everyday/contracts';
-import { nftGifts } from '@/lib/gifts';
+import type { NftGiftCatalogItem } from '@everyday/contracts';
+import { nftGiftImageUrl, nftGifts } from '@/lib/gifts';
 import { formatPrice } from '@/lib/market';
 import { Icon } from '../../../icons';
 
 function GiftDetail() {
   const router = useRouter();
   const id = useSearchParams().get('product') ?? '';
-  const [gift, setGift] = useState<NftGiftProduct | null>(null);
+  const [gift, setGift] = useState<NftGiftCatalogItem | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -26,7 +26,7 @@ function GiftDetail() {
     try { await nftGifts.purchase(gift); router.push('/my/gifts'); }
     catch (reason) { setError(reason instanceof Error ? reason.message : '구매를 완료하지 못했어요.'); setBusy(false); }
   }
-  const soldOut = gift ? BigInt(gift.minted) >= BigInt(gift.maxSupply) : false;
+  const soldOut = gift ? gift.kind === 'external' ? !gift.active : BigInt(gift.minted) >= BigInt(gift.maxSupply) : false;
   return <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--gray-50)' }}>
     <header className="topbar" style={{ background: '#fff' }}>
       <button className="nav-btn nav-prev" onClick={() => router.back()} aria-label="이전"><Icon name="chevron-left" size={24}/></button>
@@ -35,14 +35,18 @@ function GiftDetail() {
     <main style={{ flex: 1, padding: '16px 20px 28px' }}>
       {gift && <>
         <div style={{ aspectRatio: '1', borderRadius: 24, overflow: 'hidden', background: 'var(--orange-100)' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}<img src={gift.imageUrl} alt={gift.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+          {/* eslint-disable-next-line @next/next/no-img-element */}<img src={nftGiftImageUrl(gift)} alt={gift.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
         </div>
         <section style={{ padding: '24px 4px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
             <h1 className="h2" style={{ margin: 0 }}>{gift.title}</h1><strong>{formatPrice(gift.priceMist)}</strong>
           </div>
           <p className="body1" style={{ color: 'var(--gray-700)' }}>{gift.description}</p>
-          <p className="caption" style={{ color: 'var(--gray-500)' }}>에디션 {gift.minted} / {gift.maxSupply}</p>
+          {gift.kind === 'external' ? <>
+            <p className="caption" style={{ color: 'var(--orange-700)', fontWeight: 700 }}>✓ 승인 컬렉션 · NFT 예치 확인 · {gift.collectionName}</p>
+            <p className="caption" style={{ color: 'var(--gray-500)', wordBreak: 'break-all' }}>NFT {gift.objectId.slice(0, 10)}…{gift.objectId.slice(-6)}</p>
+            <p className="caption" style={{ color: 'var(--gray-500)' }}>제목·설명·이미지는 판매자 입력 정보예요. 예치된 NFT 1개를 SUI로 구매하며 결제와 지갑 전달은 한 거래에서 처리돼요.</p>
+          </> : <p className="caption" style={{ color: 'var(--gray-500)' }}>에디션 {gift.minted} / {gift.maxSupply}</p>}
         </section>
       </>}
       {error && <p role="alert" className="body2" style={{ color: 'var(--gray-700)' }}>{error}</p>}

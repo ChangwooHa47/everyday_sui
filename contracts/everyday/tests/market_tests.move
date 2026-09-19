@@ -1,11 +1,15 @@
 #[test_only]
 module everyday::market_tests;
 
-use everyday::market::{Self, Admin, Creator, Listing, License, GiftProduct, GiftReceipt, NftGiftProduct, GiftNft};
+use everyday::market::{Self, Admin, Creator, Listing, License, GiftProduct, GiftReceipt, NftGiftProduct, GiftNft,
+    ExternalCollectionPolicy, ExternalNftOffer};
 use sui::test_scenario::{Self, Scenario};
 use sui::coin::{Self, Coin};
 use sui::sui::SUI;
 use sui::clock;
+
+public struct TestExternalNft has key, store { id: UID, serial: u64 }
+public struct WrongExternalNft has key, store { id: UID }
 
 fun setup(per_gift: u64, daily: u64, allow: bool): Scenario {
     let mut s = test_scenario::begin(@0xA);
@@ -264,5 +268,142 @@ fun user_can_buy_nft_gift_directly() {
     let payment = s.take_from_sender<Coin<SUI>>();
     assert!(payment.value() == 75);
     coin::burn_for_testing(payment);
+    s.end();
+}
+
+#[test]
+fun external_nft_can_be_deposited_and_bought_for_sui() {
+    let mut s = test_scenario::begin(@0xA);
+    market::init_for_testing(s.ctx());
+    s.next_tx(@0xA);
+    let admin = s.take_from_sender<Admin>();
+    market::approve_external_collection<TestExternalNft>(&admin, std::string::utf8(b"Verified test collection"), s.ctx());
+    s.return_to_sender(admin);
+    s.next_tx(@0xD);
+    let policy = s.take_shared<ExternalCollectionPolicy>();
+    market::create_external_nft_offer(&policy, TestExternalNft { id: object::new(s.ctx()), serial: 7 },
+        std::string::utf8(b"External star"), std::string::utf8(b"Deposited collectible"),
+        std::string::utf8(b"https://example.com/external-star.png"), b"22222222222222222222222222222222",
+        75, s.ctx());
+    test_scenario::return_shared(policy);
+    s.next_tx(@0xB);
+    let policy = s.take_shared<ExternalCollectionPolicy>();
+    let offer = s.take_shared<ExternalNftOffer>();
+    market::purchase_external_nft<TestExternalNft>(offer, &policy,
+        coin::mint_for_testing<SUI>(75, s.ctx()), s.ctx());
+    test_scenario::return_shared(policy);
+    s.next_tx(@0xB);
+    let nft = s.take_from_sender<TestExternalNft>();
+    assert!(nft.serial == 7);
+    s.return_to_sender(nft);
+    s.next_tx(@0xD);
+    let payment = s.take_from_sender<Coin<SUI>>();
+    assert!(payment.value() == 75);
+    coin::burn_for_testing(payment);
+    s.end();
+}
+
+#[test]
+fun listing_treasury_can_gift_one_verified_external_nft_atomically() {
+    let mut s = test_scenario::begin(@0xA);
+    market::init_for_testing(s.ctx());
+    market::register_creator(s.ctx());
+    s.next_tx(@0xA);
+    let admin = s.take_from_sender<Admin>();
+    market::approve_external_collection<TestExternalNft>(&admin, std::string::utf8(b"Verified test collection"), s.ctx());
+    s.return_to_sender(admin);
+    s.next_tx(@0xD);
+    let policy = s.take_shared<ExternalCollectionPolicy>();
+    market::create_external_nft_offer(&policy, TestExternalNft { id: object::new(s.ctx()), serial: 8 },
+        std::string::utf8(b"External moon"), std::string::utf8(b"Deposited collectible"),
+        std::string::utf8(b"https://example.com/external-moon.png"), b"33333333333333333333333333333333",
+        100, s.ctx());
+    test_scenario::return_shared(policy);
+    s.next_tx(@0xA);
+    let offer = s.take_shared<ExternalNftOffer>();
+    let offer_id = market::external_offer_id(&offer);
+    test_scenario::return_shared(offer);
+    let creator = s.take_from_sender<Creator>();
+    market::create_listing(&creator, @0xC, std::string::utf8(b"Everyday"), 1000, 2000,
+        100, 100, vector[offer_id], s.ctx());
+    s.return_to_sender(creator);
+    s.next_tx(@0xA);
+    let mut listing = s.take_shared<Listing>();
+    market::publish(&mut listing, std::string::utf8(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+        b"00000000000000000000000000000000", 100, s.ctx());
+    test_scenario::return_shared(listing);
+    buy(&mut s, 1000);
+    s.next_tx(@0xC);
+    let mut listing = s.take_shared<Listing>();
+    let offer = s.take_shared<ExternalNftOffer>();
+    let policy = s.take_shared<ExternalCollectionPolicy>();
+    let clock = clock::create_for_testing(s.ctx());
+    market::send_external_nft_gift<TestExternalNft>(&mut listing, offer, &policy, @0xB,
+        b"44444444444444444444444444444444", &clock, s.ctx());
+    clock::destroy_for_testing(clock);
+    assert!(market::treasury_value(&listing) == 100);
+    test_scenario::return_shared(listing);
+    test_scenario::return_shared(policy);
+    s.next_tx(@0xB);
+    let nft = s.take_from_sender<TestExternalNft>();
+    assert!(nft.serial == 8);
+    s.return_to_sender(nft);
+    let receipt = s.take_from_sender<GiftReceipt>();
+    s.return_to_sender(receipt);
+    s.next_tx(@0xD);
+    let payment = s.take_from_sender<Coin<SUI>>();
+    assert!(payment.value() == 100);
+    coin::burn_for_testing(payment);
+    s.end();
+}
+
+#[test]
+#[expected_failure(abort_code = 6, location = everyday::market)]
+fun external_offer_rejects_wrong_type_at_purchase() {
+    let mut s = test_scenario::begin(@0xA);
+    market::init_for_testing(s.ctx());
+    s.next_tx(@0xA);
+    let admin = s.take_from_sender<Admin>();
+    market::approve_external_collection<TestExternalNft>(&admin, std::string::utf8(b"Verified test collection"), s.ctx());
+    s.return_to_sender(admin);
+    s.next_tx(@0xD);
+    let policy = s.take_shared<ExternalCollectionPolicy>();
+    market::create_external_nft_offer(&policy, TestExternalNft { id: object::new(s.ctx()), serial: 9 },
+        std::string::utf8(b"External sun"), std::string::utf8(b"Deposited collectible"),
+        std::string::utf8(b"https://example.com/external-sun.png"), b"44444444444444444444444444444444",
+        75, s.ctx());
+    test_scenario::return_shared(policy);
+    s.next_tx(@0xB);
+    let policy = s.take_shared<ExternalCollectionPolicy>();
+    let offer = s.take_shared<ExternalNftOffer>();
+    market::purchase_external_nft<WrongExternalNft>(offer, &policy,
+        coin::mint_for_testing<SUI>(75, s.ctx()), s.ctx());
+    abort 99
+}
+
+#[test]
+fun seller_can_withdraw_external_nft_offer() {
+    let mut s = test_scenario::begin(@0xA);
+    market::init_for_testing(s.ctx());
+    s.next_tx(@0xA);
+    let admin = s.take_from_sender<Admin>();
+    market::approve_external_collection<TestExternalNft>(&admin, std::string::utf8(b"Verified test collection"), s.ctx());
+    s.return_to_sender(admin);
+    s.next_tx(@0xD);
+    let policy = s.take_shared<ExternalCollectionPolicy>();
+    market::create_external_nft_offer(&policy, TestExternalNft { id: object::new(s.ctx()), serial: 10 },
+        std::string::utf8(b"External planet"), std::string::utf8(b"Deposited collectible"),
+        std::string::utf8(b"https://example.com/external-planet.png"), b"55555555555555555555555555555555",
+        75, s.ctx());
+    test_scenario::return_shared(policy);
+    s.next_tx(@0xD);
+    let policy = s.take_shared<ExternalCollectionPolicy>();
+    let offer = s.take_shared<ExternalNftOffer>();
+    market::withdraw_external_nft_offer<TestExternalNft>(offer, &policy, s.ctx());
+    test_scenario::return_shared(policy);
+    s.next_tx(@0xD);
+    let nft = s.take_from_sender<TestExternalNft>();
+    assert!(nft.serial == 10);
+    s.return_to_sender(nft);
     s.end();
 }
