@@ -1,38 +1,26 @@
 "use client";
 
-// 마켓 (figma Develop · 06 마켓). 캐릭터 이용권 그리드가 주인공.
-// "Market" 헬베티카 제목 + 키컬러 잔액 뱃지, 검색, 정렬 칩(키컬러 사각), 관계 칩(검정 필), 2열 오버레이 카드.
-// NFT 선물 상품은 같은 카드 스타일로 아래 "Gift" 섹션에 붙는다(직접 구매·외부 등록·내 컬렉션 경로 유지).
+// 마켓 — 상품만 파는 탭. NFT 선물 상품을 직접 사거나, 내 컬렉션·외부 NFT 등록으로 간다.
+// 캐릭터 이용권 거래는 커뮤 탭(피드·스와이프 → 프로필 상세)이 담당한다.
+// 카드 스타일은 figma Develop의 오버레이 카드를 따른다: 모서리 4px, 제목 16, 가격 --key-deep, 메타 흰 60%.
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { NftGiftCatalogItem } from "@everyday/contracts";
 import { nftGiftImageUrl, nftGifts } from "@/lib/gifts";
-import { market, formatPrice } from "@/lib/market";
-import { RELATIONSHIP_FILTERS, SORTS, filterCards, savedListingIds, sortCards, toCards, toggleSaved,
-  type CommunityCard, type RelationshipFilter, type SortKey } from "@/lib/community";
+import { formatPrice } from "@/lib/market";
 import { BottomNav } from "../components";
 import { Icon } from "../icons";
-import { ListingCard } from "../community/ListingCard";
 
 export default function MarketPage() {
   const router = useRouter();
-  const [cards, setCards] = useState<CommunityCard[] | null>(null);
   const [gifts, setGifts] = useState<NftGiftCatalogItem[] | null>(null);
   const [giftsError, setGiftsError] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [giftError, setGiftError] = useState<string | null>(null);
   const [suiBalance, setSuiBalance] = useState<string | null>(null);
-  const [sort, setSort] = useState<SortKey>("popular");
-  const [relationship, setRelationship] = useState<RelationshipFilter>("전체");
   const [query, setQuery] = useState("");
-  const [saved, setSaved] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
-    setSaved(savedListingIds());
-    void market.list().then(catalog => { if (active) setCards(toCards(catalog)); })
-      .catch(e => { if (active) setError(e instanceof Error ? e.message : "캐릭터를 불러오지 못했어요."); });
     void nftGifts.list().then(value => { if (active) { setGifts(value.filter(gift => gift.active)); setGiftsError(false); } })
       .catch(() => { if (active) { setGifts([]); setGiftsError(true); } });
     void import("@/lib/wallet-auth").then(async ({ restoreWalletToken, walletKit }) => {
@@ -45,12 +33,14 @@ export default function MarketPage() {
     return () => { active = false; };
   }, []);
 
-  const visible = useMemo(() => cards ? sortCards(filterCards(cards, relationship, query), sort) : [], [cards, relationship, query, sort]);
-  const availableRelationships = useMemo(() => {
-    const present = new Set((cards ?? []).map(c => c.preview?.relationshipType).filter(Boolean));
-    return RELATIONSHIP_FILTERS.filter(f => f === "전체" || present.has(f));
-  }, [cards]);
-  const giftDetail = (id: string) => router.push(`/community/gifts/detail?product=${encodeURIComponent(id)}`);
+  const visible = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!gifts) return [];
+    if (!term) return gifts;
+    return gifts.filter(gift => gift.title.toLowerCase().includes(term) || gift.description.toLowerCase().includes(term));
+  }, [gifts, query]);
+
+  const detail = (id: string) => router.push(`/community/gifts/detail?product=${encodeURIComponent(id)}`);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh", background: "#fff" }}>
@@ -59,66 +49,49 @@ export default function MarketPage() {
         <span className="point-badge">{suiBalance === null ? "SUI" : formatPrice(suiBalance)}</span>
       </header>
 
-      <div style={{ padding: "0 20px 20px" }}>
+      <div style={{ padding: "0 20px 12px" }}>
         <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderRadius: 4, background: "var(--gray-50)" }}>
           <Icon name="search" size={18} style={{ color: "var(--gray-500)" }} />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="이름이나 소개로 찾기" aria-label="검색"
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="선물 이름으로 찾기" aria-label="선물 검색"
             style={{ flex: 1, border: 0, background: "transparent", font: "inherit", fontSize: 14, outline: "none", color: "var(--black)" }} />
         </label>
       </div>
 
-      <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "0 20px 6px", scrollbarWidth: "none" }}>
-        {SORTS.map(s => (
-          <button key={s.key} type="button" className={`chip ${sort === s.key ? "selected" : ""}`} onClick={() => setSort(s.key)}
-            style={{ flexShrink: 0, color: sort === s.key ? "#fff" : "#767676" }}>{s.label}</button>
-        ))}
+      <div style={{ display: "flex", gap: 6, padding: "0 20px 14px" }}>
+        <button type="button" className="chip dark" onClick={() => router.push("/my/gifts")}>내 컬렉션</button>
+        <button type="button" className="chip dark" onClick={() => router.push("/community/gifts/create")}>외부 NFT 등록</button>
       </div>
-      {availableRelationships.length > 1 && (
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "6px 20px 14px", scrollbarWidth: "none" }}>
-          {availableRelationships.map(f => (
-            <button key={f} type="button" className={`chip pill ${relationship === f ? "selected" : ""}`} onClick={() => setRelationship(f)} style={{ flexShrink: 0 }}>{f}</button>
-          ))}
-        </div>
-      )}
 
-      <main style={{ flex: 1, padding: "4px 20px 8px", display: "flex", flexDirection: "column", gap: 12 }}>
-        {error && <p role="alert" className="body2" style={{ color: "var(--gray-500)", textAlign: "center", padding: "48px 0" }}>{error}</p>}
-        {!error && cards === null && (
+      <main style={{ flex: 1, padding: "0 20px 8px", display: "flex", flexDirection: "column", gap: 12 }}>
+        <p className="caption" style={{ margin: 0, color: "var(--gray-500)" }}>
+          직접 사서 소장하거나, 캐릭터가 대화 중에 자기 금고로 골라 보내는 선물이에요.
+        </p>
+
+        {giftsError && <p role="alert" className="body2" style={{ color: "var(--gray-500)", margin: 0 }}>NFT 선물 목록을 불러오지 못했어요. 잠시 후 다시 확인해주세요.</p>}
+
+        {!giftsError && gifts === null && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {[0, 1, 2, 3].map(i => <div key={i} className="skeleton" style={{ aspectRatio: "159.5 / 252.5", borderRadius: 4 }} />)}
           </div>
         )}
-        {!error && cards !== null && visible.length === 0 && (
+
+        {!giftsError && gifts !== null && visible.length === 0 && (
           <div style={{ padding: "48px 20px", textAlign: "center", background: "var(--gray-50)", borderRadius: 4 }}>
-            <p className="headline1" style={{ margin: "0 0 4px" }}>{cards.length === 0 ? "아직 등록된 캐릭터가 없어요" : "조건에 맞는 캐릭터가 없어요"}</p>
-            <p className="caption" style={{ margin: 0, color: "var(--gray-500)" }}>{cards.length === 0 ? "내 캐릭터를 등록하면 여기에 보여요." : "필터나 검색어를 바꿔보세요."}</p>
-          </div>
-        )}
-        {visible.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {visible.map(card => <ListingCard key={card.listing.id} card={card} saved={saved.includes(card.listing.id)} onToggleSave={id => setSaved(toggleSaved(id))} />)}
+            <p className="headline1" style={{ margin: "0 0 4px" }}>{gifts.length === 0 ? "판매 준비 중인 NFT 선물이 있어요" : "검색 결과가 없어요"}</p>
+            <p className="caption" style={{ margin: 0, color: "var(--gray-500)" }}>
+              {gifts.length === 0 ? "승인된 외부 컬렉션 NFT를 직접 등록할 수도 있어요." : "검색어를 지워보세요."}
+            </p>
           </div>
         )}
 
-        {/* Gift — NFT 선물 상품 */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 20 }}>
-          <span className="page-title">Gift</span>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button type="button" className="chip dark" onClick={() => router.push("/my/gifts")}>내 컬렉션</button>
-            <button type="button" className="chip dark" onClick={() => router.push("/community/gifts/create")}>외부 NFT 등록</button>
-          </div>
-        </div>
-        <p className="caption" style={{ margin: "-4px 0 0", color: "var(--gray-500)" }}>직접 사서 소장하거나, 캐릭터가 대화 중에 자기 금고로 골라 보내는 선물이에요.</p>
-        {giftsError && <p role="alert" className="body2" style={{ color: "var(--gray-500)", margin: 0 }}>NFT 선물 목록을 불러오지 못했어요. 잠시 후 다시 확인해주세요.</p>}
-        {!giftsError && gifts !== null && gifts.length === 0 && <p className="body2" style={{ color: "var(--gray-500)", margin: 0 }}>판매 준비 중인 NFT 선물이 있어요.</p>}
-        {gifts !== null && gifts.length > 0 && (
+        {visible.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {gifts.map(gift => {
+            {visible.map(gift => {
               // 공급량은 u64 문자열이므로 BigInt 하나로 계산한다 (Number는 2^53 위에서 어긋난다).
               const remain = gift.kind === "external" ? null : BigInt(gift.maxSupply) - BigInt(gift.minted);
               const soldOut = remain !== null && remain <= 0n;
               return (
-                <article key={gift.id} role="link" tabIndex={0} onClick={() => giftDetail(gift.id)} onKeyDown={e => { if (e.key === "Enter") giftDetail(gift.id); }}
+                <article key={gift.id} role="link" tabIndex={0} onClick={() => detail(gift.id)} onKeyDown={e => { if (e.key === "Enter") detail(gift.id); }}
                   style={{ position: "relative", aspectRatio: "159.5 / 252.5", borderRadius: 4, overflow: "hidden", cursor: "pointer", background: "var(--orange-100)", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={nftGiftImageUrl(gift)} alt={gift.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />

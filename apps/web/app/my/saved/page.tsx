@@ -39,8 +39,8 @@ export default function SavedPage() {
           <div style={{ padding: "64px 24px", textAlign: "center" }}>
             <div style={{ fontSize: 44 }}>💛</div>
             <p className="headline2" style={{ margin: "10px 0 4px" }}>아직 찜한 캐릭터가 없어요</p>
-            <p className="caption" style={{ margin: 0, color: "var(--gray-500)" }}>마켓에서 마음에 드는 캐릭터의 하트를 눌러보세요.</p>
-            <button className="chip" style={{ marginTop: 14 }} onClick={() => router.push("/market")}>마켓 둘러보기</button>
+            <p className="caption" style={{ margin: 0, color: "var(--gray-500)" }}>커뮤에서 프로필을 열고 하트를 눌러보세요.</p>
+            <button className="chip" style={{ marginTop: 14 }} onClick={() => router.push("/community")}>커뮤 둘러보기</button>
           </div>
         )}
         {visible.length > 0 && (
