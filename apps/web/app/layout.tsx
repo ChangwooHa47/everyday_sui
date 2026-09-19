@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata = {
-  title: "everyday — with your character",
+  title: "Dear Mine — 나만의 캐릭터, 나만의 기억",
 };
 
 export const viewport = {
