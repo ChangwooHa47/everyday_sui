@@ -57,8 +57,8 @@ export const community = {
   of: (listingId: string) => marketRequest<MarketCommunity>(`/v1/market/listings/${encodeURIComponent(listingId)}/community`),
   /** Finds the caller's license on-chain first; the API verifies it again before storing the review. */
   async review(listingId: string, rating: number, text: string) {
-    const { getWalletToken, walletKit } = await import('./wallet-auth');
-    getWalletToken();
+    const { restoreWalletToken, walletKit } = await import('./wallet-auth');
+    await restoreWalletToken();
     const account = walletKit.stores.$connection.get().account;
     if (!account) throw Error('로그인해주세요.');
     const { normalizeSuiAddress } = await import('@mysten/sui/utils');
