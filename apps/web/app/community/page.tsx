@@ -8,11 +8,12 @@ import { useEffect, useState } from "react";
 import { backend } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { market, formatPrice, recommendListings } from "@/lib/market";
-import { BottomNav } from "../components";
+import { BottomNav, ResilientImage } from "../components";
 import type { NftGiftCatalogItem } from '@everyday/contracts';
 import { nftGiftImageUrl, nftGifts } from '@/lib/gifts';
+import { marketImageSources } from '@/lib/market-images';
 
-type HotCharacter = { key: string; name: string; imageUrl: string | null; emoji: string; price: string; summary: string; activity: string };
+type HotCharacter = { key: string; name: string; imageSources: string[]; emoji: string; price: string; summary: string; activity: string };
 
 export default function CommunityPage() {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function CommunityPage() {
         if (active) setRecommended(true);
       }
       if (active) setHot(listings.filter(c => c.active && c.published).map(c => ({ key: c.id, name: c.title,
-        imageUrl: previews[c.id]?.imageUrl ?? null, summary: previews[c.id]?.summary ?? '', emoji: '', price: c.priceMist,
+        imageSources: marketImageSources(c, previews[c.id]?.imageUrl), summary: previews[c.id]?.summary ?? '', emoji: '', price: c.priceMist,
         activity: catalog.engagement?.[c.id] ? `대화 ${catalog.engagement[c.id].turns}회 · 재방문 ${catalog.engagement[c.id].revisitPercent}%` : '' })));
     }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     void import('@/lib/wallet-auth').then(async ({ restoreWalletToken, walletKit }) => {
@@ -90,18 +91,11 @@ export default function CommunityPage() {
                 background: "linear-gradient(160deg, var(--orange-100), var(--orange-400))",
               }}
             >
-              {c.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={c.imageUrl}
-                  alt={c.name}
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              ) : (
-                <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 48 }}>
-                  {c.emoji}
-                </div>
-              )}
+              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 48 }} aria-hidden>
+                {c.emoji || '🙂'}
+              </div>
+              <ResilientImage sources={c.imageSources} alt={c.name}
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
               <div
                 style={{
                   position: "absolute",

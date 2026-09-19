@@ -1,8 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Icon, type IconName } from "./icons";
+
+/** Tries trusted candidates in order and removes the img after the last failure. */
+export function ResilientImage({
+  sources,
+  alt,
+  className,
+  style,
+}: {
+  sources: string[];
+  alt: string;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const key = sources.join('\n');
+  const [index, setIndex] = useState(0);
+  useEffect(() => { setIndex(0); }, [key]);
+  const src = sources[index];
+  if (!src) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} className={className} style={style} onError={() => setIndex(current => current + 1)} />
+  );
+}
 
 /** 온보딩 상단바: 이전 / 다음 */
 export function WizardBar({
