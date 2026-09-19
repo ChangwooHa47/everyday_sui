@@ -5,7 +5,7 @@ import { productFromEnv } from './product/index.js';
 import { readConfig } from './config.js';
 import { connectDatabase, migration } from './database.js';
 import { marketChainFromEnv, nftGiftChainFromEnv } from './market-chain.js';
-import { runtimeFromEnv, aiFromEnv, aiLimitsFromEnv } from './runtime-config.js';
+import { runtimeFromEnv, aiFromEnv, aiLimitsFromEnv, externalNftImageOriginsFromEnv } from './runtime-config.js';
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required; start Postgres first');
 const db = connectDatabase(process.env.DATABASE_URL);
@@ -20,7 +20,8 @@ for (const origin of origins) if (new URL(origin).origin !== origin) throw Error
 const market = marketChainFromEnv();
 const giftMarket = nftGiftChainFromEnv() ?? market;
 const app = buildApp(true, { db, auth: { origins, audience: process.env.API_AUDIENCE ?? 'http://127.0.0.1:3001', network: 'testnet' },
-  market, giftMarket, ...runtimeFromEnv(market, process.env, db), ai: aiFromEnv(), aiLimits: aiLimitsFromEnv(), product: productFromEnv() });
+  market, giftMarket, externalNftImageOrigins: externalNftImageOriginsFromEnv(),
+  ...runtimeFromEnv(market, process.env, db), ai: aiFromEnv(), aiLimits: aiLimitsFromEnv(), product: productFromEnv() });
 app.addHook('onClose', () => db.end());
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {

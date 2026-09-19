@@ -7,7 +7,7 @@ import { Transaction } from '@mysten/sui/transactions';
 import { fromHex } from '@mysten/sui/utils';
 import { normalizeStructTag } from '@mysten/sui/utils';
 import { bcs } from '@mysten/sui/bcs';
-import type { MarketListing } from '@everyday/contracts';
+import type { GiftPersona, MarketListing } from '@everyday/contracts';
 import { addressSchema, failure } from './auth.js';
 import { messagesSchema } from './turn-service.js';
 // Saleable author-authored settings only. Personal call names and relationship state are rejected.
@@ -19,8 +19,24 @@ export const productCharacterSchema = z.object({
   background: z.string().max(4000).optional(), speechStyles: z.array(z.string().max(255)).max(20).optional(),
   imageUrl: z.url().refine(url => new URL(url).protocol === 'https:').optional(),
 }).strict();
+const giftTag = z.string().regex(/^[a-z][a-z0-9-]{0,31}$/);
+export const giftPersonaSchema: z.ZodType<GiftPersona> = z.object({
+  enabled: z.boolean(),
+  archetype: z.enum(['caretaker', 'playful', 'minimalist', 'celebratory', 'practical']),
+  generosity: z.number().int().min(0).max(100),
+  spontaneity: z.number().int().min(0).max(100),
+  triggers: z.array(z.enum(['comfort', 'milestone', 'celebration', 'encouragement'])).max(4)
+    .refine(values => new Set(values).size === values.length, 'Gift triggers must be unique'),
+  preferredTags: z.array(giftTag).max(12)
+    .refine(values => new Set(values).size === values.length, 'Preferred gift tags must be unique'),
+  blockedTags: z.array(giftTag).max(12)
+    .refine(values => new Set(values).size === values.length, 'Blocked gift tags must be unique'),
+  cooldownHours: z.number().int().min(0).max(24 * 30),
+}).strict().refine(value => !value.preferredTags.some(tag => value.blockedTags.includes(tag)),
+  'Preferred and blocked gift tags must not overlap');
 export const packageSchema = z.object({ schemaVersion: z.literal(1), network: z.literal('testnet'),
   packageId: addressSchema, listingId: addressSchema, character: productCharacterSchema, preview: productCharacterSchema,
+  giftPersona: giftPersonaSchema.optional(),
   examples: messagesSchema.optional(), episodes: z.array(z.object({ id: z.string().min(1).max(80),
     title: z.string().min(1).max(120), setting: z.string().max(4000) }).strict()).max(20)
     .refine(episodes => new Set(episodes.map(episode => episode.id)).size === episodes.length, 'Episode IDs must be unique').default([]),

@@ -4,7 +4,7 @@ import { normalizeSuiAddress } from '@mysten/sui/utils';
 import { apiUrl, rpcUrl } from './web3/config';
 
 export const walletKit = createDAppKit({ networks: ['testnet'],
-  slushWalletConfig: { appName: 'everyday' },
+  slushWalletConfig: typeof window === 'undefined' ? null : { appName: 'everyday' },
   createClient: () => new SuiGrpcClient({ network: 'testnet', baseUrl: rpcUrl }) });
 type Session = { token: string; address: string; expiresAt: string };
 const sessionKey = 'everyday.session.v1';
@@ -60,9 +60,9 @@ export async function restoreWalletToken() {
 }
 
 export async function loginWithWallet() {
-  const address = walletKit.stores.$connection.get().account?.address;
-  if (!address) throw Error('로그인해주세요.');
-  const owner = normalizeSuiAddress(address);
+  const account = walletKit.stores.$connection.get().account;
+  if (!account) throw Error('로그인해주세요.');
+  const owner = normalizeSuiAddress(account.address);
   const started = generation;
   const check = () => { if (started !== generation) throw Error('다시 로그인해주세요.'); };
   async function post(path: string, body: unknown) {
@@ -86,6 +86,9 @@ export async function loginWithWallet() {
     throw Error('로그인 응답을 확인할 수 없습니다.');
   }
   if (generation !== started) { revoke(result.token); check(); }
+  try { walletKit.switchAccount({ account }); }
+  catch (error) { revoke(result.token); throw error; }
+  check();
   if (session) revoke(session.token);
   remember(result);
 }

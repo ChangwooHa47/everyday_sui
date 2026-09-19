@@ -16,8 +16,12 @@
 | [verify-market-testnet.mjs](verify-market-testnet.mjs) | 실제 거래·유료 저장·기억 검증. `--execute` 필수이며 일반 회귀 테스트에 포함하지 않는다. |
 | [verify-market-api.mjs](verify-market-api.mjs) | 별도 PGlite와 실제 Sui/Seal/MemWal 조회를 두 Origin에서 확인. 기존 전용 계정/검증 데이터가 필요하다. |
 | [register-market-seed.mjs](register-market-seed.mjs) | 이미 게시된 시드 상품을 지정 API 카탈로그에 등록. `--execute`로 DB를 변경하며 새 결제·업로드는 하지 않는다. |
+| [refresh-market-seed.mjs](refresh-market-seed.mjs) | 운영 operator/Seal 설정을 재사용해 새 creator로 시드 10명을 53 epochs 재게시하고 API에 등록. `--state-name`으로 실행별 로컬 복구 상태를 분리한다. 선물을 승인한 새 Listing에만 `--gift-ids`, `--per-gift-limit-mist`, `--daily-limit-mist`를 함께 지정한다. ignored 로컬 상태로 불확실한 업로드·거래의 자동 반복을 막는다. |
+| [replace-market-catalog.mjs](replace-market-catalog.mjs) | 새 시드 10개 등록을 확인한 뒤 이전 시드의 `market_previews`·`market_catalog` 행만 트랜잭션으로 제거. |
 | [market-seed.json](market-seed.json) | 원래 이미지 자산을 사용하는 시드 캐릭터 10명의 작가 설정 |
 
 Compose의 기본 DB 암호는 로컬 개발용이다. 운영 키는 서비스 비밀 변수에 두고, 개인 키·서명·복구 상태는 공개 기록에 넣지 않는다. PostgreSQL은 named volume을 사용하므로 데이터 삭제 목적이 아니면 `down --volumes`를 실행하지 않는다.
+
+시드의 `giftPersona`는 AI 판단 성향일 뿐 지출 권한이 아니다. 기본 refresh는 선물 ID가 없고 한도가 0인 Listing을 만든다. 선물을 포함한 새 게시 예시는 `--gift-ids 0x... --per-gift-limit-mist 500000 --daily-limit-mist 1000000 --state-name <새-이름>`이며, ID는 쉼표로 최대 20개까지 지정한다. 이 옵션은 새 온체인 객체·Walrus 업로드·API 카탈로그 변경을 일으키므로 일반 코드 검증에서는 실행하지 않는다. 기존 Listing의 정책은 이 파일이나 시드 JSON을 수정해도 바뀌지 않는다.
 
 `npm.cmd run dev:api:local`은 PGlite에 같은 제품 SQL과 API를 실행한다. 데이터는 Docker PostgreSQL·운영 DB와 별개이며 공급자 호출에는 실제 설정이 필요하다. 자동 Walrus 보관 갱신·checkpoint indexer·가스 후원은 구성하지 않았다.

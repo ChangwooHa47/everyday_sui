@@ -8,7 +8,7 @@ import type { CharacterRow, LlmMessage, ProductContext } from '../src/product/co
 import { productError } from '../src/product/core.js';
 import { conversationContext, photoMood, registerProductConversations, saveMessage } from '../src/product/conversations.js';
 import { importPackageEpisodes, parseEpisodeStarters, registerProductEpisodes, seedEpisodeCatalog } from '../src/product/episodes.js';
-import type { MarketListing } from '@everyday/contracts';
+import type { GiftPersona, MarketListing } from '@everyday/contracts';
 
 test('ported conversation and episode behavior preserves transactions, replay safety and isolation', async t => {
   const db = new PGlite();
@@ -92,14 +92,18 @@ test('ported conversation and episode behavior preserves transactions, replay sa
       title: 'Gift character', priceMist: '1000', agentBps: 2000, treasuryMist: '200', published: true, active: true,
       package: { blobId: 'a'.repeat(43), contentHash: '0'.repeat(64), endEpoch: '100' },
       policy: { perGiftLimitMist: '100', dailyLimitMist: '200', allowedGiftIds: ['0x' + 'e'.repeat(64)] } };
-    ctx.licensedListing = async () => listing;
-    ctx.gifts = { propose: async (_owner, actual, _turn, messages) => { assert.equal(actual, listing); observed.push(messages); throw Error('gift provider unavailable'); }, recover: async () => {} };
+    const persona: GiftPersona = { enabled: true, archetype: 'caretaker', generosity: 30, spontaneity: 5,
+      triggers: ['comfort'], preferredTags: ['practical'], blockedTags: ['high-value'], cooldownHours: 168 };
+    ctx.licensedGiftContext = async () => ({ listing, persona });
+    ctx.gifts = { propose: async (_owner, actual, _turn, messages, actualPersona) => {
+      assert.equal(actual, listing); assert.equal(actualPersona, persona); observed.push(messages); throw Error('gift provider unavailable');
+    }, recover: async () => {} };
     const response = await post(base + '/messages', { requestId: randomUUID(), content: 'today matters' });
     assert.equal(response.statusCode, 200, response.body);
     assert.equal(response.json().data.gift.status, 'unknown');
     assert.match(observed[0].at(-1)!.content, /APPROVED_PRIVATE_MEMORY/);
     assert.equal((await db.query<{ count: number }>('SELECT count(*)::integer AS count FROM everyday.chat_messages WHERE content=$1', ['today matters'])).rows[0].count, 1);
-    ctx.gifts = undefined; ctx.licensedListing = undefined;
+    ctx.gifts = undefined; ctx.licensedGiftContext = undefined;
   });
 
   await t.test('failures before a provider release claims; uncertain provider calls roll back messages and cannot silently retry', async () => {

@@ -6,6 +6,12 @@ Each Listing holds its character's SUI treasury. Move enforces the operator, all
 per-gift and daily spending limits, and one execution per intent. An ordinary operator
 wallet balance is not policy-controlled character spending money.
 
+The external NFT path is fixed-price SUI escrow for Admin-approved exact Move types.
+A seller deposits a directly owned `key + store` object into an `ExternalNftOffer`; purchase
+or Listing-funded gifting pays the seller and transfers that exact object atomically. The
+seller can withdraw an unsold offer. Kiosk/TransferPolicy assets, auctions, royalties and
+secondary-market mechanics are not part of this version.
+
 Character settings are immutable after publication; a new edition is a new Listing.
 Delisting stops purchases without removing existing buyer access. Private conversations
 and memories are not part of a Listing or License. Seal approval checks the exact Listing

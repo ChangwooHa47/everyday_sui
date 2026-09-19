@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import { Transaction } from '@mysten/sui/transactions';
@@ -104,6 +105,98 @@ test('NFT gift catalog builds exact wallet purchase and exposes only authenticat
   assert.equal(purchase.json().priceMist, gift.priceMist);
   assert.equal((await app.inject({ url: '/v1/me/nft-gifts', headers: { origin } })).statusCode, 401);
   assert.deepEqual((await app.inject({ url: '/v1/me/nft-gifts', headers })).json().gifts, owned);
+});
+
+test('verified external NFT offers use SUI, exact ownership, opt-in preferences and atomic Move calls', async t => {
+  const db = new PGlite(); await db.exec(migration);
+  const seller = id('0xd'), buyer = id('0xb'), policyId = id('0x50'), offerId = id('0x51'), objectId = id('0x52');
+  const objectType = `${id('0x77')}::collectibles::Star`, rawObjectType = `${id('0x77').slice(2)}::collectibles::Star`;
+  for (const [token, address] of [['d', seller], ['b', buyer]]) await db.query(
+    "INSERT INTO wallet_sessions VALUES($1,$2,$3,now()+interval '30 minutes')", [hash(token.repeat(43)), address, origin]);
+  const policy = { id: policyId, name: 'Verified stars', objectType, rawObjectType, active: true };
+  const image = Buffer.from('verified external NFT image');
+  const offer = { id: offerId, policyId, seller, objectId, objectType, rawObjectType, title: 'External star',
+    description: 'Deposited collectible', imageUrl: 'https://example.com/star.png',
+    imageHash: createHash('sha256').update(image).digest('hex'),
+    priceMist: '1000000', active: true };
+  let bought = false, offerExists = true;
+  const externalMarket = { packageId: id('0x99'), externalCollectionPolicyIds: [policyId], nftGiftProductIds: [],
+    listing: async () => listing, hasLicense: async () => false,
+    nftGiftProducts: async () => [], ownedNftGifts: async () => [],
+    externalCollectionPolicy: async (target: string) => { assert.equal(target, policyId); return policy; },
+    externalNftOffer: async (target: string) => {
+      assert.equal(target, offerId);
+      if (!offerExists) throw Object.assign(Error('deleted offer'), { statusCode: 404 });
+      return offer;
+    },
+    externalNftOffers: async (ids: string[]) => ids.map(() => offer),
+    ownedExternalNfts: async (owner: string, refs: { id: string; objectType: string }[]) => {
+      assert.ok(refs.every(ref => ref.id === objectId && ref.objectType === objectType));
+      return owner === seller && !bought || owner === buyer && bought ? [objectId] : [];
+    },
+    verifyExternalNftSale: async (_digest: string, expected: { offerId: string; objectId: string; buyer: string; priceMist: string }) =>
+      bought && expected.offerId === offerId && expected.objectId === objectId && expected.buyer === buyer && expected.priceMist === offer.priceMist,
+  };
+  const app = buildApp(false, { db, auth, market: externalMarket,
+    externalNftImageOrigins: ['https://example.com'] });
+  t.after(async () => { await app.close(); await db.close(); });
+  const sellerHeaders = { origin, authorization: `Bearer ${'d'.repeat(43)}` };
+  const buyerHeaders = { origin, authorization: `Bearer ${'b'.repeat(43)}` };
+  const draft = { policyId, objectId, title: offer.title, description: offer.description,
+    imageUrl: offer.imageUrl, imageHash: offer.imageHash, priceMist: offer.priceMist };
+  assert.equal((await app.inject({ method: 'POST', url: '/v1/external-nft-offers/create-transaction', headers: sellerHeaders,
+    payload: { ...draft, imageUrl: 'https://unapproved.example/star.png' } })).statusCode, 400);
+  const prepared = await app.inject({ method: 'POST', url: '/v1/external-nft-offers/create-transaction', headers: sellerHeaders, payload: draft });
+  assert.equal(prepared.statusCode, 200, prepared.body);
+  const create = Transaction.from(prepared.json().transaction).getData().commands[0].MoveCall!;
+  assert.equal(create.function, 'create_external_nft_offer'); assert.deepEqual(create.typeArguments, [objectType]);
+  assert.equal((await app.inject({ method: 'POST', url: '/v1/external-nft-offers', headers: buyerHeaders, payload: { offerId } })).statusCode, 403);
+  assert.equal((await app.inject({ method: 'POST', url: '/v1/external-nft-offers', headers: sellerHeaders, payload: { offerId } })).statusCode, 200);
+  assert.equal((await app.inject({ url: '/v1/me/external-nft-offers', headers: buyerHeaders })).json().offers.length, 0);
+  assert.equal((await app.inject({ url: '/v1/me/external-nft-offers', headers: sellerHeaders })).json().offers.length, 1);
+  const withdrawal = await app.inject({ method: 'POST', url: `/v1/external-nft-offers/${offerId}/withdraw-transaction`,
+    headers: sellerHeaders });
+  assert.equal(withdrawal.statusCode, 200, withdrawal.body);
+  assert.equal(Transaction.from(withdrawal.json().transaction).getData().commands[0].MoveCall?.function,
+    'withdraw_external_nft_offer');
+  policy.active = false;
+  assert.equal((await app.inject('/v1/external-nft-collections')).json().collections[0].active, false);
+  assert.equal((await app.inject({ method: 'POST', url: `/v1/external-nft-offers/${offerId}/withdraw-transaction`,
+    headers: sellerHeaders })).statusCode, 200);
+  assert.equal((await app.inject('/v1/nft-gifts')).json().gifts.length, 0);
+  policy.active = true;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(image, { status: 200, headers: { 'content-type': 'image/png' } });
+  try {
+    const imageResponse = await app.inject(`/v1/nft-gifts/${offerId}/image`);
+    assert.equal(imageResponse.statusCode, 200, imageResponse.body);
+    assert.deepEqual(imageResponse.rawPayload, image);
+    assert.equal(imageResponse.headers['x-content-type-options'], 'nosniff');
+    globalThis.fetch = async () => new Response('changed image', { status: 200, headers: { 'content-type': 'image/png' } });
+    assert.equal((await app.inject(`/v1/nft-gifts/${offerId}/image`)).statusCode, 503);
+  } finally { globalThis.fetch = originalFetch; }
+  offerExists = false;
+  const staleCatalog = await app.inject('/v1/nft-gifts');
+  assert.equal(staleCatalog.statusCode, 200); assert.equal(staleCatalog.json().gifts.length, 0);
+  offerExists = true;
+  const catalog = await app.inject('/v1/nft-gifts');
+  assert.equal(catalog.statusCode, 200, catalog.body); assert.equal(catalog.json().gifts[0].kind, 'external');
+  const purchase = await app.inject({ method: 'POST', url: `/v1/nft-gifts/${offerId}/purchase-transaction`, headers: buyerHeaders });
+  assert.equal(purchase.statusCode, 200, purchase.body);
+  const call = Transaction.from(purchase.json().transaction).getData().commands[1].MoveCall!;
+  assert.equal(call.function, 'purchase_external_nft'); assert.deepEqual(call.typeArguments, [objectType]);
+  assert.deepEqual((await app.inject({ url: '/v1/me/external-nft-preferences', headers: buyerHeaders })).json(),
+    { receiveEnabled: false, blockedPolicyIds: [] });
+  const preference = await app.inject({ method: 'PUT', url: '/v1/me/external-nft-preferences', headers: buyerHeaders,
+    payload: { receiveEnabled: true, blockedPolicyIds: [policyId] } });
+  assert.equal(preference.statusCode, 200); assert.deepEqual(preference.json(), { receiveEnabled: true, blockedPolicyIds: [policyId] });
+  bought = true;
+  assert.equal((await app.inject({ method: 'POST', url: `/v1/external-nft-offers/${offerId}/confirm`, headers: sellerHeaders,
+    payload: { digest: 'confirmed-external-purchase-digest' } })).statusCode, 409);
+  assert.equal((await app.inject({ method: 'POST', url: `/v1/external-nft-offers/${offerId}/confirm`, headers: buyerHeaders,
+    payload: { digest: 'confirmed-external-purchase-digest' } })).statusCode, 200);
+  const owned = (await app.inject({ url: '/v1/me/nft-gifts', headers: buyerHeaders })).json().gifts;
+  assert.equal(owned.length, 1); assert.equal(owned[0].kind, 'external'); assert.equal(owned[0].id, objectId);
 });
 
 test('catalog upgrades retain legacy rows but discover only listings verified for the configured package', async t => {

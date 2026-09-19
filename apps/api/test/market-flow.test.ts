@@ -115,7 +115,13 @@ test('P0 preview to purchase, server persona, consented memories and second-orig
 test('package schema rejects relationship data and streamed byte limits work without Content-Length', async () => {
   const valid = { schemaVersion: 1, network: 'testnet', packageId: id('0x99'), listingId: id('0x10'),
     character: { name: 'Test', personality: 'Test' }, preview: { name: 'Test', personality: 'Test' } };
+  const giftPersona = { enabled: true, archetype: 'caretaker', generosity: 30, spontaneity: 10,
+    triggers: ['comfort'], preferredTags: ['warm-drink'], blockedTags: ['high-value'], cooldownHours: 168 };
+  assert.equal(packageSchema.parse({ ...valid, giftPersona }).giftPersona?.archetype, 'caretaker');
   assert.throws(() => packageSchema.parse({ ...valid, memories: ['private'] }));
+  assert.throws(() => packageSchema.parse({ ...valid, giftPersona: { ...giftPersona, anniversary: 'private date' } }));
+  assert.throws(() => packageSchema.parse({ ...valid, giftPersona: { ...giftPersona, generosity: 101 } }));
+  assert.throws(() => packageSchema.parse({ ...valid, giftPersona: { ...giftPersona, blockedTags: ['warm-drink'] } }));
   assert.throws(() => packageSchema.parse({ ...valid, character: { ...valid.character, ownerMemory: 'private' } }));
   assert.throws(() => packageSchema.parse({ ...valid, character: { ...valid.character, callName: 'private nickname' } }));
   assert.throws(() => packageSchema.parse({ ...valid, preview: { ...valid.preview, callName: 'private nickname' } }));
