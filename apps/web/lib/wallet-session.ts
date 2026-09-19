@@ -1,5 +1,13 @@
 export type WalletSession = { token: string; address: string; expiresAt: string };
 
+export async function endSession(request: () => Promise<Response>, clear: () => void, disconnect: () => Promise<void>) {
+  const response = await request();
+  // An absent/expired session is already signed out. Provider failures are not success.
+  if (!response.ok && response.status !== 401) throw Error('로그아웃에 실패했습니다.');
+  clear();
+  await disconnect();
+}
+
 /** A refresh response belongs to the connection that started it, never a later account. */
 export async function refreshSession({ owner, isCurrent, request, remember, revoke }: {
   owner: string;
