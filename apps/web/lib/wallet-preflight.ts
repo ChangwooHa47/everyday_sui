@@ -1,7 +1,22 @@
 import { Transaction } from '@mysten/sui/transactions';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 
-export const testnetWalletMessage = '현재 Dear Mine은 Sui 테스트넷을 사용해요. Phantom은 Sui 테스트넷을 지원하지 않으므로 설정에서 로그아웃한 뒤 Slush 등 테스트넷 지원 지갑으로 연결해주세요.';
+export const testnetWalletMessage = 'Phantom으로 로그인과 대화는 가능하지만 현재 테스트넷 구매·전송은 지원하지 않아요. 거래에는 Sui 테스트넷 지원 지갑이 필요해요.';
+
+export function supportsSuiLogin(wallet: { chains: readonly string[] }) {
+  return wallet.chains.includes('sui:testnet') || wallet.chains.includes('sui:mainnet');
+}
+
+/** Personal-message authentication does not spend funds or change the app chain. */
+export function loginSigningNetwork(wallet: { name: string; chains: readonly string[] } | null,
+  account: { chains: readonly string[] } | null): 'testnet' | 'mainnet' {
+  if (!wallet || !account) throw Error('로그인해주세요.');
+  const networks = /^phantom$/i.test(wallet.name.trim()) ? ['mainnet', 'testnet'] as const : ['testnet', 'mainnet'] as const;
+  for (const network of networks) {
+    if (wallet.chains.includes(`sui:${network}`) && account.chains.includes(`sui:${network}`)) return network;
+  }
+  throw Error('Sui 메시지 서명을 지원하는 지갑으로 연결해주세요.');
+}
 
 // Phantom's extension lists no Sui testnet in its supported test networks.
 // Do not rely on a provider accepting chain: sui:testnet as proof it uses it.

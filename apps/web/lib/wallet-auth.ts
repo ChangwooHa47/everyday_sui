@@ -3,11 +3,12 @@ import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import { apiUrl, rpcUrl } from './web3/config';
 import { endSession, refreshSession, type WalletSession } from './wallet-session';
-import { assertTestnetWallet } from './wallet-preflight';
+import { loginSigningNetwork } from './wallet-preflight';
 
-export const walletKit = createDAppKit({ networks: ['testnet'],
+export const walletKit = createDAppKit({ networks: ['testnet', 'mainnet'], defaultNetwork: 'testnet',
   slushWalletConfig: typeof window === 'undefined' ? null : { appName: 'everyday' },
-  createClient: () => new SuiGrpcClient({ network: 'testnet', baseUrl: rpcUrl }) });
+  createClient: network => new SuiGrpcClient({ network,
+    baseUrl: network === 'testnet' ? rpcUrl : 'https://fullnode.mainnet.sui.io:443' }) });
 type Session = WalletSession;
 const sessionKey = 'everyday.session.v1';
 function readSession(): Session | null {
@@ -96,7 +97,7 @@ export async function loginWithWallet() {
   if (loggingOut) throw Error('로그아웃 중입니다.');
   const account = walletKit.stores.$connection.get().account;
   if (!account) throw Error('로그인해주세요.');
-  assertTestnetWallet(walletKit.stores.$connection.get().wallet, account);
+  const signingNetwork = loginSigningNetwork(walletKit.stores.$connection.get().wallet, account);
   const owner = normalizeSuiAddress(account.address);
   const started = generation;
   const check = () => { if (started !== generation) throw Error('다시 로그인해주세요.'); };
@@ -115,7 +116,10 @@ export async function loginWithWallet() {
       !challenge.message.split('\n').includes(`Origin: ${window.location.origin}`) ||
       !challenge.message.split('\n').includes(`Audience: ${new URL(apiUrl).origin}`) ||
       !challenge.message.split('\n').includes('Chain: sui:testnet')) throw Error('로그인 요청을 확인할 수 없습니다.');
-  const signed = await walletKit.signPersonalMessage({ message: new TextEncoder().encode(challenge.message) });
+  // The challenge remains bound to the app's testnet audience. Only the wallet's
+  // personal-message transport uses its supported network; no transaction occurs.
+  const signed = await walletKit.signPersonalMessage({ message: new TextEncoder().encode(challenge.message),
+    account, network: signingNetwork });
   check();
   const result = await post('/v1/auth/sessions', { challengeId: challenge.id, signature: signed.signature });
   if (typeof result.token !== 'string' || result.address !== owner || !Number.isFinite(Date.parse(result.expiresAt)) || Date.parse(result.expiresAt) <= Date.now()) {

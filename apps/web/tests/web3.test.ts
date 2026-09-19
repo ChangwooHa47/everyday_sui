@@ -15,17 +15,28 @@ import { endSession, refreshSession, type WalletSession } from '../lib/wallet-se
 import { restoredLandingRoute } from '../lib/entry-route';
 import { executeGiftPurchase, nftPurchaseError } from '../lib/gift-purchase';
 import { Transaction } from '@mysten/sui/transactions';
-import { assertTestnetWallet, supportsTestnet, resolveWalletTransaction, preflightError } from '../lib/wallet-preflight';
+import { assertTestnetWallet, supportsTestnet, supportsSuiLogin, loginSigningNetwork, resolveWalletTransaction, preflightError } from '../lib/wallet-preflight';
 const pkg = '0x'+'1'.repeat(64);
 const metadata = {schemaVersion:1,network:'testnet',appPackage:pkg,revision:'0',previousRef:null,createdAt:'2026-09-08T00:00:00.000Z'};
 
-test('testnet login and transaction checks reject Phantom and mainnet-only accounts', () => {
+test('testnet transaction checks reject Phantom and mainnet-only accounts', () => {
   const testnet = { chains: ['sui:testnet'] };
   assert.equal(supportsTestnet({ name: 'Phantom', ...testnet }), false);
   assert.throws(() => assertTestnetWallet({ name: 'Phantom', ...testnet }, testnet), /Phantom/);
   assert.throws(() => assertTestnetWallet({ name: 'Wallet', ...testnet }, { chains: ['sui:mainnet'] }), /테스트넷/);
   assert.throws(() => assertTestnetWallet(null, null), /로그인/);
   assert.doesNotThrow(() => assertTestnetWallet({ name: 'Slush', ...testnet }, testnet));
+});
+
+test('Phantom can authenticate on mainnet while application transactions stay on testnet', () => {
+  const phantom = { name: 'Phantom', chains: ['sui:mainnet', 'sui:testnet'] };
+  assert.equal(supportsSuiLogin(phantom), true);
+  assert.equal(loginSigningNetwork(phantom, { chains: ['sui:mainnet'] }), 'mainnet');
+  assert.equal(loginSigningNetwork(phantom, phantom), 'mainnet');
+  assert.equal(loginSigningNetwork({ name: 'Slush', chains: ['sui:testnet'] }, { chains: ['sui:testnet'] }), 'testnet');
+  assert.equal(supportsSuiLogin({ chains: ['solana:mainnet'] }), false);
+  assert.throws(() => loginSigningNetwork(phantom, { chains: ['solana:mainnet'] }), /Sui/);
+  assert.throws(() => assertTestnetWallet(phantom, phantom), /테스트넷 구매/);
 });
 
 test('preflight resolves gas before wallet handoff and detects account changes', async () => {

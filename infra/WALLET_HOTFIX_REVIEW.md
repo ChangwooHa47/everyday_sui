@@ -1,5 +1,15 @@
 # Testnet wallet handoff hotfix — 2026-09-19
 
+## Follow-up: Phantom login restored
+
+Phantom and Sui-mainnet accounts are allowed to log in. Authentication uses only
+personal-message signing on a network the account supports (mainnet for Phantom).
+The server challenge remains bound to this application's testnet audience and
+continues to verify the same wallet address. Every asset transaction still
+explicitly targets testnet and retains the transaction compatibility guard.
+The initial login filter described below has been superseded by this follow-up.
+Slush troubleshooting is a separate next step.
+
 ## Evidence and scope
 
 - The user-selected Chrome transaction notification belongs to Phantom, not Slush. Extension contents could not be inspected because browser policy blocks extension URLs. No wallet approval or purchase was performed.
