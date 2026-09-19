@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import type { SuiGrpcClient } from '@mysten/sui/grpc';
-import { createMarketChain, giftNftBcs, licenseBcs, listingBcs, nftGiftProductBcs } from '../src/market-chain.js';
+import { createMarketChain, externalCollectionPolicyBcs, externalNftOfferBcs, externalNftWithdrawnBcs,
+  giftNftBcs, licenseBcs, listingBcs, nftGiftProductBcs } from '../src/market-chain.js';
 
 const id = normalizeSuiAddress;
 const pkg = id('0x99'), actor = id('0xb'), listingId = id('0x10'), licenseId = id('0x20');
@@ -117,4 +118,61 @@ test('NFT gift products and wallet collection require exact package, ownership a
   await assert.rejects(chain.nftGiftProduct!(productId), { statusCode: 404 });
   ownedObject = { ...ownedObject, owner: { $kind: 'AddressOwner', AddressOwner: id('0xe') } };
   await assert.rejects(chain.ownedNftGifts!(actor), { statusCode: 404 });
+});
+
+test('external NFT policies, deposited offers and current wallet ownership require exact types and identities', async () => {
+  const policyId = id('0x50'), offerId = id('0x51'), objectId = id('0x52');
+  const externalPackage = id('0x77');
+  const rawType = `${externalPackage.slice(2)}::collectibles::Star`;
+  const objectType = `${externalPackage}::collectibles::Star`;
+  const policyData = { id: policyId, name: 'Verified stars', type_name: rawType, active: true };
+  const offerData = { id: offerId, policy: policyId, seller: id('0xd'), item: objectId, type_name: rawType,
+    title: 'External star', description: 'Deposited NFT', image_url: 'https://example.com/star.png',
+    image_hash: Array(32).fill(9), price: '9007199254740993', active: true };
+  const objects: Record<string, Record<string, any>> = {
+    [policyId]: { objectId: policyId, type: `${pkg}::market::ExternalCollectionPolicy`, owner: { $kind: 'Shared' },
+      content: externalCollectionPolicyBcs.serialize(policyData).toBytes() },
+    [offerId]: { objectId: offerId, type: `${pkg}::market::ExternalNftOffer`, owner: { $kind: 'Shared' },
+      content: externalNftOfferBcs.serialize(offerData).toBytes() },
+    [objectId]: { objectId, type: objectType, owner: { $kind: 'AddressOwner', AddressOwner: actor }, content: new Uint8Array() },
+  };
+  const client = { getObject: async ({ objectId: target }: { objectId: string }) => ({ object: objects[target] }),
+    getObjects: async ({ objectIds }: { objectIds: string[] }) => ({ objects: objectIds.map(target => objects[target]) })
+  } as unknown as Pick<SuiGrpcClient, 'getObject' | 'getObjects'>;
+  const chain = createMarketChain(pkg, client, [], [policyId]);
+  assert.deepEqual(await chain.externalCollectionPolicy!(policyId), {
+    id: policyId, name: 'Verified stars', objectType, rawObjectType: rawType, active: true,
+  });
+  const offer = await chain.externalNftOffer!(offerId);
+  assert.equal(offer.objectType, objectType); assert.equal(offer.objectId, objectId);
+  assert.deepEqual((await chain.externalNftOffers!([offerId])).map(item => item.id), [offerId]);
+  assert.deepEqual(await chain.ownedExternalNfts!(actor, [{ id: objectId, objectType }]), [objectId]);
+  objects[objectId] = { ...objects[objectId], owner: { $kind: 'AddressOwner', AddressOwner: id('0xe') } };
+  assert.deepEqual(await chain.ownedExternalNfts!(actor, [{ id: objectId, objectType }]), []);
+  objects[objectId] = Error('provider failure') as unknown as Record<string, any>;
+  await assert.rejects(chain.ownedExternalNfts!(actor, [{ id: objectId, objectType }]), { statusCode: 503 });
+  objects[offerId] = { ...objects[offerId], content: externalNftOfferBcs.serialize({ ...offerData, item: id('0x53') }).toBytes() };
+  const changed = await chain.externalNftOffer!(offerId);
+  assert.equal(changed.objectId, id('0x53'));
+});
+
+test('external NFT withdrawal confirmation requires the exact successful event', async () => {
+  const policyId = id('0x50'), offerId = id('0x51'), objectId = id('0x52'), seller = id('0xd');
+  let data = { offer: offerId, policy: policyId, item: objectId, seller };
+  let success = true;
+  const client = {
+    getObject: async () => { throw Error('unused'); },
+    getTransaction: async ({ digest }: { digest: string }) => ({ $kind: 'Transaction', Transaction: {
+      digest, status: { success }, events: [{ eventType: `${pkg}::market::ExternalNftWithdrawn`,
+        bcs: externalNftWithdrawnBcs.serialize(data).toBytes() }],
+    } }),
+  } as unknown as Pick<SuiGrpcClient, 'getObject' | 'getTransaction'>;
+  const verify = createMarketChain(pkg, client).verifyExternalNftWithdrawal!;
+  const expected = { offerId, policyId, objectId, seller };
+  assert.equal(await verify('withdraw-digest', expected), true);
+  data = { ...data, item: id('0x53') };
+  assert.equal(await verify('withdraw-digest', expected), false);
+  data = { offer: offerId, policy: policyId, item: objectId, seller };
+  success = false;
+  assert.equal(await verify('withdraw-digest', expected), false);
 });

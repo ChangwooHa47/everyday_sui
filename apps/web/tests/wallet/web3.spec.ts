@@ -30,7 +30,9 @@ test('original UI signs wallet login without replacing routes or using a demo ac
   });
   await page.addInitScript((accounts) => {
     const listeners = new Set<(value:unknown) => void>();
-    let active = 0;
+    const savedWallet = localStorage.getItem('mysten-dapp-kit:selected-wallet-and-address') ?? '';
+    const savedAccount = accounts.findIndex(account => savedWallet.includes(account.address));
+    let active = savedAccount >= 0 ? savedAccount : 0;
     const walletAccounts = accounts.map(a => ({...a,publicKey:Uint8Array.from(a.publicKey),chains:['sui:testnet'],features:['sui:signPersonalMessage','sui:signTransaction']}));
     const wallet = {
       version:'1.0.0',name:'Everyday Test Wallet',icon:'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=',chains:['sui:testnet'],
@@ -48,7 +50,10 @@ test('original UI signs wallet login without replacing routes or using a demo ac
     const register = (api:{register:(wallet:unknown)=>void}) => api.register(wallet);
     window.addEventListener('wallet-standard:app-ready',((event:CustomEvent) => register(event.detail)) as EventListener);
     window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet',{detail:register}));
-    (window as unknown as {switchTestWallet:()=>void}).switchTestWallet = () => {active=1;listeners.forEach(fn => fn({accounts:[walletAccounts[1]]}));};
+    (window as unknown as {switchTestWallet:()=>void}).switchTestWallet = () => {
+      active = active === 0 ? 1 : 0;
+      listeners.forEach(fn => fn({accounts:[walletAccounts[active]]}));
+    };
   },keys.map(k => ({address:k.toSuiAddress(),publicKey:Array.from(k.getPublicKey().toRawBytes())})));
   await page.goto('/');
   await expect(page.getByText('with your character', {exact:true})).toBeVisible();
@@ -62,13 +67,16 @@ test('original UI signs wallet login without replacing routes or using a demo ac
   expect(sessionRequests).toEqual([]);
   await page.getByRole('button',{name:'로그인',exact:true}).click();
   await expect(page).toHaveURL(/\/home$/);
+  expect(await page.evaluate(() => localStorage.getItem('mysten-dapp-kit:selected-wallet-and-address')))
+    .toContain(keys[1].toSuiAddress());
   await page.goto('/create');
   await expect(page.getByRole('button',{name:'친구',exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'남성',exact:true})).toBeVisible();
   await page.screenshot({path:testInfo.outputPath('original-create.png'),fullPage:true});
   await page.evaluate(() => (window as unknown as {switchTestWallet:()=>void}).switchTestWallet());
-  await page.goto('/home');
-  await expect(page.getByText('로그인해주세요.', {exact:false})).toBeVisible();
+  await expect(page).toHaveURL(url => url.pathname === '/');
+  await expect(page.getByRole('button',{name:'로그인',exact:true})).toBeVisible();
+  expect(await page.evaluate(() => sessionStorage.getItem('everyday.session.v1'))).toBeNull();
   expect(await page.evaluate(() => localStorage.getItem('everyday.v2.jwt'))).toBeNull();
   expect(legacyRequests).toEqual([]);
 });

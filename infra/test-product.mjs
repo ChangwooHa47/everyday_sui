@@ -14,6 +14,8 @@ import { seedEpisodeCatalog } from '../apps/api/src/product/episodes.ts';
 // One Node API + real disposable PostgreSQL + real wallet signatures. AI/image HTTP responses and injected market/memory adapters are fixtures.
 const container = `everyday-product-test-${Date.now()}`;
 const password = randomBytes(24).toString('hex');
+const suppliedDatabaseUrl = process.env.PRODUCT_TEST_DATABASE_URL;
+let dockerStarted = false;
 const origin = 'http://127.0.0.1:3000';
 let api, fixturePort, app, pool;
 const wallets = new Map();
@@ -26,6 +28,7 @@ let memoryOwner = null, failedMemory = false, lastSystem = '';
 let failedChain = false;
 const listingId = `0x${'1'.repeat(64)}`;
 const licenses = new Map();
+const photoPaymentOwners = new Map();
 const provider = createServer(async (req, res) => {
   let raw = ''; for await (const chunk of req) raw += chunk;
   const body = raw ? JSON.parse(raw) : {};
@@ -111,10 +114,14 @@ async function enableMemory(token) {
     ON CONFLICT(owner) DO UPDATE SET enabled=true`, [wallets.get(token)]);
 }
 async function startApi() {
-  const product = productFromEnv({
+  const product = { ...productFromEnv({
     ANTHROPIC_API_KEY: 'fixture-only', ANTHROPIC_BASE_URL: `http://127.0.0.1:${fixturePort}`,
     HIGGSFIELD_API_KEY: 'fixture-only', HIGGSFIELD_API_SECRET: 'fixture-only', HIGGSFIELD_BASE_URL: `http://127.0.0.1:${fixturePort}`,
-  });
+  }), photoPayments: {
+    priceMist: '10000000',
+    async transaction() { return 'fixture-photo-payment'; },
+    async verify(digest, sender) { assert.equal(photoPaymentOwners.get(digest), sender); },
+  } };
   app = buildApp(false, { db: pool, auth: { origins: [origin], audience: 'everyday-product-integration', network: 'testnet' },
     product, market: chain, runtime: { packages, previewTurns: 2 }, memory });
   api = await app.listen({ port: 0, host: '127.0.0.1' });
@@ -152,10 +159,14 @@ async function ok(path, token, method, body) {
 try {
   await new Promise(r => provider.listen(0, '127.0.0.1', r));
   fixturePort = provider.address().port;
-  execFileSync('docker', ['run', '--detach', '--rm', '--name', container, '-e', `POSTGRES_PASSWORD=${password}`, '-p', '127.0.0.1::5432', 'postgres:17'], { stdio: 'pipe', timeout: 120000 });
-  const mapping = execFileSync('docker', ['port', container, '5432/tcp'], { encoding: 'utf8', timeout: 120000 }).trim();
-  const dbPort = Number(mapping.split(':').at(-1));
-  const connectionString = `postgresql://postgres:${password}@127.0.0.1:${dbPort}/postgres`;
+  let connectionString = suppliedDatabaseUrl;
+  if (!connectionString) {
+    execFileSync('docker', ['run', '--detach', '--rm', '--name', container, '-e', `POSTGRES_PASSWORD=${password}`, '-p', '127.0.0.1::5432', 'postgres:17'], { stdio: 'pipe', timeout: 120000 });
+    dockerStarted = true;
+    const mapping = execFileSync('docker', ['port', container, '5432/tcp'], { encoding: 'utf8', timeout: 120000 }).trim();
+    const dbPort = Number(mapping.split(':').at(-1));
+    connectionString = `postgresql://postgres:${password}@127.0.0.1:${dbPort}/postgres`;
+  }
   pool = new pg.Pool({ connectionString });
   for (let i = 0; ; i++) { try { await pool.query('SELECT 1'); break; } catch (e) { if (i === 40) throw e; await new Promise(r => setTimeout(r, 250)); } }
   await pool.query(migration);
@@ -167,7 +178,7 @@ try {
   assert.equal((await request('/api/characters/%69nterview', a, 'POST', { relationshipType: 'FRIEND', gender: 'MALE' })).status, 400);
   assert.equal((await request('/api/characters')).status, 401);
   assert.deepEqual(await ok('/api/characters', a), []);
-  assert.equal((await ok('/api/me', a)).points, 1200);
+  assert.equal('points' in await ok('/api/me', a), false);
   await ok('/api/characters/interview', a, 'POST', { relationshipType: 'FRIEND', gender: 'MALE' });
   const compilation = { requestId: randomUUID(), name: '테스트', relationshipType: 'FRIEND', gender: 'MALE', deferPortraitGeneration: true };
   const created = await ok('/api/characters/compile', a, 'POST', compilation);
@@ -228,7 +239,9 @@ try {
   await ok(base + `/episodes/${episode}/messages`, a, 'POST', { content: '산책하자' });
   failedImage = true;
   const failedJob = randomUUID();
-  await ok(base + '/photo-jobs', a, 'POST', { requestId: failedJob, photo: { concept: 'CAFE_DATE' } });
+  const failedPayment = '2'.repeat(43);
+  photoPaymentOwners.set(failedPayment, wallets.get(a));
+  await ok(base + '/photo-jobs', a, 'POST', { requestId: failedJob, paymentDigest: failedPayment, photo: { concept: 'CAFE_DATE' } });
   async function finished(job) {
     for (let i = 0; i < 60; i++) {
       const result = await ok('/api/photo-jobs/' + job, a);
@@ -238,17 +251,18 @@ try {
     throw Error('Photo job did not finish');
   }
   assert.equal((await finished(failedJob)).status, 'failed');
-  assert.equal((await ok('/api/me', a)).points, 1200);
+  assert.equal((await pool.query('SELECT count(*)::int AS count FROM photo_payments WHERE digest=$1', [failedPayment])).rows[0].count, 1);
   failedImage = false;
-  const photoRequest = { requestId: randomUUID(), photo: { concept: 'CAFE_DATE' } };
+  const successfulPayment = '3'.repeat(43);
+  photoPaymentOwners.set(successfulPayment, wallets.get(a));
+  const photoRequest = { requestId: randomUUID(), paymentDigest: successfulPayment, photo: { concept: 'CAFE_DATE' } };
   const duplicate = await Promise.all([1, 2].map(() => request(base + '/photo-jobs', a, 'POST', photoRequest)));
   assert.deepEqual(duplicate.map(r => r.status), [200, 200]);
   assert.equal((await request('/api/photo-jobs/' + photoRequest.requestId, b)).status, 404);
-  const concurrent = [duplicate[0], await request(base + '/photo-jobs', a, 'POST', { ...photoRequest, requestId: randomUUID() })];
-  assert.deepEqual(concurrent.map(r => r.status).sort(), [200, 402]);
+  assert.equal((await request(base + '/photo-jobs', a, 'POST', { ...photoRequest, requestId: randomUUID() })).status, 409);
   assert.equal((await finished(photoRequest.requestId)).status, 'completed');
   assert.equal(imageSoulId, 'fixture-soul');
-  assert.equal((await ok('/api/me', a)).points, 0);
+  assert.equal((await pool.query('SELECT count(*)::int AS count FROM photo_payments')).rows[0].count, 2);
   const constraints = await pool.query("SELECT count(*)::int AS count FROM information_schema.table_constraints WHERE constraint_schema='everyday' AND constraint_type='FOREIGN KEY'");
   assert.ok(constraints.rows[0].count >= 6);
   const licenseA = `0x${'a'.repeat(64)}`, licenseB = `0x${'b'.repeat(64)}`;
@@ -381,10 +395,10 @@ try {
   assert.deepEqual(previewRace.map(item => item.rows[0].result).sort(), ['ok', 'ok', 'preview', 'preview', 'preview', 'preview']);
   assert.equal((await pool.query('SELECT used FROM public.ai_global_daily_budget')).rows[0].used, 2);
   assert.equal((await pool.query('SELECT used FROM public.market_preview_budget')).rows[0].used, 2);
-  console.log('PASS: One Node runtime; PostgreSQL migrations and restart continuity; real wallet signatures; original product flow; failed-provider rollback; concurrent point protection; licensed import isolation; current entitlement failure closes access. AI/image/market adapter responses were fixtures, not live provider or settlement validation.');
+  console.log('PASS: One Node runtime; PostgreSQL migrations and restart continuity; real wallet signatures; original product flow; failed-provider rollback; SUI photo-payment idempotency; concurrent quota protection; licensed import isolation; current entitlement failure closes access. AI/image/market adapter responses were fixtures, not live provider or settlement validation.');
 } finally {
   if (app) await app.close();
   if (pool) await pool.end();
   provider.closeAllConnections(); await new Promise(r => provider.close(r));
-  try { execFileSync('docker', ['rm', '-f', container], { stdio: 'ignore', timeout: 120000 }); } catch {}
+  if (dockerStarted) try { execFileSync('docker', ['rm', '-f', container], { stdio: 'ignore', timeout: 120000 }); } catch {}
 }

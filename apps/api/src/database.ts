@@ -94,6 +94,29 @@ CREATE TABLE IF NOT EXISTS agent_gifts (
  status text NOT NULL CHECK(status IN ('evaluating','declined','prepared','unknown','confirmed','failed')),
  tx_bytes text, signature text, digest text, created_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS external_nft_offers (
+ offer_id text PRIMARY KEY, package_id text NOT NULL, policy_id text NOT NULL, seller text NOT NULL,
+ object_id text NOT NULL, object_type text NOT NULL, collection_name text NOT NULL,
+ title text NOT NULL, description text NOT NULL, image_url text NOT NULL, image_hash text NOT NULL,
+ price_mist text NOT NULL CHECK(price_mist ~ '^[1-9][0-9]*$'),
+ status text NOT NULL DEFAULT 'active' CHECK(status IN ('active','sold','withdrawn')),
+ buyer text, digest text, created_at timestamptz NOT NULL DEFAULT now()
+);
+-- One Sui object may be withdrawn or resold in a later offer. The on-chain
+-- dynamic-object escrow, not a permanent database uniqueness constraint, prevents concurrent deposits.
+ALTER TABLE external_nft_offers DROP CONSTRAINT IF EXISTS external_nft_offers_object_id_key;
+CREATE INDEX IF NOT EXISTS external_nft_offers_status_id ON external_nft_offers(status,offer_id);
+CREATE INDEX IF NOT EXISTS external_nft_offers_object_created ON external_nft_offers(object_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS external_nft_preferences (
+ owner text PRIMARY KEY, receive_enabled boolean NOT NULL DEFAULT false,
+ blocked_policy_ids text[] NOT NULL DEFAULT '{}', updated_at timestamptz NOT NULL DEFAULT now()
+);
+-- Link each gift intent to the ordinary chat reply that triggered it so history re-reads keep the card.
+-- reason is the companion's private note to the recipient; it is never written on-chain.
+ALTER TABLE agent_gifts ADD COLUMN IF NOT EXISTS character_id bigint;
+ALTER TABLE agent_gifts ADD COLUMN IF NOT EXISTS message_id bigint;
+ALTER TABLE agent_gifts ADD COLUMN IF NOT EXISTS reason text;
+CREATE INDEX IF NOT EXISTS agent_gifts_message ON agent_gifts(character_id,message_id);
 CREATE TABLE IF NOT EXISTS package_uploads (
  owner text NOT NULL, request_id uuid NOT NULL, listing_id text NOT NULL, input_hash text NOT NULL,
  status text NOT NULL CHECK(status IN ('running','ready','unknown')), blob_id text, content_hash text, end_epoch text,
