@@ -1,4 +1,5 @@
 import type { MarketListing } from '@everyday/contracts';
+import { apiUrl } from './web3/config';
 
 // These are byte-identical local copies of the immutable images recorded in
 // contracts/everyday/deployments/market-seed.json. They keep the demo catalog
@@ -28,8 +29,12 @@ export function marketImageSources(listing: MarketListing, imageUrl?: string | n
   if (imageUrl) {
     try {
       const url = new URL(imageUrl);
+      if (url.protocol !== 'https:') throw Error('insecure');
       const original = url.toString();
-      if (url.protocol === 'https:' && /^\/v1\/blobs\/[A-Za-z0-9_-]{43}$/.test(url.pathname)) {
+      // Walrus aggregators answer with no Content-Type plus `nosniff`, which browsers
+      // refuse to paint. The API re-serves the same bytes with a real media type.
+      sources.push(`${apiUrl}/v1/market/listings/${encodeURIComponent(listing.id)}/preview-image`);
+      if (/^\/v1\/blobs\/[A-Za-z0-9_-]{43}$/.test(url.pathname)) {
         url.searchParams.set('strict_consistency_check', 'true');
       }
       sources.push(url.toString());

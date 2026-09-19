@@ -8,6 +8,35 @@ import type { PackageStore } from './market-package.js';
 import { registerNftMarket } from './nft-market.js';
 
 const paramsSchema = z.object({ listingId: addressSchema });
+
+// Walrus aggregators answer blob reads with no Content-Type and send
+// `X-Content-Type-Options: nosniff`, so a browser refuses to paint the bytes
+// in an <img>. Read the magic number ourselves and label the response.
+const maxPreviewBytes = 8 * 1024 * 1024;
+const imageSignatures: { type: string; matches: (bytes: Buffer) => boolean }[] = [
+  { type: 'image/png', matches: b => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
+  { type: 'image/jpeg', matches: b => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+  { type: 'image/gif', matches: b => b.subarray(0, 6).toString('latin1') === 'GIF87a' || b.subarray(0, 6).toString('latin1') === 'GIF89a' },
+  { type: 'image/webp', matches: b => b.subarray(0, 4).toString('latin1') === 'RIFF' && b.subarray(8, 12).toString('latin1') === 'WEBP' },
+  { type: 'image/avif', matches: b => b.subarray(4, 8).toString('latin1') === 'ftyp' && ['avif', 'avis'].includes(b.subarray(8, 12).toString('latin1')) },
+];
+function sniffImageType(bytes: Buffer): string | null {
+  return imageSignatures.find(signature => bytes.length >= 12 && signature.matches(bytes))?.type ?? null;
+}
+async function readCapped(response: Response): Promise<Buffer> {
+  if (Number(response.headers.get('content-length') ?? '0') > maxPreviewBytes || !response.body) throw failure(503, 'PREVIEW_IMAGE_UNAVAILABLE');
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxPreviewBytes) { await reader.cancel(); throw failure(413, 'PREVIEW_IMAGE_TOO_LARGE'); }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks, total);
+}
 const proofSchema = z.object({ licenseId: addressSchema.optional() }).strict();
 export async function requireMarketAccess(chain: MarketChain, actor: string, listingId: string, licenseId?: string) {
   const listing = await chain.listing(listingId);
@@ -94,6 +123,32 @@ export function registerMarket(app: FastifyInstance, db: Database, auth: AuthCon
     await db.query(`INSERT INTO market_reviews(listing_id,owner,rating,text) VALUES($1,$2,$3,$4)
       ON CONFLICT(listing_id,owner) DO UPDATE SET rating=$3,text=$4,created_at=now()`, [listingId, actor, input.rating, input.text]);
     return communityOf(listingId);
+  });
+  // Public preview image, served with a real media type. Only the URL the creator
+  // registered for this listing is fetched, and only from an https origin.
+  app.get('/v1/market/listings/:listingId/preview-image', async (req, reply) => {
+    const { listingId } = paramsSchema.parse(req.params);
+    const { rows } = await db.query<{ image_url: string | null }>(
+      `SELECT p.image_url FROM market_previews p JOIN market_catalog c ON c.listing_id=p.listing_id
+       WHERE p.listing_id=$1 AND c.package_id=$2`, [listingId, chain().packageId]);
+    const imageUrl = rows[0]?.image_url;
+    if (!imageUrl) throw failure(404, 'PREVIEW_IMAGE_NOT_FOUND');
+    let target: URL;
+    try { target = new URL(imageUrl); } catch { throw failure(503, 'PREVIEW_IMAGE_UNAVAILABLE'); }
+    if (target.protocol !== 'https:') throw failure(503, 'PREVIEW_IMAGE_UNAVAILABLE');
+    let response: Response;
+    try { response = await fetch(target, { redirect: 'error', signal: AbortSignal.timeout(15_000) }); }
+    catch { throw failure(503, 'PREVIEW_IMAGE_UNAVAILABLE'); }
+    if (!response.ok) throw failure(503, 'PREVIEW_IMAGE_UNAVAILABLE');
+    const bytes = await readCapped(response);
+    // Trust the upstream label when it gives one; otherwise fall back to the magic number.
+    const declared = response.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase() ?? '';
+    const contentType = imageSignatures.some(signature => signature.type === declared) ? declared : sniffImageType(bytes);
+    if (!contentType) throw failure(503, 'PREVIEW_IMAGE_UNSUPPORTED');
+    return reply.type(contentType).header('Cache-Control', 'public, max-age=3600, immutable')
+      .header('Content-Security-Policy', "default-src 'none'; sandbox")
+      .header('Cross-Origin-Resource-Policy', 'cross-origin')
+      .header('X-Content-Type-Options', 'nosniff').send(bytes);
   });
   app.get('/v1/market/listings/:listingId/access', async req => {
     const actor = await authenticate(req, db, auth);
