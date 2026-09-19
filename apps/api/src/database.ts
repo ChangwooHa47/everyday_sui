@@ -117,6 +117,8 @@ ALTER TABLE agent_gifts ADD COLUMN IF NOT EXISTS character_id bigint;
 ALTER TABLE agent_gifts ADD COLUMN IF NOT EXISTS message_id bigint;
 ALTER TABLE agent_gifts ADD COLUMN IF NOT EXISTS reason text;
 CREATE INDEX IF NOT EXISTS agent_gifts_message ON agent_gifts(character_id,message_id);
+CREATE UNIQUE INDEX IF NOT EXISTS agent_gifts_message_unique ON agent_gifts(character_id,message_id)
+ WHERE character_id IS NOT NULL AND message_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS package_uploads (
  owner text NOT NULL, request_id uuid NOT NULL, listing_id text NOT NULL, input_hash text NOT NULL,
  status text NOT NULL CHECK(status IN ('running','ready','unknown')), blob_id text, content_hash text, end_epoch text,

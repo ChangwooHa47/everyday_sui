@@ -4,7 +4,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { normalizeSuiAddress as id } from '@mysten/sui/utils';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { Transaction } from '@mysten/sui/transactions';
-import { TransactionError } from '@mysten/sui/client';
+import { ObjectError, TransactionError } from '@mysten/sui/client';
 import type { SuiGrpcClient } from '@mysten/sui/grpc';
 import type { GiftPersona, MarketListing } from '@everyday/contracts';
 import { migration } from '../src/database.js';
@@ -52,11 +52,22 @@ test('invalid LLM product and declined proposals never reach signing', async t =
   let preparations = 0;
   const transport: GiftTransport = { products: async () => [{ id: id('0xd'), title: 'Allowed', description: 'Fixture', priceMist: '100' }],
     prepare: async () => { preparations++; throw Error('must not sign'); }, execute: async () => 'confirmed' };
-  assert.equal((await createGiftService(db, transport, async () => ({ productId: id('0xe') })).propose(id('0xb'), listing, 'bad', [], persona)).status, 'unknown');
+  assert.equal((await createGiftService(db, transport, async () => ({ productId: id('0xe') })).propose(id('0xb'), listing, 'bad', [], persona)).status, 'failed');
   assert.equal((await createGiftService(db, transport, async () => ({ productId: null, reason: 'ignored' })).propose(id('0xb'), listing, 'no', [], persona)).status, 'declined');
   assert.equal((await createGiftService(db, transport, async () => { throw Error('must not decide'); })
     .propose(id('0xb'), listing, 'disabled', [])).status, 'declined');
   assert.equal(preparations, 0);
+});
+
+test('gift transport skips consumed allowlist offers but fails closed on provider errors', async () => {
+  const key = new Ed25519Keypair(), staleId = id('0xd');
+  const configured = { ...listing, operator: key.toSuiAddress(), policy: { ...listing.policy, allowedGiftIds: [staleId] } };
+  const missing = { getObject: async () => { throw new ObjectError('notExists', 'deleted offer',
+    { reason: 'notFound', objectId: staleId }); } } as unknown as SuiGrpcClient;
+  const transport = createGiftTransport(id('0x99'), 'https://invalid.example', key.getSecretKey(), missing);
+  assert.deepEqual(await transport.products(configured), []);
+  const unavailable = { getObject: async () => { throw Error('RPC unavailable'); } } as unknown as SuiGrpcClient;
+  await assert.rejects(createGiftTransport(id('0x99'), 'https://invalid.example', key.getSecretKey(), unavailable).products(configured), /RPC unavailable/);
 });
 
 test('external NFT gifts require recipient opt-in and respect collection blocks before signing', async t => {

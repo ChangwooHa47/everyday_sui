@@ -7,7 +7,7 @@ import Fastify from 'fastify';
 import { PGlite } from '@electric-sql/pglite';
 import type { CharacterRow, LlmMessage, ProductContext } from '../src/product/core.js';
 import { productError } from '../src/product/core.js';
-import { conversationContext, photoMood, registerProductConversations, saveMessage } from '../src/product/conversations.js';
+import { completedMessage, conversationContext, photoMood, registerProductConversations, saveMessage } from '../src/product/conversations.js';
 import { importPackageEpisodes, parseEpisodeStarters, registerProductEpisodes, seedEpisodeCatalog } from '../src/product/episodes.js';
 import type { GiftPersona, MarketListing } from '@everyday/contracts';
 
@@ -116,6 +116,7 @@ test('ported conversation and episode behavior preserves transactions, replay sa
     const history = (await app.inject({ url: base + '/messages/history', headers: { 'x-user': '1' } })).json().data as { id: number; gift?: { status: string; reason?: string; digest?: string } }[];
     const delivered = history.find(m => m.id === Number(replies[0].id))!, declined = history.find(m => m.id === Number(replies[1].id))!;
     assert.deepEqual(delivered.gift, { status: 'confirmed', productId: '0xproduct', digest: 'digest-1', reason: '오늘은 내가 살게.' });
+    assert.deepEqual((await completedMessage(db, replies[0].id)).gift, delivered.gift);
     assert.equal(declined.gift, undefined);
     await db.query("DELETE FROM agent_gifts WHERE intent IN ('intent-confirmed','intent-declined')");
   });

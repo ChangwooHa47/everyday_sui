@@ -108,7 +108,11 @@ export async function releaseChatTurn(db: Database, requestId: string | null): P
 }
 
 export async function completedMessage(db: Database, messageId: string): Promise<ChatMessage> {
-  const { rows } = await db.query<MessageRow>('SELECT id,sender,content,created_at FROM everyday.chat_messages WHERE id=$1', [messageId]);
+  const { rows } = await db.query<MessageRow>(`SELECT m.id,m.sender,m.content,m.created_at,
+      g.status AS gift_status,g.product_id AS gift_product_id,g.digest AS gift_digest,g.reason AS gift_reason
+    FROM everyday.chat_messages m
+    LEFT JOIN public.agent_gifts g ON g.character_id=m.character_id AND g.message_id=m.id
+    WHERE m.id=$1`, [messageId]);
   if (!rows[0]) throw productError(500);
   return messageResponse(rows[0]);
 }

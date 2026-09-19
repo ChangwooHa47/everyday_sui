@@ -1,5 +1,5 @@
 import { SuiGrpcClient } from '@mysten/sui/grpc';
-import { TransactionError, type SuiClientTypes } from '@mysten/sui/client';
+import { ObjectError, TransactionError, type SuiClientTypes } from '@mysten/sui/client';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { Transaction } from '@mysten/sui/transactions';
 import { fromHex, fromBase64, normalizeStructTag } from '@mysten/sui/utils';
@@ -35,7 +35,14 @@ export function createGiftTransport(packageId: string, rpcUrl: string, operatorK
     async products(listing) {
       if (listing.operator !== key.toSuiAddress()) throw failure(503, 'OPERATOR_NOT_CONFIGURED');
       const candidates = await Promise.all(listing.policy.allowedGiftIds.map(async objectId => {
-        const { object } = await client.getObject({ objectId, include: { content: true }, signal: AbortSignal.timeout(10000) });
+        let object: SuiClientTypes.Object<{ content: true }>;
+        try { ({ object } = await client.getObject({ objectId, include: { content: true }, signal: AbortSignal.timeout(10000) })); }
+        catch (error) {
+          // External offers are consumed objects while Listing allowlists are immutable.
+          // A sold/withdrawn offer is unavailable, but a provider failure remains fail-closed.
+          if (error instanceof ObjectError && (error.reason === 'notFound' || error.reason === 'deleted')) return null;
+          throw error;
+        }
         const type = normalizeStructTag(object.type);
         if (object.owner.$kind !== 'Shared' || object.objectId !== objectId) return null;
         if (type === `${packageId}::market::NftGiftProduct`) {
@@ -172,8 +179,10 @@ export function createGiftService(db: Database, transport: GiftTransport,
           [intent, productId, prepared.bytes, prepared.signature, prepared.digest, reason ?? null]);
         return { ...await settle(intent, prepared, owner, productId), productId, ...(reason ? { reason } : {}) };
       } catch {
-        await db.query("UPDATE agent_gifts SET status='unknown' WHERE intent=$1 AND status='evaluating'", [intent]);
-        return { status: 'unknown' };
+        // No signed bytes exist while the row is evaluating, so no transaction can be
+        // ambiguous or recoverable. Reserve `unknown` for a prepared submission only.
+        await db.query("UPDATE agent_gifts SET status='failed' WHERE intent=$1 AND status='evaluating'", [intent]);
+        return { status: 'failed' };
       }
     },
     async recover() {
