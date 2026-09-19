@@ -3,7 +3,7 @@ import "./globals.css";
 import WalletProvider from "./WalletProvider";
 
 export const metadata = {
-  title: "everyday — with your character",
+  title: "Dear Mine — 나만의 캐릭터, 나만의 기억",
 };
 
 export const viewport = {

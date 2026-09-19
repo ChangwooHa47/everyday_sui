@@ -113,7 +113,7 @@ export default function Home() {
       >
         <header className="topbar">
           <span className="logo" style={{ fontSize: 22, color: "var(--gray-800)" }}>
-            everyday
+            Dear Mine
           </span>
           <Icon name="bell" size={22} style={{ color: "var(--gray-700)" }} />
         </header>
@@ -200,7 +200,7 @@ export default function Home() {
 
       <header className="topbar">
         <span className="logo" style={{ fontSize: 22, color: "var(--gray-800)" }}>
-          everyday
+          Dear Mine
         </span>
         <Icon name="bell" size={22} style={{ color: "var(--gray-700)" }} />
       </header>

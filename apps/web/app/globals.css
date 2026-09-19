@@ -1,5 +1,6 @@
-/* everyday 디자인 토큰 (figma nKyolUAkQEK9hPqDAiOpGe node 0-1053) */
+/* Dear Mine 디자인 토큰 (figma nKyolUAkQEK9hPqDAiOpGe node 0-1053) */
 @import url("https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css");
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,500;1,600&display=swap");
 
 :root {
   /* GrayScale */
@@ -61,10 +62,11 @@ body {
 .label1 { font-size: 16px; font-weight: 700; line-height: 130%; letter-spacing: -0.02em; }
 .caption { font-size: 12px; font-weight: 500; line-height: 150%; }
 
+/* Dear Mine 워드마크 — 세리프 이탤릭. 컬러 팔레트는 그대로 둔다. */
 .logo {
-  font-family: "Avant Garde", "Century Gothic", Futura, "SUIT", sans-serif;
+  font-family: "Playfair Display", "Iowan Old Style", Georgia, "Times New Roman", serif;
   font-style: italic;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 
