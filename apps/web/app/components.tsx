@@ -117,12 +117,13 @@ export function Avatar({
   );
 }
 
-/** 바텀 내비게이션 (커뮤니티는 Phase 2 → 갤러리로 대체) */
+/** 바텀 내비게이션 — 홈(채팅 포함) / 커뮤(캐릭터 발견·이용권) / 마켓(NFT 선물) / 마이 */
 // figma 수정본 네비바 — 플로팅 필 바. 활성 탭만 다크 필(아이콘+라벨), 나머지는 아이콘만.
+// "chat"·"gallery"는 예전 탭 이름 호환용: 채팅은 홈, 갤러리는 마이에 속한다.
 export function BottomNav({
   active,
 }: {
-  active: "home" | "chat" | "gallery" | "community" | "my";
+  active: "home" | "chat" | "gallery" | "community" | "market" | "my";
 }) {
   const item = (
     href: string,
@@ -185,10 +186,10 @@ export function BottomNav({
             pointerEvents: "auto",
           }}
         >
-          {item("/home", "home", "홈", active === "home")}
-          {item("/chatlist", "chat", "채팅", active === "chat")}
-          {item("/community", "community", "커뮤", active === "community" || active === "gallery")}
-          {item("/my", "person", "마이", active === "my")}
+          {item("/home", "home", "홈", active === "home" || active === "chat")}
+          {item("/community", "community", "커뮤", active === "community")}
+          {item("/market", "gift", "마켓", active === "market")}
+          {item("/my", "person", "마이", active === "my" || active === "gallery")}
         </div>
       </nav>
     </>

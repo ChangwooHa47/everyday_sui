@@ -274,3 +274,45 @@ test('live catalog uses one native RPC batch for 20 listings, no RPC for empty p
   assert.deepEqual(failed.json(), { error: 'SERVICE_UNAVAILABLE' });
   assert.equal(batches, 3); assert.equal(singles, 0);
 });
+
+test('buyer reviews require a verified license, one per wallet, and community stats stay public and conversation-free', async t => {
+  const db = new PGlite(); await db.exec(migration);
+  for (const [token, actor] of [['a', '0xa'], ['b', '0xb'], ['e', '0xe']]) {
+    await db.query("INSERT INTO wallet_sessions VALUES($1,$2,$3,now()+interval '30 minutes')", [hash(token.repeat(43)), id(actor), origin]);
+  }
+  const app = buildApp(false, { db, auth, market: {
+    packageId: id('0x99'), listing: async () => listing,
+    hasLicense: async (actor, target, proof) => actor === id('0xb') && target === listing.id && proof === id('0x20'),
+  }, runtime: { previewTurns: 2, packages: { operator: listing.operator, publish: async () => listing.package,
+    load: async () => packageSchema.parse({ schemaVersion: 1, network: 'testnet', packageId: id('0x99'), listingId: listing.id,
+      character: { name: 'Fixture', personality: '', relationshipType: '연인', gender: '여성' }, preview: { name: 'Fixture', personality: '' } }) } } });
+  t.after(async () => { await app.close(); await db.close(); });
+  const headers = (token: string) => ({ origin, authorization: `Bearer ${token.repeat(43)}` });
+  const reviews = `/v1/market/listings/${listing.id}/reviews`, community = `/v1/market/listings/${listing.id}/community`;
+  const review = { rating: 5, text: '말투가 진짜 사람 같아요.', licenseId: id('0x20') };
+  // Unregistered listings have no community page to review.
+  assert.equal((await app.inject({ method: 'POST', url: reviews, headers: headers('b'), payload: review })).statusCode, 404);
+  assert.equal((await app.inject({ method: 'POST', url: '/v1/market/listings', headers: headers('a'), payload: { listingId: listing.id } })).statusCode, 200);
+  const catalog = (await app.inject({ url: '/v1/market/listings' })).json();
+  assert.equal(catalog.previews[listing.id].relationshipType, '연인');
+  assert.equal(catalog.previews[listing.id].gender, '여성');
+  assert.match(catalog.previews[listing.id].registeredAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal((await app.inject({ method: 'POST', url: reviews, payload: review })).statusCode, 403);
+  assert.equal((await app.inject({ method: 'POST', url: reviews, headers: headers('e'), payload: review })).statusCode, 403);
+  assert.equal((await app.inject({ method: 'POST', url: reviews, headers: headers('a'), payload: review })).statusCode, 403);
+  assert.equal((await app.inject({ method: 'POST', url: reviews, headers: headers('b'), payload: { ...review, rating: 6 } })).statusCode, 400);
+  assert.equal((await app.inject({ method: 'POST', url: reviews, headers: headers('b'), payload: { ...review, text: 'x'.repeat(101) } })).statusCode, 400);
+  assert.equal((await app.inject({ method: 'POST', url: reviews, headers: headers('b'), payload: { ...review, conversation: 'PRIVATE' } })).statusCode, 400);
+  const first = await app.inject({ method: 'POST', url: reviews, headers: headers('b'), payload: review });
+  assert.equal(first.statusCode, 200, first.body);
+  assert.equal(first.json().reviewCount, 1); assert.equal(first.json().averageRating, 5);
+  const second = await app.inject({ method: 'POST', url: reviews, headers: headers('b'), payload: { ...review, rating: 3, text: '다시 써봐도 괜찮아요.' } });
+  assert.equal(second.json().reviewCount, 1); assert.equal(second.json().averageRating, 3);
+  const page = await app.inject({ url: community });
+  assert.equal(page.statusCode, 200);
+  assert.deepEqual(page.json().reviews.map((r: { owner: string; text: string }) => [r.owner, r.text]), [[id('0xb'), '다시 써봐도 괜찮아요.']]);
+  assert.equal(page.json().giftsSent, 0);
+  assert.match(page.json().registeredAt, /^\d{4}-/);
+  await db.query("INSERT INTO agent_gifts(intent,owner,listing_id,status) VALUES('g1',$1,$2,'confirmed'),('g2',$1,$2,'declined')", [id('0xb'), listing.id]);
+  assert.equal((await app.inject({ url: community })).json().giftsSent, 1);
+});

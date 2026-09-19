@@ -99,7 +99,7 @@ export function pendingPreviewMessages(id: string): { role: 'user' | 'assistant'
 }
 
 const License = bcs.struct('License', { id: bcs.Address, listing: bcs.Address, buyer: bcs.Address });
-async function findLicense(owner: string, listingId: string) {
+export async function findLicense(owner: string, listingId: string) {
   const { walletKit } = await import('./wallet-auth');
   const client = walletKit.getClient('testnet'); const type = `${requirePackage()}::market::License`;
   let cursor: string | null = null;

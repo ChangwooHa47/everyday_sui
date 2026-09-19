@@ -23,6 +23,8 @@ export interface MarketListing {
   priceMist: string;
   agentBps: number;
   treasuryMist: string;
+  /** Number of wallets holding a license (on-chain buyers table size). Absent on older fixtures. */
+  buyerCount?: string;
   published: boolean;
   active: boolean;
   package: { blobId: string; contentHash: string; endEpoch: string };
@@ -255,8 +257,13 @@ export interface PhotoPaymentTransaction {
 }
 
 export interface LicenseBinding { listingId: string; licenseId: string; }
-export interface MarketCatalog { listings: MarketListing[]; previews: Record<string, { summary: string; imageUrl: string | null }>;
+/** Public-safe preview metadata registered with the catalog; never the paid package. */
+export interface MarketPreviewCard { summary: string; imageUrl: string | null; relationshipType?: string | null; gender?: string | null; registeredAt?: string; }
+export interface MarketCatalog { listings: MarketListing[]; previews: Record<string, MarketPreviewCard>;
   engagement?: Record<string, { turns: string; revisitPercent: number }>; nextCursor: string | null; }
+/** One short buyer review per wallet and listing. Conversation text never appears here. */
+export interface MarketReview { owner: string; rating: number; text: string; createdAt: string; }
+export interface MarketCommunity { reviews: MarketReview[]; averageRating: number | null; reviewCount: number; giftsSent: number; registeredAt: string | null; }
 export interface MemoryAccountBinding { account: { accountId: string; enabled: boolean } | null; }
 export interface MemorySearchResult { results: { text: string; blob_id: string; distance: number }[]; total: number; }
 export interface PublicationIdentity { publicationId: string; }

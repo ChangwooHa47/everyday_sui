@@ -271,7 +271,7 @@ export default function ChatListPage() {
           </div>
         </>
       ) : (
-        <BottomNav active="chat" />
+        <BottomNav active="home" />
       )}
     </div>
   );

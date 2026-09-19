@@ -1,234 +1,130 @@
 "use client";
 
-// 커뮤니티 — figma 42:3227.
-// HOT 캐릭터(가로 스크롤) / 인기 설정집(2열) / 자유 게시판(세로 리스트).
-// 기존 카드와 간격을 유지하고, 게시된 실제 상품만 표시한다.
+// 커뮤 — 캐릭터 발견 피드. 이용권 판매는 여기서 일어난다.
+// 정렬(인기·최신·가격)·관계 필터·검색 → 2열 프로필 카드 → 상세(미리보기·구매·후기).
+// NFT 선물 상품은 /market 탭으로 분리했다. 데이터는 공개 카탈로그만 사용한다.
 
-import { useEffect, useState } from "react";
-import { backend } from "@/lib/api";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { backend } from "@/lib/api";
 import { market, formatPrice, recommendListings } from "@/lib/market";
+import { RELATIONSHIP_FILTERS, SORTS, filterCards, savedListingIds, sortCards, toCards, toggleSaved,
+  type CommunityCard, type RelationshipFilter, type SortKey } from "@/lib/community";
 import { BottomNav } from "../components";
-import type { NftGiftCatalogItem } from '@everyday/contracts';
-import { nftGiftImageUrl, nftGifts } from '@/lib/gifts';
-
-type HotCharacter = { key: string; name: string; imageUrl: string | null; emoji: string; price: string; summary: string; activity: string };
+import { Icon } from "../icons";
+import { ListingCard } from "./ListingCard";
 
 export default function CommunityPage() {
   const router = useRouter();
-  const [hot, setHot] = useState<HotCharacter[]>([]);
+  const [cards, setCards] = useState<CommunityCard[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [suiBalance, setSuiBalance] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [recommended, setRecommended] = useState(false);
-  const [gifts, setGifts] = useState<NftGiftCatalogItem[]>([]);
-  const [giftsLoading, setGiftsLoading] = useState(true);
-  const [giftsError, setGiftsError] = useState(false);
+  const [recommendedIds, setRecommendedIds] = useState<string[] | null>(null);
+  const [sort, setSort] = useState<SortKey>("popular");
+  const [relationship, setRelationship] = useState<RelationshipFilter>("전체");
+  const [query, setQuery] = useState("");
+  const [saved, setSaved] = useState<string[]>([]);
+
   useEffect(() => {
     let active = true;
+    setSaved(savedListingIds());
     void market.list().then(async catalog => {
-      let { listings } = catalog; const { previews } = catalog;
-      const from = new URLSearchParams(window.location.search).get('from');
+      if (!active) return;
+      setCards(toCards(catalog));
+      // 생성 직후 진입(?from=<id>)이면 내 캐릭터와 결이 비슷한 순서를 먼저 보여준다.
+      const from = new URLSearchParams(window.location.search).get("from");
       if (from && /^[1-9]\d*$/.test(from)) {
-        const draft = await backend.productDraft(Number(from));
-        listings = recommendListings(catalog, draft);
-        if (active) setRecommended(true);
+        try {
+          const draft = await backend.productDraft(Number(from));
+          if (active) setRecommendedIds(recommendListings(catalog, draft).map(l => l.id));
+        } catch { /* 추천 실패는 기본 정렬로 대체 */ }
       }
-      if (active) setHot(listings.filter(c => c.active && c.published).map(c => ({ key: c.id, name: c.title,
-        imageUrl: previews[c.id]?.imageUrl ?? null, summary: previews[c.id]?.summary ?? '', emoji: '', price: c.priceMist,
-        activity: catalog.engagement?.[c.id] ? `대화 ${catalog.engagement[c.id].turns}회 · 재방문 ${catalog.engagement[c.id].revisitPercent}%` : '' })));
-    }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
-    void import('@/lib/wallet-auth').then(async ({ restoreWalletToken, walletKit }) => {
+    }).catch(e => { if (active) setError(e instanceof Error ? e.message : "캐릭터를 불러오지 못했어요."); });
+    void import("@/lib/wallet-auth").then(async ({ restoreWalletToken, walletKit }) => {
       await restoreWalletToken();
       const account = walletKit.stores.$connection.get().account;
       if (!account) return;
-      const { balance } = await walletKit.getClient('testnet').getBalance({ owner: account.address });
+      const { balance } = await walletKit.getClient("testnet").getBalance({ owner: account.address });
       if (active) setSuiBalance(balance.balance);
     }).catch(() => {});
-    void nftGifts.list().then(value => { if (active) setGifts(value.filter(gift => gift.active)); })
-      .catch(() => { if (active) setGiftsError(true); }).finally(() => { if (active) setGiftsLoading(false); });
     return () => { active = false; };
   }, []);
-  const packs = hot.map(c => ({ id: c.key, title: c.name, author: c.activity, desc: c.summary, price: c.price, emoji: c.emoji }));
+
+  const visible = useMemo(() => {
+    if (!cards) return [];
+    const filtered = filterCards(cards, relationship, query);
+    if (recommendedIds && sort === "popular") {
+      const rank = new Map(recommendedIds.map((id, i) => [id, i]));
+      return [...filtered].sort((a, b) => (rank.get(a.listing.id) ?? 1e9) - (rank.get(b.listing.id) ?? 1e9));
+    }
+    return sortCards(filtered, sort);
+  }, [cards, relationship, query, sort, recommendedIds]);
+
+  const availableRelationships = useMemo(() => {
+    const present = new Set((cards ?? []).map(c => c.preview?.relationshipType).filter(Boolean));
+    return RELATIONSHIP_FILTERS.filter(f => f === "전체" || present.has(f));
+  }, [cards]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
       <header className="topbar">
-        <span className="h3">커뮤니티</span>
+        <span className="h3">커뮤</span>
         <span className="point-badge">{suiBalance === null ? "SUI" : formatPrice(suiBalance)}</span>
       </header>
-      {error && <p className="body2" role="alert" style={{ padding: '0 20px' }}>{error}</p>}
-      {!error && (loading || hot.length === 0) && <p className="body2" style={{ padding: '0 20px' }}>{loading ? '불러오는 중…' : '아직 등록된 캐릭터가 없어요.'}</p>}
 
-      {/* HOT 캐릭터 */}
-      <section style={{ marginBottom: 26 }}>
-        <div className="label1" style={{ padding: "0 20px 12px" }}>
-          {recommended ? '함께 둘러볼 캐릭터' : '마켓 캐릭터'}
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            overflowX: "auto",
-            padding: "0 20px 2px",
-            scrollbarWidth: "none",
-          }}
-        >
-          {hot.map((c) => (
-            <div
-              key={c.key}
-              role="link" tabIndex={0}
-              onClick={() => router.push(`/community/detail?listing=${encodeURIComponent(c.key)}`)}
-              onKeyDown={e => { if (e.key === "Enter") router.push(`/community/detail?listing=${encodeURIComponent(c.key)}`); }}
-              style={{
-                flexShrink: 0,
-                width: 132,
-                aspectRatio: "3 / 4",
-                borderRadius: 14,
-                position: "relative",
-                overflow: "hidden",
-                background: "linear-gradient(160deg, var(--orange-100), var(--orange-400))",
-              }}
-            >
-              {c.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={c.imageUrl}
-                  alt={c.name}
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              ) : (
-                <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 48 }}>
-                  {c.emoji}
-                </div>
-              )}
-              <div
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  padding: "22px 10px 10px",
-                  background: "linear-gradient(180deg, transparent, rgba(30,30,30,0.72))",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 6,
-                }}
-              >
-                <span
-                  title={c.name}
-                  style={{
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    color: "#fff",
-                    fontSize: 14,
-                    fontWeight: 700,
-                  }}
-                >
-                  {c.name}
-                </span>
-                <span
-                  className="point-badge"
-                  style={{ padding: "3px 8px", fontSize: 11 }}
-                >
-                  {formatPrice(c.price)}
-                </span>
-              </div>
-            </div>
+      {/* 검색 */}
+      <div style={{ padding: "0 20px 10px" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 999, background: "var(--gray-50)", border: "1px solid var(--gray-200)" }}>
+          <Icon name="search" size={18} style={{ color: "var(--gray-500)" }} />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="이름이나 소개로 찾기" aria-label="캐릭터 검색"
+            style={{ flex: 1, border: 0, background: "transparent", font: "inherit", fontSize: 14, outline: "none", color: "var(--black)" }} />
+        </label>
+      </div>
+
+      {/* 정렬 · 관계 필터 */}
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "0 20px 6px", scrollbarWidth: "none" }}>
+        {SORTS.map(s => (
+          <button key={s.key} type="button" className={`chip ${sort === s.key ? "selected" : ""}`} onClick={() => setSort(s.key)} style={{ flexShrink: 0 }}>
+            {recommendedIds && s.key === "popular" ? "추천" : s.label}
+          </button>
+        ))}
+      </div>
+      {availableRelationships.length > 1 && (
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "6px 20px 14px", scrollbarWidth: "none" }}>
+          {availableRelationships.map(f => (
+            <button key={f} type="button" className={`chip ${relationship === f ? "selected" : ""}`} onClick={() => setRelationship(f)}
+              style={{ flexShrink: 0, padding: "6px 12px", fontSize: 13 }}>{f}</button>
           ))}
         </div>
-      </section>
+      )}
 
-      <section style={{ marginBottom: 26 }}>
-        <div style={{ padding: '0 20px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span className="label1">NFT 선물 마켓</span>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="caption" style={{ border: 0, background: 'none', color: 'var(--gray-500)', cursor: 'pointer' }} onClick={() => router.push('/community/gifts/create')}>외부 NFT 등록</button>
-            <button className="caption" style={{ border: 0, background: 'none', color: 'var(--gray-500)', cursor: 'pointer' }} onClick={() => router.push('/my/gifts')}>내 선물</button>
+      {/* 피드 */}
+      <main style={{ padding: "4px 20px 8px", flex: 1 }}>
+        {error && <p role="alert" className="body2" style={{ color: "var(--gray-500)", textAlign: "center", padding: "48px 0" }}>{error}</p>}
+        {!error && cards === null && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {[0, 1, 2, 3].map(i => <div key={i} className="skeleton" style={{ aspectRatio: "3 / 4.9", borderRadius: 16 }} />)}
           </div>
-        </div>
-        {giftsLoading ? <p className="body2" style={{ padding: '0 20px', color: 'var(--gray-500)' }}>선물을 불러오는 중…</p>
-          : giftsError ? <p role="alert" className="body2" style={{ padding: '0 20px', color: 'var(--gray-500)' }}>NFT 선물 목록을 불러오지 못했어요.</p>
-          : gifts.length === 0 ? <p className="body2" style={{ padding: '0 20px', color: 'var(--gray-500)' }}>판매 준비 중인 NFT 선물이 있어요.</p> :
-          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 20px 2px', scrollbarWidth: 'none' }}>
-            {gifts.map(gift => { const soldOut = gift.kind === 'external' ? !gift.active : BigInt(gift.minted) >= BigInt(gift.maxSupply); return <article key={gift.id} role="link" tabIndex={0}
-              onClick={() => router.push(`/community/gifts/detail?product=${encodeURIComponent(gift.id)}`)}
-              onKeyDown={event => { if (event.key === 'Enter') router.push(`/community/gifts/detail?product=${encodeURIComponent(gift.id)}`); }}
-              style={{ flexShrink: 0, width: 148, border: '1px solid var(--gray-200)', borderRadius: 16, overflow: 'hidden', background: '#fff', cursor: 'pointer' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}<img src={nftGiftImageUrl(gift)} alt={gift.title} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', background: 'var(--orange-100)' }}/>
-              <div style={{ padding: 12 }}><div className="caption" style={{ color: 'var(--gray-500)', marginBottom: 4 }}>{gift.kind === 'external' ? '승인 컬렉션 NFT' : 'Dear Mine NFT'}</div><div className="label1" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gift.title}</div>
-                <div className="caption" style={{ marginTop: 6, color: soldOut ? 'var(--gray-500)' : 'var(--orange-700)', fontWeight: 700 }}>{soldOut ? '품절' : formatPrice(gift.priceMist)}</div></div>
-            </article>; })}
-          </div>}
-      </section>
+        )}
+        {!error && cards !== null && visible.length === 0 && (
+          <div style={{ padding: "56px 20px", textAlign: "center", border: "1px dashed var(--gray-200)", borderRadius: 16 }}>
+            <div style={{ fontSize: 40 }}>🫧</div>
+            <p className="headline2" style={{ margin: "10px 0 4px" }}>{cards.length === 0 ? "아직 등록된 캐릭터가 없어요" : "조건에 맞는 캐릭터가 없어요"}</p>
+            <p className="caption" style={{ margin: 0, color: "var(--gray-500)" }}>
+              {cards.length === 0 ? "내 캐릭터를 마켓에 등록하면 여기에 보여요." : "필터를 바꾸거나 검색어를 지워보세요."}
+            </p>
+            {cards.length === 0 && <button className="chip" style={{ marginTop: 14 }} onClick={() => router.push("/character")}>내 캐릭터 등록하기</button>}
+          </div>
+        )}
+        {visible.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {visible.map(card => (
+              <ListingCard key={card.listing.id} card={card} saved={saved.includes(card.listing.id)} onToggleSave={id => setSaved(toggleSaved(id))} />
+            ))}
+          </div>
+        )}
+      </main>
 
-      {/* 인기 설정집 */}
-      <section style={{ marginBottom: 26 }}>
-        <div className="label1" style={{ padding: "0 20px 12px" }}>
-          캐릭터 이용권
-        </div>
-        <div
-          style={{
-            padding: "0 20px",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 12,
-          }}
-        >
-          {packs.map((p) => (
-            <div
-              key={p.id}
-              role="link" tabIndex={0}
-              onClick={() => router.push(`/community/detail?listing=${encodeURIComponent(p.id)}`)}
-              onKeyDown={e => { if (e.key === "Enter") router.push(`/community/detail?listing=${encodeURIComponent(p.id)}`); }}
-              style={{
-                borderRadius: 14,
-                padding: "14px 14px 16px",
-                background: "var(--orange-50)",
-                border: "1px solid var(--orange-200)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    className="headline2"
-                    style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                  >
-                    {p.title}
-                  </div>
-                  <div className="caption" style={{ color: "var(--gray-500)" }}>
-                    {p.author}
-                  </div>
-                </div>
-                <span style={{ fontSize: 22, flexShrink: 0, lineHeight: 1 }}>{p.emoji}</span>
-              </div>
-              <div
-                className="body2"
-                style={{
-                  color: "var(--gray-600)",
-                  margin: "10px 0 8px",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}
-              >
-                {p.desc}
-              </div>
-              <span className="caption" style={{ color: "var(--orange-700)", fontWeight: 700 }}>
-                {formatPrice(p.price)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-
-
-      <div style={{ flex: 1 }} />
       <BottomNav active="community" />
     </div>
   );
