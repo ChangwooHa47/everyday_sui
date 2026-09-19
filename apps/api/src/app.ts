@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import type { HealthResponse } from '@everyday/contracts';
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import { ZodError } from 'zod';
 import { authenticate, registerAuth, type AuthConfig } from './auth.js';
@@ -29,7 +30,9 @@ export function buildApp(logger = false, options?: { db: Database; auth: AuthCon
     service: 'everyday-api', status: 'ok', stage: options ? 'wallet' : 'foundation',
   }));
   if (options) {
-    app.register(cors, { origin: options.auth.origins, methods: ['GET','POST','PATCH','PUT','DELETE','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] });
+    app.register(cookie);
+    app.register(cors, { origin: options.auth.origins, credentials: true,
+      methods: ['GET','POST','PATCH','PUT','DELETE','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] });
     app.register(rateLimit, { max: 120, timeWindow: '1 minute', hook: 'preHandler', keyGenerator: async req => {
       // Resolve a valid session
       // before assigning a per-user quota; arbitrary Authorization values cannot mint buckets.

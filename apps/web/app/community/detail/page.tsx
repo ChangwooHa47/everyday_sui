@@ -6,7 +6,9 @@ import type { MarketCommunity, MarketPreview } from "@everyday/contracts";
 import { formatPrice, market, purchaseCharacter } from "@/lib/market";
 import { setActiveCharacterId } from "@/lib/api";
 import { community, savedListingIds, shortAddress, toggleSaved } from "@/lib/community";
+import { marketImageSources } from "@/lib/market-images";
 import { Icon } from "../../icons";
+import { ResilientImage } from "../../components";
 
 const stars = (n: number) => "★".repeat(Math.round(n)) + "☆".repeat(5 - Math.round(n));
 
@@ -120,6 +122,7 @@ function MarketCharacterDetail() {
   if (!preview) return null;
   const { character, listing } = preview;
   const metadata = [character.gender].filter(Boolean);
+  const imageSources = marketImageSources(listing, character.imageUrl);
 
   return (
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", background: "#fff" }}>
@@ -145,12 +148,9 @@ function MarketCharacterDetail() {
             background: "linear-gradient(160deg, var(--orange-100), var(--orange-400))",
           }}
         >
-          {character.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={character.imageUrl} alt={character.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 72 }}>🙂</div>
-          )}
+          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 72 }} aria-hidden>🙂</div>
+          <ResilientImage sources={imageSources} alt={character.name}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
         </div>
 
         <section style={{ padding: "20px 0 0" }}>

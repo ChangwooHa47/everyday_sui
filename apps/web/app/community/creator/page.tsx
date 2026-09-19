@@ -25,7 +25,7 @@ function CreatorInner() {
     return () => { active = false; };
   }, [address]);
 
-  const buyers = useMemo(() => (cards ?? []).reduce((sum, c) => sum + Number(c.listing.buyerCount ?? 0), 0), [cards]);
+  const buyers = useMemo(() => (cards ?? []).reduce((sum, c) => sum + BigInt(c.listing.buyerCount ?? '0'), 0n).toString(), [cards]);
 
   return (
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>

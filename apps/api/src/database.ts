@@ -20,7 +20,18 @@ CREATE TABLE IF NOT EXISTS wallet_sessions (
  token_hash text PRIMARY KEY, address text NOT NULL, origin text NOT NULL,
  expires_at timestamptz NOT NULL
 );
+CREATE TABLE IF NOT EXISTS wallet_session_families (
+ token_hash text PRIMARY KEY REFERENCES wallet_sessions(token_hash) ON DELETE CASCADE,
+ family_id uuid NOT NULL
+);
+CREATE TABLE IF NOT EXISTS wallet_refresh_sessions (
+ token_hash text PRIMARY KEY, family_id uuid NOT NULL, address text NOT NULL, origin text NOT NULL,
+ expires_at timestamptz NOT NULL, rotated_at timestamptz
+);
 CREATE INDEX IF NOT EXISTS wallet_sessions_expiry ON wallet_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS wallet_session_families_family ON wallet_session_families(family_id);
+CREATE INDEX IF NOT EXISTS wallet_refresh_sessions_expiry ON wallet_refresh_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS wallet_refresh_sessions_family ON wallet_refresh_sessions(family_id);
 CREATE INDEX IF NOT EXISTS wallet_challenges_expiry ON wallet_challenges(expires_at);
 CREATE TABLE IF NOT EXISTS ai_requests (
  actor text NOT NULL, request_id uuid NOT NULL, input_hash text NOT NULL,
@@ -92,8 +103,10 @@ CREATE TABLE IF NOT EXISTS market_preview_budget (
  owner text NOT NULL, listing_id text NOT NULL, used integer NOT NULL CHECK(used>0), PRIMARY KEY(owner,listing_id)
 );
 CREATE TABLE IF NOT EXISTS memory_accounts (
- owner text PRIMARY KEY, account_id text NOT NULL UNIQUE, enabled boolean NOT NULL DEFAULT true
+ owner text PRIMARY KEY, account_id text NOT NULL UNIQUE, enabled boolean NOT NULL DEFAULT true,
+ auto_store boolean NOT NULL DEFAULT false
 );
+ALTER TABLE memory_accounts ADD COLUMN IF NOT EXISTS auto_store boolean NOT NULL DEFAULT false;
 CREATE TABLE IF NOT EXISTS memory_jobs (
  owner text NOT NULL, request_id uuid NOT NULL, listing_id text NOT NULL, account_id text NOT NULL,
  input_hash text NOT NULL, job_id text, status text NOT NULL CHECK(status IN ('running','accepted','unknown')),

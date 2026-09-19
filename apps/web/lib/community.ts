@@ -24,12 +24,17 @@ export function filterCards(cards: CommunityCard[], relationship: RelationshipFi
     && (!q || card.listing.title.toLowerCase().includes(q) || (card.preview?.summary ?? '').toLowerCase().includes(q)));
 }
 
+function compareU64(a: string, b: string) {
+  const left = BigInt(a), right = BigInt(b);
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 export function sortCards(cards: CommunityCard[], sort: SortKey) {
   const copy = [...cards];
-  if (sort === 'popular') copy.sort((a, b) => Number(BigInt(b.engagement?.turns ?? '0') - BigInt(a.engagement?.turns ?? '0'))
-    || Number(BigInt(b.listing.buyerCount ?? '0') - BigInt(a.listing.buyerCount ?? '0')) || a.listing.id.localeCompare(b.listing.id));
+  if (sort === 'popular') copy.sort((a, b) => compareU64(b.engagement?.turns ?? '0', a.engagement?.turns ?? '0')
+    || compareU64(b.listing.buyerCount ?? '0', a.listing.buyerCount ?? '0') || a.listing.id.localeCompare(b.listing.id));
   if (sort === 'newest') copy.sort((a, b) => (b.preview?.registeredAt ?? '').localeCompare(a.preview?.registeredAt ?? '') || a.listing.id.localeCompare(b.listing.id));
-  if (sort === 'price') copy.sort((a, b) => Number(BigInt(a.listing.priceMist) - BigInt(b.listing.priceMist)) || a.listing.id.localeCompare(b.listing.id));
+  if (sort === 'price') copy.sort((a, b) => compareU64(a.listing.priceMist, b.listing.priceMist) || a.listing.id.localeCompare(b.listing.id));
   return copy;
 }
 
@@ -52,8 +57,8 @@ export const community = {
   of: (listingId: string) => marketRequest<MarketCommunity>(`/v1/market/listings/${encodeURIComponent(listingId)}/community`),
   /** Finds the caller's license on-chain first; the API verifies it again before storing the review. */
   async review(listingId: string, rating: number, text: string) {
-    const { getWalletToken, walletKit } = await import('./wallet-auth');
-    getWalletToken();
+    const { restoreWalletToken, walletKit } = await import('./wallet-auth');
+    await restoreWalletToken();
     const account = walletKit.stores.$connection.get().account;
     if (!account) throw Error('로그인해주세요.');
     const { normalizeSuiAddress } = await import('@mysten/sui/utils');

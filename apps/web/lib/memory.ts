@@ -5,8 +5,8 @@ import type { LicenseBinding, MemoryAccountBinding, MemorySearchResult } from '@
 import { marketRequest, MarketRequestError } from './market';
 
 export async function connectMemory() {
-  const { walletKit, getWalletToken } = await import('./wallet-auth');
-  getWalletToken();
+  const { walletKit, getWalletToken, restoreWalletToken } = await import('./wallet-auth');
+  await restoreWalletToken();
   const connected = walletKit.stores.$connection.get().account;
   if (!connected) throw Error('로그인해주세요.');
   const account = connected, owner = normalizeSuiAddress(account.address), client = walletKit.getClient('testnet');
@@ -81,8 +81,8 @@ export async function connectMemory() {
 }
 
 export async function pendingMemoryText(listingId: string) {
-  const { walletKit, getWalletToken } = await import('./wallet-auth');
-  getWalletToken();
+  const { walletKit, restoreWalletToken } = await import('./wallet-auth');
+  await restoreWalletToken();
   const owner = walletKit.stores.$connection.get().account?.address;
   const stored = sessionStorage.getItem(`everyday.remember:${owner}:${listingId}`);
   if (!stored) return null;

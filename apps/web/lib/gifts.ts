@@ -31,8 +31,8 @@ export const nftGifts = {
     marketRequest<ExternalNftPreferences>('/v1/me/external-nft-preferences',
       { receiveEnabled, blockedPolicyIds }, 'PUT'),
   async purchase(displayed: NftGiftCatalogItem) {
-    const { getWalletToken, walletKit } = await import('./wallet-auth');
-    getWalletToken();
+    const { getWalletToken, restoreWalletToken, walletKit } = await import('./wallet-auth');
+    await restoreWalletToken();
     const account = walletKit.stores.$connection.get().account;
     if (!account) throw Error('로그인해주세요.');
     const response = await marketRequest<{ transaction: string; priceMist: string }>(
@@ -52,8 +52,8 @@ export const nftGifts = {
     return result.Transaction.digest;
   },
   async createExternalOffer(draft: ExternalNftOfferDraft) {
-    const { getWalletToken, walletKit } = await import('./wallet-auth');
-    getWalletToken();
+    const { getWalletToken, restoreWalletToken, walletKit } = await import('./wallet-auth');
+    await restoreWalletToken();
     const account = walletKit.stores.$connection.get().account;
     if (!account) throw Error('로그인해주세요.');
     const prepared = await marketRequest<{ transaction: string; packageId: string; objectType: string }>(
@@ -72,8 +72,8 @@ export const nftGifts = {
     return offerId;
   },
   async withdrawExternalOffer(offer: ExternalNftGiftProduct) {
-    const { getWalletToken, walletKit } = await import('./wallet-auth');
-    getWalletToken();
+    const { getWalletToken, restoreWalletToken, walletKit } = await import('./wallet-auth');
+    await restoreWalletToken();
     const account = walletKit.stores.$connection.get().account;
     if (!account) throw Error('로그인해주세요.');
     const prepared = await marketRequest<{ transaction: string; objectId: string }>(

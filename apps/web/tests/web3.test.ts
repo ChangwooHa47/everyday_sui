@@ -7,6 +7,8 @@ import { priceToMist } from '../lib/publish';
 import { formatPrice, recommendListings, loadMarketCatalog, submitPreviewTurn, MarketRequestError, pendingPreviewMessages } from '../lib/market';
 import { getActiveCharacterId, setActiveCharacterId, prepareChatRequest, getPendingChatRequest, clearChatRequest, prepareCompileRequest, getPendingCompile, clearCompileRequest, getIncompleteCharacter, saveIncompleteCharacter, clearIncompleteCharacter } from '../lib/api';
 import { giftPolicyFor, nftGiftImageUrl } from '../lib/gifts';
+import { sortCards, type CommunityCard } from '../lib/community';
+import { marketImageSources } from '../lib/market-images';
 const pkg = '0x'+'1'.repeat(64);
 const metadata = {schemaVersion:1,network:'testnet',appPackage:pkg,revision:'0',previousRef:null,createdAt:'2026-09-08T00:00:00.000Z'};
 
@@ -15,6 +17,34 @@ test('market prices preserve a single MIST and u64 maximum without floating poin
   assert.equal(priceToMist('18446744073.709551615'), '18446744073709551615');
   for (const value of ['0', '-1', '1e3', '01', '0.0000000001', '18446744073.709551616']) assert.throws(() => priceToMist(value));
   assert.equal(formatPrice('18446744073709551615'), '18446744073.709551615 SUI');
+});
+
+test('Walrus market images use strict reads and deployed seeds prefer their byte-identical local copy', () => {
+  const listing = { id: '0xc8827e0c92569b4cc686f884462fc9c0ed58950d1549d128b18a2dc41cbee98e', title: '시우',
+    active: true, published: true, creator: pkg, operator: pkg, priceMist: '1', agentBps: 0, treasuryMist: '0',
+    package: { blobId: 'a'.repeat(43), contentHash: '1234567890abcdef' + '0'.repeat(48), endEpoch: '578' },
+    policy: { perGiftLimitMist: '0', dailyLimitMist: '0', allowedGiftIds: [] } };
+  assert.deepEqual(marketImageSources(listing,
+    'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0'), [
+    '/portraits/wangja-night-1.png',
+    'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0?strict_consistency_check=true',
+    'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0',
+  ]);
+  assert.deepEqual(marketImageSources({ ...listing, id: pkg }, 'not a URL'), []);
+});
+
+test('community sorting keeps u64 values as exact decimal strings', () => {
+  const card = (id: string, priceMist: string, buyers: string, turns: string): CommunityCard => ({
+    listing: { id, title: id, active: true, published: true, creator: pkg, operator: pkg, priceMist, buyerCount: buyers,
+      agentBps: 0, treasuryMist: '0', package: { blobId: '', contentHash: '', endEpoch: '1' },
+      policy: { perGiftLimitMist: '0', dailyLimitMist: '0', allowedGiftIds: [] } },
+    preview: undefined,
+    engagement: { turns, revisitPercent: 0 },
+  });
+  const lower = card('lower', '9007199254740992', '18446744073709551614', '18446744073709551614');
+  const higher = card('higher', '9007199254740993', '18446744073709551615', '18446744073709551615');
+  assert.deepEqual(sortCards([lower, higher], 'popular').map(item => item.listing.id), ['higher', 'lower']);
+  assert.deepEqual(sortCards([higher, lower], 'price').map(item => item.listing.id), ['lower', 'higher']);
 });
 
 test('gift policy includes available external offers and external images always use the verified proxy', () => {

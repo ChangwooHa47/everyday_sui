@@ -79,7 +79,11 @@ test('P0 preview to purchase, server persona, consented memories and second-orig
   assert.ok(providerInputs.at(-1)!.includes('숨길 세 번째 문장'));
   assert.ok(providerInputs.at(-1)!.includes('PAID_EXAMPLE'));
   assert.equal((await app.inject({ method: 'POST', url: '/v1/me/memory-account', headers: headers(), payload: { accountId: id('0xee'), consent: true } })).statusCode, 403);
-  assert.equal((await app.inject({ method: 'POST', url: '/v1/me/memory-account', headers: headers(), payload: { accountId: id('0xbb'), consent: true } })).statusCode, 200);
+  const connectedMemory = await app.inject({ method: 'POST', url: '/v1/me/memory-account', headers: headers(), payload: { accountId: id('0xbb'), consent: true } });
+  assert.equal(connectedMemory.statusCode, 200);
+  assert.equal(connectedMemory.json().autoStore, true);
+  assert.deepEqual((await app.inject({ url: '/v1/me/memory-account', headers: headers() })).json().account,
+    { accountId: id('0xbb'), enabled: true, autoStore: true });
   const memoryBody = { requestId: randomUUID(), text: 'I like warm tea', consent: true, licenseId: id('0x20') };
   const rememberUrl = `/v1/me/relationships/${listing.id}/remember`;
   assert.equal((await app.inject({ method: 'POST', url: rememberUrl, headers: headers(), payload: { ...memoryBody, consent: false } })).statusCode, 400);

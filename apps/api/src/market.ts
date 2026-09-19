@@ -86,9 +86,10 @@ export function registerMarket(app: FastifyInstance, db: Database, auth: AuthCon
     const { listingId } = paramsSchema.parse(req.params);
     const input = reviewSchema.parse(req.body);
     // Only current license holders review, and creators cannot review their own character.
-    const listing = await requireMarketAccess(chain(), actor, listingId, input.licenseId);
+    const service = chain();
+    const listing = await requireMarketAccess(service, actor, listingId, input.licenseId);
     if (listing.creator === actor) throw failure(403, 'LICENSE_REQUIRED');
-    const registered = await db.query('SELECT 1 FROM market_catalog WHERE listing_id=$1', [listingId]);
+    const registered = await db.query('SELECT 1 FROM market_catalog WHERE listing_id=$1 AND package_id=$2', [listingId, service.packageId]);
     if (!registered.rows.length) throw failure(404, 'LISTING_NOT_FOUND');
     await db.query(`INSERT INTO market_reviews(listing_id,owner,rating,text) VALUES($1,$2,$3,$4)
       ON CONFLICT(listing_id,owner) DO UPDATE SET rating=$3,text=$4,created_at=now()`, [listingId, actor, input.rating, input.text]);

@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { formatPrice } from '@/lib/market';
 import type { CommunityCard } from '@/lib/community';
+import { marketImageSources } from '@/lib/market-images';
+import { ResilientImage } from '../components';
 import { Icon } from '../icons';
 
 /**
@@ -15,14 +17,13 @@ export function ListingCard({ card, saved, onToggleSave }: { card: CommunityCard
   const href = `/community/detail?listing=${encodeURIComponent(listing.id)}`;
   const buyers = listing.buyerCount ? Number(listing.buyerCount) : 0;
   const meta = buyers ? `${buyers}명과 함께` : engagement ? `대화 ${engagement.turns}회` : '첫 구매자를 기다려요';
+  const imageSources = marketImageSources(listing, preview?.imageUrl);
   return (
     <article role="link" tabIndex={0} onClick={() => router.push(href)} onKeyDown={e => { if (e.key === 'Enter') router.push(href); }}
       style={{ position: 'relative', aspectRatio: '159.5 / 252.5', borderRadius: 4, overflow: 'hidden', cursor: 'pointer',
         background: 'linear-gradient(160deg, var(--orange-100), var(--orange-400))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-      {preview?.imageUrl
-        // eslint-disable-next-line @next/next/no-img-element
-        ? <img src={preview.imageUrl} alt={listing.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        : <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 40 }}>🙂</div>}
+      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 40 }} aria-hidden>🙂</div>
+      <ResilientImage sources={imageSources} alt={listing.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
       <button type="button" aria-pressed={saved} aria-label={saved ? '찜 해제' : '찜하기'}
         onClick={e => { e.stopPropagation(); onToggleSave(listing.id); }}
         style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', border: 0, display: 'grid', placeItems: 'center',
