@@ -8,36 +8,27 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { backend } from "@/lib/api";
 import { market, recommendListings } from "@/lib/market";
-import { filterCards, sortCards, toCards, type CommunityCard } from "@/lib/community";
-import { BottomNav } from "../components";
+import { marketImageSources } from "@/lib/market-images";
+import { buyerCount, filterCards, formatAgo, sortCards, toCards, type CommunityCard } from "@/lib/community";
+import { BottomNav, ResilientImage } from "../components";
 import { Icon } from "../icons";
-
-function ago(iso?: string) {
-  if (!iso) return "";
-  const ms = Date.now() - new Date(iso).getTime();
-  if (!Number.isFinite(ms) || ms < 0) return "";
-  const h = Math.floor(ms / 3_600_000);
-  if (h < 1) return "방금";
-  if (h < 24) return `${h}시간`;
-  const d = Math.floor(h / 24);
-  return d < 30 ? `${d}일` : `${Math.floor(d / 30)}달`;
-}
 
 function Post({ card, onOpen }: { card: CommunityCard; onOpen: () => void }) {
   const { listing, preview, engagement } = card;
-  const buyers = listing.buyerCount ? Number(listing.buyerCount) : 0;
-  const images = [preview?.imageUrl].filter((u): u is string => Boolean(u));
+  const buyers = buyerCount(listing);
+  const turns = Number(engagement?.turns ?? 0);
+  // 시드 초상은 번들 사본을, Walrus 이미지는 일관성 검사 URL을 먼저 시도한다 (lib/market-images).
+  const imageSources = marketImageSources(listing, preview?.imageUrl);
   return (
     <article style={{ display: "flex", flexDirection: "column", gap: 4, padding: "0 20px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          {preview?.imageUrl
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={preview.imageUrl} alt="" style={{ width: 42, height: 42, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-            : <div style={{ width: 42, height: 42, borderRadius: "50%", background: "var(--orange-100)", flexShrink: 0 }} />}
+          <div style={{ width: 42, height: 42, borderRadius: "50%", background: "var(--orange-100)", flexShrink: 0, overflow: "hidden" }}>
+            <ResilientImage sources={imageSources} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
             <span style={{ fontSize: 18, fontWeight: 500, letterSpacing: "-0.07em", color: "var(--black)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{listing.title}</span>
-            <span style={{ fontSize: 13, fontWeight: 400, letterSpacing: "-0.07em", color: "var(--gray-500)", whiteSpace: "nowrap" }}>{ago(preview?.registeredAt)}</span>
+            <span style={{ fontSize: 13, fontWeight: 400, letterSpacing: "-0.07em", color: "var(--gray-500)", whiteSpace: "nowrap" }}>{formatAgo(preview?.registeredAt)}</span>
           </div>
         </div>
         <button type="button" aria-label={`${listing.title} 프로필`} onClick={onOpen}
@@ -47,19 +38,16 @@ function Post({ card, onOpen }: { card: CommunityCard; onOpen: () => void }) {
       </div>
       <p style={{ margin: 0, padding: "2px 0 8px 32px", fontSize: 16, fontWeight: 400, lineHeight: 1.5, letterSpacing: "-0.03em", color: "#121212" }}>
         {preview?.summary || `${listing.title}(이)가 커뮤에 왔어요.`}
-        {(buyers > 0 || engagement) && (
-          <span style={{ color: "var(--gray-500)" }}> {[buyers ? `${buyers}명과 대화 중` : null, engagement ? `대화 ${engagement.turns}회` : null].filter(Boolean).join(" · ")}</span>
+        {(buyers > 0 || turns > 0) && (
+          <span style={{ color: "var(--gray-500)" }}> {[buyers > 0 ? `${buyers}명과 대화 중` : null, turns > 0 ? `대화 ${turns}회` : null].filter(Boolean).join(" · ")}</span>
         )}
       </p>
-      {images.length > 0 && (
-        <div style={{ display: "flex", gap: 17, paddingLeft: 32, overflowX: "auto", scrollbarWidth: "none" }}>
-          {images.map((src, i) => (
-            <button key={i} type="button" onClick={onOpen} aria-label="프로필 보기"
-              style={{ width: 267, height: 267, flexShrink: 0, borderRadius: 4, overflow: "hidden", border: 0, padding: 0, background: "var(--orange-100)", cursor: "pointer" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            </button>
-          ))}
+      {imageSources.length > 0 && (
+        <div style={{ paddingLeft: 32 }}>
+          <button type="button" onClick={onOpen} aria-label={`${listing.title} 프로필 보기`}
+            style={{ width: 267, height: 267, borderRadius: 4, overflow: "hidden", border: 0, padding: 0, background: "var(--orange-100)", cursor: "pointer" }}>
+            <ResilientImage sources={imageSources} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          </button>
         </div>
       )}
     </article>
@@ -91,6 +79,7 @@ export default function CommunityPage() {
 
   const visible = useMemo(() => {
     if (!cards) return [];
+    // 피드는 검색 + 최신순만 쓴다. 정렬·관계 필터는 마켓 탭이 담당한다.
     const filtered = filterCards(cards, "전체", query);
     if (recommendedIds) {
       const rank = new Map(recommendedIds.map((id, i) => [id, i]));
@@ -115,6 +104,14 @@ export default function CommunityPage() {
             style={{ flex: 1, border: 0, background: "transparent", font: "inherit", fontSize: 14, outline: "none", color: "var(--black)" }} />
         </label>
       </div>
+
+      {/* 생성 직후 진입은 유사도 순이라 순서를 밝히고 되돌릴 수 있게 한다. */}
+      {recommendedIds && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "0 20px 14px" }}>
+          <span className="caption" style={{ color: "var(--gray-500)" }}>내 캐릭터와 결이 비슷한 순서예요.</span>
+          <button type="button" className="chip pill" onClick={() => setRecommendedIds(null)}>최신순으로 보기</button>
+        </div>
+      )}
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column", gap: 24, paddingTop: 4, paddingBottom: 8 }}>
         {error && <p role="alert" className="body2" style={{ color: "var(--gray-500)", textAlign: "center", padding: "48px 20px" }}>{error}</p>}

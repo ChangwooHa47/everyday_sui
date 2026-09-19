@@ -112,7 +112,7 @@ export default function Home() {
           display: "flex",
           flexDirection: "column",
           height: "100dvh",
-          background: "linear-gradient(180deg, var(--orange-50) 0%, #fffdf7 55%, var(--orange-100) 100%)",
+          background: "linear-gradient(180deg, var(--key-50) 0%, #fff 55%, var(--key-100) 100%)",
         }}
       >
         <header className="topbar">
@@ -134,10 +134,10 @@ export default function Home() {
           <section
             style={{
               width: "100%",
-              borderRadius: 24,
-              background: "rgba(255,255,255,0.82)",
-              border: "1px solid var(--orange-200)",
-              boxShadow: "0 12px 36px rgba(82, 64, 42, 0.08)",
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.88)",
+              border: "1px solid var(--key-100)",
+              boxShadow: "0 12px 36px rgba(30, 24, 26, 0.08)",
               textAlign: "center",
               overflow: "hidden",
             }}
@@ -260,8 +260,7 @@ export default function Home() {
                 right: 0,
                 bottom: 0,
                 padding: "56px 20px 20px",
-                background:
-                  "linear-gradient(transparent, rgba(20,18,16,0.35) 40%, rgba(20,18,16,0.82))",
+                background: "var(--overlay-scrim)",
                 color: "#fff",
               }}
             >

@@ -55,7 +55,7 @@ export default function Splash() {
         나만의 캐릭터, 나만의 기억
       </div>
       <div
-        className="caption fade-in landing-login"
+        className="caption fade-in"
         style={{ position: "absolute", bottom: 64, color: "rgba(255,255,255,0.85)" }}
       >
         {!legacyBaseline ? <WalletLogin onLogin={() => router.push('/home')} /> : error

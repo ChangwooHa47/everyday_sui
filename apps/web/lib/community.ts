@@ -10,7 +10,7 @@ export interface CommunityCard {
 
 export const RELATIONSHIP_FILTERS = ['전체', '연인', '썸', '친구', '짝사랑'] as const;
 export type RelationshipFilter = typeof RELATIONSHIP_FILTERS[number];
-export const SORTS = [{ key: 'popular', label: '인기' }, { key: 'newest', label: '최신' }, { key: 'price', label: '가격순' }] as const;
+export const SORTS = [{ key: 'popular', label: '인기순' }, { key: 'newest', label: '최신순' }, { key: 'price', label: '가격순' }] as const;
 export type SortKey = typeof SORTS[number]['key'];
 
 export function toCards(catalog: MarketCatalog): CommunityCard[] {
@@ -39,6 +39,32 @@ export function sortCards(cards: CommunityCard[], sort: SortKey) {
 }
 
 export function shortAddress(address: string) { return `${address.slice(0, 6)}…${address.slice(-4)}`; }
+
+/** buyerCount is an optional u64 string; render 0 rather than NaN for absent or malformed values. */
+export function buyerCount(listing: MarketListing): number {
+  const value = Number(listing.buyerCount ?? 0);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+/** Turn counts are u64 strings, so '0' is truthy; only a positive count replaces the first-buyer copy. */
+export function buyersLabel(card: CommunityCard): string {
+  const buyers = buyerCount(card.listing);
+  if (buyers > 0) return `${buyers}명과 함께`;
+  const turns = Number(card.engagement?.turns ?? 0);
+  return Number.isFinite(turns) && turns > 0 ? `대화 ${turns}회` : '첫 구매자를 기다려요';
+}
+
+/** Relative time for catalog registration dates. */
+export function formatAgo(iso?: string): string {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return '';
+  const hours = Math.floor(ms / 3_600_000);
+  if (hours < 1) return '방금';
+  if (hours < 24) return `${hours}시간`;
+  const days = Math.floor(hours / 24);
+  return days < 30 ? `${days}일` : `${Math.floor(days / 30)}달`;
+}
 
 /** Saved characters live on this device only; nothing is written to the server or chain. */
 const SAVED_KEY = 'dearmine.saved-listings';
