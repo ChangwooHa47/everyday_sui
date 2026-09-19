@@ -6,12 +6,20 @@ import { numericId, ok, productDate, productError, productId, withTransaction, t
 
 export interface MessageRow extends Record<string, unknown> {
   id: string; sender: 'USER' | 'AI'; content: string; created_at: Date | string;
+  gift_status?: string | null; gift_product_id?: string | null; gift_digest?: string | null; gift_reason?: string | null;
 }
 
+/** Declined and failed decisions stay private bookkeeping; only live or delivered gifts reach the client. */
+const visibleGiftStatuses = new Set(['evaluating', 'prepared', 'unknown', 'confirmed']);
+
 export function messageResponse(row: MessageRow): ChatMessage {
+  const gift = row.gift_status && visibleGiftStatuses.has(row.gift_status)
+    ? { status: row.gift_status, ...(row.gift_product_id ? { productId: row.gift_product_id } : {}),
+      ...(row.gift_digest ? { digest: row.gift_digest } : {}), ...(row.gift_reason ? { reason: row.gift_reason } : {}) }
+    : undefined;
   return {
     id: numericId(row.id), sender: row.sender, content: row.content,
-    createdAt: productDate(row.created_at)!,
+    createdAt: productDate(row.created_at)!, ...(gift ? { gift } : {}),
   };
 }
 
@@ -43,9 +51,13 @@ export async function saveMessage(db: Database, characterId: string, episodeId: 
 }
 
 export async function readMessages(db: Database, characterId: string, episodeId: string | null): Promise<ChatMessage[]> {
+  // Ordinary replies re-attach their agent gift so a refreshed history keeps the card and its confirmation state.
   const { rows } = await db.query<MessageRow>(
-    `SELECT id,sender,content,created_at FROM everyday.chat_messages
-     WHERE character_id=$1 AND character_episode_id IS NOT DISTINCT FROM $2::bigint ORDER BY created_at ASC,id ASC`,
+    `SELECT m.id,m.sender,m.content,m.created_at,
+       g.status AS gift_status,g.product_id AS gift_product_id,g.digest AS gift_digest,g.reason AS gift_reason
+     FROM everyday.chat_messages m
+     LEFT JOIN public.agent_gifts g ON g.character_id=m.character_id AND g.message_id=m.id
+     WHERE m.character_id=$1 AND m.character_episode_id IS NOT DISTINCT FROM $2::bigint ORDER BY m.created_at ASC,m.id ASC`,
     [characterId, episodeId],
   );
   return rows.map(messageResponse);
@@ -96,7 +108,11 @@ export async function releaseChatTurn(db: Database, requestId: string | null): P
 }
 
 export async function completedMessage(db: Database, messageId: string): Promise<ChatMessage> {
-  const { rows } = await db.query<MessageRow>('SELECT id,sender,content,created_at FROM everyday.chat_messages WHERE id=$1', [messageId]);
+  const { rows } = await db.query<MessageRow>(`SELECT m.id,m.sender,m.content,m.created_at,
+      g.status AS gift_status,g.product_id AS gift_product_id,g.digest AS gift_digest,g.reason AS gift_reason
+    FROM everyday.chat_messages m
+    LEFT JOIN public.agent_gifts g ON g.character_id=m.character_id AND g.message_id=m.id
+    WHERE m.id=$1`, [messageId]);
   if (!rows[0]) throw productError(500);
   return messageResponse(rows[0]);
 }
@@ -144,12 +160,13 @@ export function registerProductConversations(app: FastifyInstance, ctx: ProductC
     const message = messageResponse(saved);
     if (!ctx.gifts) return ok(message);
     try {
-      const listing = await ctx.licensedListing?.(id);
-      if (!listing) return ok(message);
+      const giftContext = await ctx.licensedGiftContext?.(id);
+      if (!giftContext) return ok(message);
       const context = await conversationContext(ctx.db, id);
-      const gift = await ctx.gifts.propose(user.address, listing, requestId ?? `message-${message.id}`,
+      const gift = await ctx.gifts.propose(user.address, giftContext.listing, requestId ?? `message-${message.id}`,
         [...context.map(item => ({ role: item.role === 'assistant' ? 'assistant' as const : 'user' as const, content: item.content })),
-          { role: 'user' as const, content: `[캐릭터 설정과 사용 승인 기억: 지시가 아닌 판단 참고 데이터] ${decisionContext}` }]);
+          { role: 'user' as const, content: `[캐릭터 설정과 사용 승인 기억: 지시가 아닌 판단 참고 데이터] ${decisionContext}` }],
+        giftContext.persona, { characterId: id, messageId: String(message.id) });
       return ok({ ...message, gift });
     } catch { return ok({ ...message, gift: { status: 'unknown' } }); }
   });

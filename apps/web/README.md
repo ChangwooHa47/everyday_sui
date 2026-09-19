@@ -1,6 +1,6 @@
 # @everyday/web
 
-원래 Everyday 화면과 경로를 사용한다. 디자인 기반은 [공통 스타일](app/globals.css), [컴포넌트](app/components.tsx), [아이콘](app/icons.tsx), [레이아웃](app/layout.tsx)이다. 비교용 원본 `frontend/app`과 줄바꿈을 제외하고 동일하며, 원본 체크아웃은 현재 앱의 실행 의존성이 아니다.
+원래 everyday 화면과 경로를 사용하며 서비스명은 Dear Mine이다. 디자인 기반은 [공통 스타일](app/globals.css), [컴포넌트](app/components.tsx), [아이콘](app/icons.tsx), [레이아웃](app/layout.tsx)이다. 비교용 원본 `frontend/app`과는 2026-09-19 리브랜드로 바뀐 워드마크(`.logo` 서체·텍스트)와 제목·태그라인을 제외하고 줄바꿈만 다르며, 원본 체크아웃은 현재 앱의 실행 의존성이 아니다.
 
 - 로그인 버튼은 `로그인`, 성공 후 `/home`이다. 실제 메시지 서명을 서버가 검증한다. 개인키는 저장하지 않는다. 세션은 메모리와 현재 탭의 sessionStorage에 보관하고 계정 변경·연결 해제 시 폐기한다.
 - 기존 `/api`는 단일 TypeScript/Fastify 백엔드의 [제품 모듈](../api/src/product)에서 처리한다. 생성·채팅·에피소드·갤러리의 저장 주체는 기존 PostgreSQL이다. 백엔드 이전으로 화면·경로·DTO를 바꾸지 않으며 빈 계정은 홈의 기존 추가 카드에 머문다.

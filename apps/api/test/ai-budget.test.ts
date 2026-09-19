@@ -8,7 +8,7 @@ import { migration } from '../src/database.js';
 import { hash } from '../src/auth.js';
 import { reserveAiBudget } from '../src/ai-budget.js';
 import { createGiftService, type GiftTransport } from '../src/gifts.js';
-import type { MarketListing } from '@everyday/contracts';
+import type { GiftPersona, MarketListing } from '@everyday/contracts';
 import { migrateProduct } from '../src/product/migrations.js';
 
 test('one atomic daily cap covers different wallets, AI turns, product generation and gift decisions', async t => {
@@ -48,8 +48,11 @@ test('one atomic daily cap covers different wallets, AI turns, product generatio
   let giftDecisions = 0, giftSignatures = 0;
   const transport: GiftTransport = { products: async () => [{ id: 'gift', title: 'Gift', priceMist: '1' }],
     prepare: async () => { giftSignatures++; throw Error('must not sign'); }, execute: async () => 'confirmed' };
-  const gifts = createGiftService(db, transport, async () => { giftDecisions++; return 'gift'; }, owner => reserveAiBudget(db, owner, 2, 3));
-  await gifts.propose(address('b'), { id: 'listing' } as MarketListing, 'turn', []);
+  const gifts = createGiftService(db, transport, async () => { giftDecisions++; return { productId: 'gift' }; }, owner => reserveAiBudget(db, owner, 2, 3));
+  const persona: GiftPersona = { enabled: true, archetype: 'minimalist', generosity: 10, spontaneity: 0,
+    triggers: ['milestone'], preferredTags: [], blockedTags: ['high-value'], cooldownHours: 168 };
+  await gifts.propose(address('b'), { id: 'listing', policy: { allowedGiftIds: ['gift'], perGiftLimitMist: '1', dailyLimitMist: '1' } } as MarketListing,
+    'turn', [], persona);
   assert.equal(giftDecisions, 0); assert.equal(giftSignatures, 0);
   assert.equal((await db.query<{ used: number }>('SELECT used FROM ai_global_daily_budget')).rows[0].used, 3);
 });

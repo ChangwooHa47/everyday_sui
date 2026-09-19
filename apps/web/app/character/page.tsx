@@ -16,6 +16,8 @@ import {
 import { Avatar } from "../components";
 import { Icon } from "../icons";
 import { PersonalMemory } from './PersonalMemory';
+import { CharacterFunds } from './CharacterFunds';
+import type { NftGiftCatalogItem } from '@everyday/contracts';
 
 type Tab = "settings" | "gallery";
 
@@ -107,6 +109,10 @@ export default function CharacterPage() {
   const [showPublish, setShowPublish] = useState(false);
   const [publishPrice, setPublishPrice] = useState('0.01');
   const [publishing, setPublishing] = useState(false);
+  // 선물 정책은 Listing 생성 시에만 정해지므로 등록 폼에서 함께 고른다.
+  const [giftsOn, setGiftsOn] = useState(false);
+  const [giftProducts, setGiftProducts] = useState<NftGiftCatalogItem[] | null>(null);
+  const [giftsAvailable, setGiftsAvailable] = useState<boolean | null>(null);
 
   // 호칭·말투 편집 상태
   const [editingName, setEditingName] = useState(false);
@@ -160,11 +166,31 @@ export default function CharacterPage() {
     setChar(updated);
   }
 
+  // 등록 폼을 열 때 선물 카탈로그와 서버 설정을 한 번 확인한다.
+  useEffect(() => {
+    if (!showPublish || giftProducts !== null) return;
+    let active = true;
+    (async () => {
+      try {
+        const [{ nftGifts }, { marketRequest }] = await Promise.all([import('@/lib/gifts'), import('@/lib/market')]);
+        const [products, config] = await Promise.all([nftGifts.list(),
+          marketRequest<{ packageId: string | null; nftGiftPackageId?: string | null }>('/v1/market/config')]);
+        if (!active) return;
+        setGiftProducts(products);
+        setGiftsAvailable(Boolean(config.packageId) && config.nftGiftPackageId === config.packageId && products.some(p => p.active));
+      } catch {
+        if (active) { setGiftProducts([]); setGiftsAvailable(false); }
+      }
+    })();
+    return () => { active = false; };
+  }, [showPublish, giftProducts]);
+
   async function publish() {
     if (!char || publishing) return;
     setPublishing(true); setError(null);
     try {
-      await (await import('@/lib/publish')).publishCharacter(char.id, publishPrice);
+      const policy = giftsOn && giftsAvailable && giftProducts ? (await import('@/lib/gifts')).giftPolicyFor(giftProducts) : undefined;
+      await (await import('@/lib/publish')).publishCharacter(char.id, publishPrice, policy);
       router.push('/community');
     } catch (e) { setError(e instanceof Error ? e.message : '등록하지 못했어요. 다시 시도해주세요.'); }
     finally { setPublishing(false); }
@@ -354,8 +380,12 @@ export default function CharacterPage() {
                 </div>
               </section>
 
+              {char.readOnlySettings && <CharacterFunds characterId={char.id} name={char.name} />}
               {char.readOnlySettings && <PersonalMemory characterId={char.id} />}
-              {!char.readOnlySettings && <section style={{ marginTop: 24 }}>
+              {!char.readOnlySettings && <p className="caption" style={{ color: "var(--gray-500)", marginTop: 20 }}>
+                나의 기억 저장은 마켓에서 구매한 캐릭터에서만 지원돼요.
+              </p>}
+              {!char.readOnlySettings && <section style={{ marginTop: 12 }}>
                 <button className="cp-btnGhost" type="button" onClick={() => setShowPublish(v => !v)}>마켓에 등록</button>
                 {showPublish && <div className="cp-callBox">
                   <label className="label1" htmlFor="publish-price">판매 가격 (SUI)</label>
@@ -363,6 +393,18 @@ export default function CharacterPage() {
                     onChange={e => setPublishPrice(e.target.value)} disabled={publishing} />
                   <p className="caption">개인 이용권 · 제작자 80% / 캐릭터 20%</p>
                   <p className="caption">대화와 개인 기억은 포함되지 않아요.</p>
+                  <label className="caption" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 10, opacity: giftsAvailable === false ? 0.5 : 1 }}>
+                    <input type="checkbox" checked={giftsOn && giftsAvailable === true} disabled={publishing || giftsAvailable !== true}
+                      onChange={e => setGiftsOn(e.target.checked)} style={{ marginTop: 2 }} />
+                    <span>
+                      캐릭터가 판매 수익으로 NFT 선물을 보낼 수 있게 하기
+                      <span style={{ display: 'block', color: 'var(--gray-500)' }}>
+                        {giftsAvailable === null ? '선물 상품을 확인하는 중이에요.'
+                          : giftsAvailable === false ? '지금은 이 마켓에서 선물 기능을 켤 수 없어요.'
+                            : `선물 상품 ${giftProducts?.filter(p => p.active).length ?? 0}개 · 하루 한도는 가장 비싼 상품의 3배예요. 등록 후에는 바꿀 수 없어요.`}
+                      </span>
+                    </span>
+                  </label>
                   <button className="cp-btnFill" type="button" disabled={publishing} onClick={() => void publish()}>
                     {publishing ? '등록 중…' : '등록'}
                   </button>

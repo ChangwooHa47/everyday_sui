@@ -1,11 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { MarketCatalog } from '@everyday/contracts';
+import type { MarketCatalog, NftGiftCatalogItem } from '@everyday/contracts';
 import { assertContext, canonical, encode, publicSchema, sha256, u64, vaultSchema } from '../lib/web3/schema';
 import { parseReceipt, readLimited } from '../lib/web3/storage';
 import { priceToMist } from '../lib/publish';
 import { formatPrice, recommendListings, loadMarketCatalog, submitPreviewTurn, MarketRequestError, pendingPreviewMessages } from '../lib/market';
 import { getActiveCharacterId, setActiveCharacterId, prepareChatRequest, getPendingChatRequest, clearChatRequest, prepareCompileRequest, getPendingCompile, clearCompileRequest, getIncompleteCharacter, saveIncompleteCharacter, clearIncompleteCharacter } from '../lib/api';
+import { giftPolicyFor, nftGiftImageUrl } from '../lib/gifts';
+import { marketImageSources } from '../lib/market-images';
 const pkg = '0x'+'1'.repeat(64);
 const metadata = {schemaVersion:1,network:'testnet',appPackage:pkg,revision:'0',previousRef:null,createdAt:'2026-09-08T00:00:00.000Z'};
 
@@ -14,6 +16,35 @@ test('market prices preserve a single MIST and u64 maximum without floating poin
   assert.equal(priceToMist('18446744073.709551615'), '18446744073709551615');
   for (const value of ['0', '-1', '1e3', '01', '0.0000000001', '18446744073.709551616']) assert.throws(() => priceToMist(value));
   assert.equal(formatPrice('18446744073709551615'), '18446744073.709551615 SUI');
+});
+
+test('Walrus market images use strict reads and deployed seeds prefer their byte-identical local copy', () => {
+  const listing = { id: '0xc8827e0c92569b4cc686f884462fc9c0ed58950d1549d128b18a2dc41cbee98e', title: '시우',
+    active: true, published: true, creator: pkg, operator: pkg, priceMist: '1', agentBps: 0, treasuryMist: '0',
+    package: { blobId: 'a'.repeat(43), contentHash: '1234567890abcdef' + '0'.repeat(48), endEpoch: '578' },
+    policy: { perGiftLimitMist: '0', dailyLimitMist: '0', allowedGiftIds: [] } };
+  assert.deepEqual(marketImageSources(listing,
+    'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0'), [
+    '/portraits/wangja-night-1.png',
+    'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0?strict_consistency_check=true',
+    'https://aggregator.walrus-testnet.walrus.space/v1/blobs/1h0jmq3Ul7xopBBMiBoMoPD__V2perIjmfp-5PThbE0',
+  ]);
+  assert.deepEqual(marketImageSources({ ...listing, id: pkg }, 'not a URL'), []);
+});
+
+test('gift policy includes available external offers and external images always use the verified proxy', () => {
+  const internal = (id: string, minted: string, maxSupply: string, priceMist: string): NftGiftCatalogItem => ({
+    kind: 'everyday', id, title: id, description: '', imageUrl: 'https://example.com/internal.png', imageHash: '0'.repeat(64),
+    merchant: pkg, priceMist, maxSupply, minted, active: true,
+  });
+  const external: NftGiftCatalogItem = { kind: 'external', id: 'external-offer', collectionId: 'policy', collectionName: 'Fixture',
+    objectId: 'object', objectType: `${pkg}::fixture::Nft`, title: 'External', description: '',
+    imageUrl: 'https://seller.invalid/untrusted.png', imageHash: '1'.repeat(64), merchant: pkg, priceMist: '9', active: true, verified: true };
+  const policy = giftPolicyFor([internal('sold-out', '1', '1', '100'), internal('available', '0', '1', '5'), external]);
+  assert.deepEqual(policy, { perGiftLimitMist: '9', dailyLimitMist: '27', allowedGiftIds: ['available', 'external-offer'] });
+  const image = nftGiftImageUrl(external);
+  assert.ok(image.endsWith('/v1/nft-gifts/external-offer/image'));
+  assert.notEqual(image, external.imageUrl);
 });
 
 test('active character selection is isolated between authenticated wallet accounts', () => {

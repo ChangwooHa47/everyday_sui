@@ -29,7 +29,7 @@ export function registerProduct(app: FastifyInstance, options: {
   db: Database; auth: AuthConfig; providers: ProductOptions; chain?: MarketChain; packages?: PackageStore;
   memory?: MemoryProvider; gifts?: GiftService; dailyLimit?: number; globalDailyLimit?: number;
 }) {
-  const context = createProductContext(options.db, options.auth, options.providers, options.chain, options.memory, options.gifts);
+  const context = createProductContext(options.db, options.auth, options.providers, options.chain, options.memory, options.gifts, options.packages);
   app.register(async product => {
     product.setErrorHandler((error, _req, reply) => {
       const known = error as Error & { productError?: boolean; statusCode?: number };

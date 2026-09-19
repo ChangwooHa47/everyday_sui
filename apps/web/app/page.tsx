@@ -47,10 +47,10 @@ export default function Splash() {
       }}
     >
       <div className="logo" style={{ fontSize: 44, color: "var(--gray-800)" }}>
-        everyday
+        Dear Mine
       </div>
       <div className="body2" style={{ color: "var(--gray-500)", marginTop: 8 }}>
-        with your character
+        나만의 캐릭터, 나만의 기억
       </div>
       <div
         className="caption fade-in"

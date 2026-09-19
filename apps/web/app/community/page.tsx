@@ -8,11 +8,12 @@ import { useEffect, useState } from "react";
 import { backend } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { market, formatPrice, recommendListings } from "@/lib/market";
-import { BottomNav } from "../components";
-import type { NftGiftProduct } from '@everyday/contracts';
-import { nftGifts } from '@/lib/gifts';
+import { BottomNav, ResilientImage } from "../components";
+import type { NftGiftCatalogItem } from '@everyday/contracts';
+import { nftGiftImageUrl, nftGifts } from '@/lib/gifts';
+import { marketImageSources } from '@/lib/market-images';
 
-type HotCharacter = { key: string; name: string; imageUrl: string | null; emoji: string; price: string; summary: string; activity: string };
+type HotCharacter = { key: string; name: string; imageSources: string[]; emoji: string; price: string; summary: string; activity: string };
 
 export default function CommunityPage() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function CommunityPage() {
   const [suiBalance, setSuiBalance] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [recommended, setRecommended] = useState(false);
-  const [gifts, setGifts] = useState<NftGiftProduct[]>([]);
+  const [gifts, setGifts] = useState<NftGiftCatalogItem[]>([]);
   const [giftsLoading, setGiftsLoading] = useState(true);
   const [giftsError, setGiftsError] = useState(false);
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function CommunityPage() {
         if (active) setRecommended(true);
       }
       if (active) setHot(listings.filter(c => c.active && c.published).map(c => ({ key: c.id, name: c.title,
-        imageUrl: previews[c.id]?.imageUrl ?? null, summary: previews[c.id]?.summary ?? '', emoji: '', price: c.priceMist,
+        imageSources: marketImageSources(c, previews[c.id]?.imageUrl), summary: previews[c.id]?.summary ?? '', emoji: '', price: c.priceMist,
         activity: catalog.engagement?.[c.id] ? `대화 ${catalog.engagement[c.id].turns}회 · 재방문 ${catalog.engagement[c.id].revisitPercent}%` : '' })));
     }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     void import('@/lib/wallet-auth').then(async ({ restoreWalletToken, walletKit }) => {
@@ -90,18 +91,11 @@ export default function CommunityPage() {
                 background: "linear-gradient(160deg, var(--orange-100), var(--orange-400))",
               }}
             >
-              {c.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={c.imageUrl}
-                  alt={c.name}
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              ) : (
-                <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 48 }}>
-                  {c.emoji}
-                </div>
-              )}
+              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 48 }} aria-hidden>
+                {c.emoji || '🙂'}
+              </div>
+              <ResilientImage sources={c.imageSources} alt={c.name}
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
               <div
                 style={{
                   position: "absolute",
@@ -145,18 +139,21 @@ export default function CommunityPage() {
       <section style={{ marginBottom: 26 }}>
         <div style={{ padding: '0 20px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span className="label1">NFT 선물 마켓</span>
-          <button className="caption" style={{ border: 0, background: 'none', color: 'var(--gray-500)', cursor: 'pointer' }} onClick={() => router.push('/my/gifts')}>내 선물</button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="caption" style={{ border: 0, background: 'none', color: 'var(--gray-500)', cursor: 'pointer' }} onClick={() => router.push('/community/gifts/create')}>외부 NFT 등록</button>
+            <button className="caption" style={{ border: 0, background: 'none', color: 'var(--gray-500)', cursor: 'pointer' }} onClick={() => router.push('/my/gifts')}>내 선물</button>
+          </div>
         </div>
         {giftsLoading ? <p className="body2" style={{ padding: '0 20px', color: 'var(--gray-500)' }}>선물을 불러오는 중…</p>
           : giftsError ? <p role="alert" className="body2" style={{ padding: '0 20px', color: 'var(--gray-500)' }}>NFT 선물 목록을 불러오지 못했어요.</p>
           : gifts.length === 0 ? <p className="body2" style={{ padding: '0 20px', color: 'var(--gray-500)' }}>판매 준비 중인 NFT 선물이 있어요.</p> :
           <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 20px 2px', scrollbarWidth: 'none' }}>
-            {gifts.map(gift => { const soldOut = BigInt(gift.minted) >= BigInt(gift.maxSupply); return <article key={gift.id} role="link" tabIndex={0}
+            {gifts.map(gift => { const soldOut = gift.kind === 'external' ? !gift.active : BigInt(gift.minted) >= BigInt(gift.maxSupply); return <article key={gift.id} role="link" tabIndex={0}
               onClick={() => router.push(`/community/gifts/detail?product=${encodeURIComponent(gift.id)}`)}
               onKeyDown={event => { if (event.key === 'Enter') router.push(`/community/gifts/detail?product=${encodeURIComponent(gift.id)}`); }}
               style={{ flexShrink: 0, width: 148, border: '1px solid var(--gray-200)', borderRadius: 16, overflow: 'hidden', background: '#fff', cursor: 'pointer' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}<img src={gift.imageUrl} alt={gift.title} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', background: 'var(--orange-100)' }}/>
-              <div style={{ padding: 12 }}><div className="label1" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gift.title}</div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}<img src={nftGiftImageUrl(gift)} alt={gift.title} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', background: 'var(--orange-100)' }}/>
+              <div style={{ padding: 12 }}><div className="caption" style={{ color: 'var(--gray-500)', marginBottom: 4 }}>{gift.kind === 'external' ? '승인 컬렉션 NFT' : 'Dear Mine NFT'}</div><div className="label1" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gift.title}</div>
                 <div className="caption" style={{ marginTop: 6, color: soldOut ? 'var(--gray-500)' : 'var(--orange-700)', fontWeight: 700 }}>{soldOut ? '품절' : formatPrice(gift.priceMist)}</div></div>
             </article>; })}
           </div>}

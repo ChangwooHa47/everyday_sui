@@ -1,6 +1,8 @@
-# Everyday Sui
+# Dear Mine
 
 AI 캐릭터를 만들고 대화하며, 작가가 설계한 캐릭터의 **개인 사용용 비독점 이용권**을 거래하는 서비스다. 캐릭터 설정은 판매하지만 사용자별 대화·관계·기억은 판매하지 않는다.
+
+서비스명은 2026-09-19에 everyday에서 **Dear Mine**으로 바꿨다. 화면 워드마크·제목·문서의 서비스명만 바꿨고, 저장소·Railway 서비스·npm 패키지·DB schema·Move 모듈·브라우저 저장소 키의 `everyday` 식별자는 기존 배포·데이터 호환을 위해 유지한다.
 
 기존 Next.js 화면과 단일 TypeScript/Fastify 백엔드를 사용한다. API가 생성·대화·사진·사용자 기능과 지갑 인증, Sui·Walrus·Seal·MemWal 연동을 함께 담당한다. 배포 구성은 web과 api 두 앱 서비스 및 PostgreSQL이며, API 이미지에는 Node 실행환경만 포함한다.
 
