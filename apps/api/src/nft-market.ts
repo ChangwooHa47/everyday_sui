@@ -259,9 +259,11 @@ export function registerNftMarket(app: FastifyInstance, db: Database, auth: Auth
       return { gift: await service.nftGiftProduct(productId) };
     }
     const { rows } = await db.query<ExternalOfferRow>(
-      "SELECT * FROM external_nft_offers WHERE offer_id=$1 AND package_id=$2 AND status='active'",
+      "SELECT * FROM external_nft_offers WHERE offer_id=$1 AND package_id=$2 AND status IN ('active','sold')",
       [productId, chain().packageId]);
     if (!rows[0]) throw failure(404, 'NFT_GIFT_NOT_FOUND');
+    // A settled offer is an immutable display receipt, not a live/purchasable offer.
+    if (rows[0].status === 'sold') return { gift: externalItem(rows[0]) };
     const { offer, policy } = await exactExternalOffer(rows[0]);
     if (!offer.active || !policy.active) throw failure(409, 'EXTERNAL_OFFER_NOT_LIVE');
     return { gift: externalItem(rows[0]) };

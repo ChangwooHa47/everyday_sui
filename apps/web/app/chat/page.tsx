@@ -18,6 +18,7 @@ import {
   type ChatMessage,
 } from "@/lib/api";
 import { Icon } from "../icons";
+import { ResilientImage } from '../components';
 import { market, formatPrice, purchaseCharacter, pendingPreviewMessages, MarketRequestError } from '@/lib/market';
 import { nftGiftImageUrl, nftGifts, explorerTxUrl } from '@/lib/gifts';
 import type { MarketPreview, NftGiftCatalogItem } from '@everyday/contracts';
@@ -49,8 +50,7 @@ function GiftCard({ gift, product, onOpen }: { gift: NonNullable<Msg['gift']>; p
     <div className="gift-card gift-confirmed">
       <button type="button" onClick={onOpen} className="gift-hero">
         {product?.imageUrl
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={nftGiftImageUrl(product)} alt={product.title} className="gift-image" />
+          ? <div className="gift-image"><ResilientImage sources={[nftGiftImageUrl(product)]} alt={product.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
           : <div className="gift-image skeleton" aria-hidden />}
         <div style={{ minWidth: 0 }}>
           <div className="caption" style={{ color: 'var(--key)', fontWeight: 700 }}>🎁 NFT 선물이 도착했어요</div>
@@ -89,36 +89,39 @@ function ChatInner() {
   const [giftProducts, setGiftProducts] = useState<Record<string, NftGiftCatalogItem>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
-  const requestedProducts = useRef(new Set<string>());
+  const giftProductIds = Array.from(new Set(messages.flatMap(m => m.gift?.status === 'confirmed' && m.gift.productId ? [m.gift.productId] : []))).sort().join(',');
 
-  // 선물 카드에 필요한 상품 정보만 한 번씩 가져온다. 실패해도 재요청하지 않는다 (카드는 제목 없이도 표시).
+  // Ordinary message updates must not cancel in-flight gift metadata reads.
   useEffect(() => {
-    const missing = Array.from(new Set(messages.map(m => m.gift?.status === 'confirmed' ? m.gift.productId : undefined)
-      .filter((id): id is string => Boolean(id) && !requestedProducts.current.has(id!))));
+    const missing = giftProductIds.split(',').filter(id => id && !giftProducts[id]);
     if (!missing.length) return;
-    for (const id of missing) requestedProducts.current.add(id);
     let active = true;
     void Promise.all(missing.map(async id => [id, await nftGifts.detail(id).catch(() => null)] as const)).then(found => {
       if (!active) return;
       setGiftProducts(prev => Object.assign({}, prev, Object.fromEntries(found.filter(([, p]) => p).map(([id, p]) => [id, p!]))));
     });
     return () => { active = false; };
-  }, [messages]);
+    // Only a change to the required products restarts this request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [giftProductIds]);
 
-  // 확정 전 선물이 있으면 이력을 다시 읽어 상태를 갱신한다 (서버 복구 루프는 30초 주기, 최대 3분).
+  // Keep checking while mounted; slow settlement must not leave a permanently pending card.
   useEffect(() => {
     if (preview || !char || episodeId || !messages.some(isPendingGift)) return;
-    let attempts = 0;
-    const timer = setInterval(async () => {
-      attempts += 1;
+    const characterId = char.id;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
       try {
-        const history = await backend.getMessages(char.id);
+        const history = await backend.getMessages(characterId);
+        if (!active) return;
         const byId = new Map(history.map(m => [m.id, m.gift] as const));
         setMessages(prev => prev.map(m => m.id && byId.has(m.id) ? { ...m, gift: byId.get(m.id) } : m));
       } catch { /* 다음 주기에 다시 시도 */ }
-      if (attempts >= 18) clearInterval(timer);
-    }, 10000);
-    return () => clearInterval(timer);
+      if (active) timer = setTimeout(poll, 10000);
+    }
+    timer = setTimeout(poll, 10000);
+    return () => { active = false; clearTimeout(timer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preview, char, episodeId, messages.some(isPendingGift)]);
 

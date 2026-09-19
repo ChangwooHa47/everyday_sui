@@ -9,8 +9,43 @@ import { getActiveCharacterId, setActiveCharacterId, prepareChatRequest, getPend
 import { giftPolicyFor, nftGiftImageUrl } from '../lib/gifts';
 import { sortCards, type CommunityCard } from '../lib/community';
 import { marketImageSources } from '../lib/market-images';
+import { refreshSession, type WalletSession } from '../lib/wallet-session';
+import { restoredLandingRoute } from '../lib/entry-route';
 const pkg = '0x'+'1'.repeat(64);
 const metadata = {schemaVersion:1,network:'testnet',appPackage:pkg,revision:'0',previousRef:null,createdAt:'2026-09-08T00:00:00.000Z'};
+
+test('landing stays signed out on auth/API failure and never forces an empty account into creation', async () => {
+  let reads = 0;
+  const empty = async () => { reads++; return []; };
+  assert.equal(await restoredLandingRoute(async () => { throw Error('no session'); }, empty), null);
+  assert.equal(reads, 0);
+  assert.equal(await restoredLandingRoute(async () => 'token', empty), '/home');
+  assert.equal(await restoredLandingRoute(async () => 'token', async () => [{ id: 1 }]), '/home');
+  assert.equal(await restoredLandingRoute(async () => 'expired token', async () => { throw Error('401'); }), null);
+  assert.equal(await restoredLandingRoute(async () => 'token', async () => { throw Error('503'); }), null);
+});
+
+test('refresh cannot install an old account session or clear a newer session after account switch', async () => {
+  const session: WalletSession = { token: 'a'.repeat(43), address: pkg, expiresAt: new Date(Date.now() + 60000).toISOString() };
+  const stored: (WalletSession | null)[] = [], revoked: string[] = [];
+  let current = true;
+  const options = { owner: pkg, isCurrent: () => current,
+    remember: (value: WalletSession | null) => { stored.push(value); }, revoke: (token: string) => { revoked.push(token); } };
+  assert.equal(await refreshSession({ ...options, request: async () => Response.json(session) }), session.token);
+  assert.deepEqual(stored, [session]); stored.length = 0;
+  for (const status of [200, 401, 503]) {
+    current = true;
+    await assert.rejects(refreshSession({ ...options, request: async () => {
+      current = false; // wallet changed while HTTP was in flight
+      return Response.json(session, { status });
+    } }), /다시 로그인/);
+  }
+  assert.deepEqual(stored, []);
+  assert.deepEqual(revoked, [session.token]);
+  current = true;
+  await assert.rejects(refreshSession({ ...options, request: async () => Response.json({ ...session, address: '0x' + '2'.repeat(64) }) }), /응답/);
+  assert.deepEqual(stored, [null]);
+});
 
 test('market prices preserve a single MIST and u64 maximum without floating point rounding', () => {
   assert.equal(priceToMist('0.000000001'), '1');

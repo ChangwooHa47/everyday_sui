@@ -11,6 +11,6 @@ export default defineConfig({
     {command:`npm run dev -- --port ${webPort}`,url:webUrl,reuseExistingServer:false,timeout:60_000,
       env:{NEXT_PUBLIC_API_BASE:apiUrl}},
     {command:'npm run dev:local --workspace @everyday/api',url:`${apiUrl}/health/live`,reuseExistingServer:false,timeout:60_000,
-      env:{PORT:String(apiPort),WEB_ORIGINS:webUrl,API_AUDIENCE:apiUrl}},
+      env:{PORT:String(apiPort),WEB_ORIGINS:webUrl,API_AUDIENCE:apiUrl,LOCAL_DATABASE_PATH:'memory://'}},
   ],
 });

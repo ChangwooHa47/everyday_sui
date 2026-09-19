@@ -149,7 +149,7 @@ export function registerProductConversations(app: FastifyInstance, ctx: ProductC
         decisionContext = prompt;
         ctx.llm.requireConfigured();
         providerStarted = true;
-        const response = await ctx.llm.chat(prompt, context);
+        const response = await ctx.llm.chat(ctx.gifts ? `${prompt}\n[실제 NFT 선물 안내]\n이번 대화의 선물 거래는 아직 실행되지 않았습니다. NFT를 보냈다, 결제했다, 지갑에 도착했다는 완료 주장을 하지 마세요. 실제 전달 여부는 시스템의 거래 확인 카드만 안내합니다.` : prompt, context);
         const message = await saveMessage(tx, id, null, 'AI', response);
         await enqueueAutomaticMemoryExtraction(tx, user.userId, id, String(userMessage.id), String(message.id));
         await completeChatTurn(tx, requestId, String(message.id));

@@ -231,7 +231,7 @@ export default function Home() {
             data-card
             style={{
               position: "relative",
-              flex: "0 0 calc(min(375px, 100vw) - 56px)",
+              flex: "0 0 calc(min(var(--app-max-width), 100vw) - 56px)",
               scrollSnapAlign: "start",
               borderRadius: 12,
               overflow: "hidden",
@@ -307,7 +307,7 @@ export default function Home() {
           onClick={() => router.push("/create?new=1")}
           aria-label="새 캐릭터 추가하기"
           style={{
-            flex: "0 0 calc(min(375px, 100vw) - 56px)",
+            flex: "0 0 calc(min(var(--app-max-width), 100vw) - 56px)",
             scrollSnapAlign: "start",
             borderRadius: 12,
             border: "1.5px dashed var(--gray-800)",

@@ -6,10 +6,15 @@ import type { NftGiftCatalogItem } from '@everyday/contracts';
 import { nftGiftImageUrl, nftGifts } from '@/lib/gifts';
 import { formatPrice } from '@/lib/market';
 import { Icon } from '../../../icons';
+import { ResilientImage } from '../../../components';
 
 function GiftDetail() {
-  const router = useRouter();
   const id = useSearchParams().get('product') ?? '';
+  return <GiftProduct key={id} id={id} />;
+}
+
+function GiftProduct({ id }: { id: string }) {
+  const router = useRouter();
   const [gift, setGift] = useState<NftGiftCatalogItem | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -35,7 +40,7 @@ function GiftDetail() {
     <main style={{ flex: 1, padding: '16px 20px 28px' }}>
       {gift && <>
         <div style={{ aspectRatio: '1', borderRadius: 24, overflow: 'hidden', background: 'var(--orange-100)' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}<img src={nftGiftImageUrl(gift)} alt={gift.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+          <ResilientImage sources={[nftGiftImageUrl(gift)]} alt={gift.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
         </div>
         <section style={{ padding: '24px 4px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
