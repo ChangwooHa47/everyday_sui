@@ -10,9 +10,9 @@ export function nftGiftImageUrl(gift: NftGiftCatalogItem | OwnedNftGiftItem) {
   return `${apiUrl.replace(/\/$/, '')}/v1/nft-gifts/${encodeURIComponent(offerId)}/image`;
 }
 
-/** Demo policy: every active catalog product is allowed, one gift may cost the priciest product, three of them per day. */
-export function giftPolicyFor(products: NftGiftProduct[]) {
-  const active = products.filter(p => p.active && BigInt(p.minted) < BigInt(p.maxSupply));
+/** Demo policy: every available catalog item is allowed, one gift may cost the priciest item, three of them per day. */
+export function giftPolicyFor(products: NftGiftCatalogItem[]) {
+  const active = products.filter(p => p.active && (p.kind === 'external' || BigInt(p.minted) < BigInt(p.maxSupply)));
   const perGift = active.reduce((max, p) => BigInt(p.priceMist) > max ? BigInt(p.priceMist) : max, 0n);
   return { perGiftLimitMist: perGift.toString(), dailyLimitMist: (perGift * 3n).toString(), allowedGiftIds: active.map(p => p.id).slice(0, 20) };
 }

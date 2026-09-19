@@ -19,8 +19,8 @@ import {
 } from "@/lib/api";
 import { Icon } from "../icons";
 import { market, formatPrice, purchaseCharacter, pendingPreviewMessages, MarketRequestError } from '@/lib/market';
-import { nftGifts, explorerTxUrl } from '@/lib/gifts';
-import type { MarketPreview, NftGiftProduct } from '@everyday/contracts';
+import { nftGiftImageUrl, nftGifts, explorerTxUrl } from '@/lib/gifts';
+import type { MarketPreview, NftGiftCatalogItem } from '@everyday/contracts';
 
 type Msg = { role: "user" | "assistant"; content: string; id?: number; gift?: ChatMessage['gift'] };
 
@@ -33,7 +33,7 @@ const PENDING_GIFT = new Set(['evaluating', 'prepared', 'unknown']);
 const isPendingGift = (m: Msg) => Boolean(m.gift && PENDING_GIFT.has(m.gift.status));
 
 /** 확정 전에는 "확인 중"만, 확정 후에는 상품·캐릭터의 한마디·거래 링크. 거래 확정 전에 "보냈어"라고 말하지 않는다. */
-function GiftCard({ gift, product, onOpen }: { gift: NonNullable<Msg['gift']>; product?: NftGiftProduct; onOpen: () => void }) {
+function GiftCard({ gift, product, onOpen }: { gift: NonNullable<Msg['gift']>; product?: NftGiftCatalogItem; onOpen: () => void }) {
   if (gift.status !== 'confirmed') {
     return (
       <div className="gift-card gift-pending" role="status" aria-live="polite">
@@ -50,7 +50,7 @@ function GiftCard({ gift, product, onOpen }: { gift: NonNullable<Msg['gift']>; p
       <button type="button" onClick={onOpen} className="gift-hero">
         {product?.imageUrl
           // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={product.imageUrl} alt={product.title} className="gift-image" />
+          ? <img src={nftGiftImageUrl(product)} alt={product.title} className="gift-image" />
           : <div className="gift-image skeleton" aria-hidden />}
         <div style={{ minWidth: 0 }}>
           <div className="caption" style={{ color: 'var(--orange-700)', fontWeight: 700 }}>🎁 NFT 선물이 도착했어요</div>
@@ -86,7 +86,7 @@ function ChatInner() {
   const [busy, setBusy] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [giftProducts, setGiftProducts] = useState<Record<string, NftGiftProduct>>({});
+  const [giftProducts, setGiftProducts] = useState<Record<string, NftGiftCatalogItem>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
   const requestedProducts = useRef(new Set<string>());

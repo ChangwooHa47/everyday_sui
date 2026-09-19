@@ -17,7 +17,7 @@ import { Avatar } from "../components";
 import { Icon } from "../icons";
 import { PersonalMemory } from './PersonalMemory';
 import { CharacterFunds } from './CharacterFunds';
-import type { NftGiftProduct } from '@everyday/contracts';
+import type { NftGiftCatalogItem } from '@everyday/contracts';
 
 type Tab = "settings" | "gallery";
 
@@ -111,7 +111,7 @@ export default function CharacterPage() {
   const [publishing, setPublishing] = useState(false);
   // 선물 정책은 Listing 생성 시에만 정해지므로 등록 폼에서 함께 고른다.
   const [giftsOn, setGiftsOn] = useState(false);
-  const [giftProducts, setGiftProducts] = useState<NftGiftProduct[] | null>(null);
+  const [giftProducts, setGiftProducts] = useState<NftGiftCatalogItem[] | null>(null);
   const [giftsAvailable, setGiftsAvailable] = useState<boolean | null>(null);
 
   // 호칭·말투 편집 상태
