@@ -73,6 +73,16 @@ CREATE TABLE IF NOT EXISTS market_previews (
  listing_id text PRIMARY KEY REFERENCES market_catalog(listing_id),
  content_hash text NOT NULL, summary text NOT NULL, image_url text
 );
+-- Public-safe filter facets copied from the authored package at registration; never relationship data.
+ALTER TABLE market_previews ADD COLUMN IF NOT EXISTS relationship_type text;
+ALTER TABLE market_previews ADD COLUMN IF NOT EXISTS gender text;
+-- One short buyer review per wallet and listing. Reviews are opinions about the authored character,
+-- never conversation excerpts; writing requires a verified license at request time.
+CREATE TABLE IF NOT EXISTS market_reviews (
+ listing_id text NOT NULL REFERENCES market_catalog(listing_id), owner text NOT NULL,
+ rating integer NOT NULL CHECK(rating BETWEEN 1 AND 5), text text NOT NULL CHECK(char_length(text) BETWEEN 1 AND 100),
+ created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(listing_id,owner)
+);
 CREATE TABLE IF NOT EXISTS relationship_memory (
  owner text NOT NULL, listing_id text NOT NULL, provider text NOT NULL CHECK(provider IN ('seal-walrus','memwal')),
  space_id text NOT NULL, revision integer NOT NULL CHECK(revision>0), consented_at timestamptz NOT NULL,
