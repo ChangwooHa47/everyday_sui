@@ -19,10 +19,10 @@ const bundledGiftImages: Record<string, { hash: string; path: string }> = {
   },
 };
 
-// Bundled art for the three Everyday Gifts products, served ahead of the aggregator.
-// NOTE: since 2026-09-19 these are the refreshed Soul renders, so they no longer match
-// the image hash recorded on chain. Re-upload and recreate the products to realign them.
-const giftImageFallbacks: Readonly<Record<string, string>> = Object.freeze({
+// Refreshed Soul artwork for the same three editions (2026-09-19). It is shown first
+// but is NOT what the chain records yet: re-upload these files and recreate the products
+// to bring the on-chain image hash back in step with what buyers see.
+const refreshedGiftArt: Readonly<Record<string, string>> = Object.freeze({
   '0xa7b6eb56b1389c330887ecb532062598b35d222e2f2c9c4491e2ef5382adeadf': '/gifts/warm-cafe-latte.jpg',
   '0xe4945d27bef8c3537d2b4e5a04d8dd337a44aa3d866806d1e373f90051221deb': '/gifts/yellow-tulip-bouquet.jpg',
   '0xda4f1b4ebb8b4878fdc121d3a7be4e8640040ce2b66c36d76ccff0769f0d731c': '/gifts/strawberry-birthday-cake.jpg',
@@ -37,12 +37,15 @@ export function nftGiftImageUrl(gift: NftGiftCatalogItem | OwnedNftGiftItem) {
   return `${apiUrl.replace(/\/$/, '')}/v1/nft-gifts/${encodeURIComponent(offerId)}/image`;
 }
 
-/** Candidates in priority order. Walrus answers with no Content-Type and nosniff,
- * so a browser cannot paint its bytes; the bundled copy carries the load. */
+/** Candidates in priority order: the refreshed art, then whatever nftGiftImageUrl
+ * resolves to (the hash-verified original, or the aggregator URL for external offers).
+ * Walrus answers with no Content-Type and nosniff, so a browser cannot paint its bytes
+ * directly; a bundled copy or the API proxy has to carry the load. */
 export function nftGiftImageSources(gift: NftGiftCatalogItem | OwnedNftGiftItem): string[] {
   const productId = 'productId' in gift ? gift.productId : gift.id;
-  const bundled = giftImageFallbacks[productId];
-  return [...(bundled ? [bundled] : []), nftGiftImageUrl(gift)];
+  const refreshed = refreshedGiftArt[productId];
+  const resolved = nftGiftImageUrl(gift);
+  return [...(refreshed ? [refreshed] : []), ...(resolved === refreshed ? [] : [resolved])];
 }
 
 /** Demo policy: every available catalog item is allowed, one gift may cost the priciest item, three of them per day. */
