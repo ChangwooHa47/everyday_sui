@@ -1036,20 +1036,21 @@ export default function CreatePage() {
             )}
           </div>
 
-          {/* 하단 CTA (피치) */}
+          {/* 하단 CTA — 키컬러 + 흰 글씨 */}
           <div style={{ padding: 20 }}>
             <button
               onClick={() => setStep(3)}
               style={{
                 width: "100%",
                 padding: 16,
-                borderRadius: 12,
+                borderRadius: 8,
                 border: "none",
-                background: "var(--orange-400)",
-                color: "var(--black)",
+                background: "var(--key)",
+                color: "#fff",
                 fontFamily: "inherit",
                 fontSize: 16,
-                fontWeight: 700,
+                fontWeight: 500,
+                letterSpacing: "-0.05em",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
