@@ -159,7 +159,7 @@ export default function CommunityPage() {
               onKeyDown={event => { if (event.key === 'Enter') router.push(`/community/gifts/detail?product=${encodeURIComponent(gift.id)}`); }}
               style={{ flexShrink: 0, width: 148, border: '1px solid var(--gray-200)', borderRadius: 16, overflow: 'hidden', background: '#fff', cursor: 'pointer' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}<img src={nftGiftImageUrl(gift)} alt={gift.title} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', background: 'var(--orange-100)' }}/>
-              <div style={{ padding: 12 }}><div className="caption" style={{ color: 'var(--gray-500)', marginBottom: 4 }}>{gift.kind === 'external' ? '승인 컬렉션 NFT' : 'Everyday NFT'}</div><div className="label1" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gift.title}</div>
+              <div style={{ padding: 12 }}><div className="caption" style={{ color: 'var(--gray-500)', marginBottom: 4 }}>{gift.kind === 'external' ? '승인 컬렉션 NFT' : 'Dear Mine NFT'}</div><div className="label1" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gift.title}</div>
                 <div className="caption" style={{ marginTop: 6, color: soldOut ? 'var(--gray-500)' : 'var(--orange-700)', fontWeight: 700 }}>{soldOut ? '품절' : formatPrice(gift.priceMist)}</div></div>
             </article>; })}
           </div>}

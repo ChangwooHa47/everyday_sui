@@ -1,7 +1,7 @@
 "use client";
 
 // 마이페이지 — figma 42:3341.
-// everyday 로고 + 지갑 SUI 잔액 / 프로필 행 / 메뉴 리스트.
+// Dear Mine 로고 + 지갑 SUI 잔액 / 프로필 행 / 메뉴 리스트.
 // 계정 데이터는 백엔드 /api/me. 연결되지 않은 기존 메뉴는 비활성화한다.
 
 import { useRouter } from "next/navigation";
