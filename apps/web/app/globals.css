@@ -29,6 +29,9 @@
   --orange-500: #ff8fa3;
   --orange-600: #f96585;
   --orange-700: #ed2348;
+  /* 이미지 위 오버레이 — 카드·홈 캐러셀이 공유한다 */
+  --overlay-scrim: linear-gradient(180deg, rgba(20,18,16,0) 0%, rgba(20,18,16,0.6) 36%, rgba(20,18,16,0.82) 100%);
+  --on-overlay-muted: rgba(255,255,255,0.6);
   --chip-bg: #f7f7fa;
   --chip-pill-bg: #e9e9ec;
   --chip-pill-on: #343434;
@@ -204,7 +207,6 @@ body {
 }
 .cta:disabled { background: var(--gray-200); color: var(--gray-500); cursor: default; }
 .cta.key { background: var(--key); }
-.cta.ghost { background: #fff; color: var(--gray-900); border: 1.5px solid var(--gray-900); }
 
 /* 바텀 내비 */
 .bottom-nav {
