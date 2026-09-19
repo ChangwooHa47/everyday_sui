@@ -26,7 +26,9 @@ export interface MarketListing {
   published: boolean;
   active: boolean;
   package: { blobId: string; contentHash: string; endEpoch: string };
-  policy: { perGiftLimitMist: string; dailyLimitMist: string; allowedGiftIds: string[] };
+  policy: { perGiftLimitMist: string; dailyLimitMist: string; allowedGiftIds: string[];
+    /** Treasury SUI already spent on gifts today (UTC day of the chain clock). Absent on older fixtures. */
+    spentTodayMist?: string };
 }
 
 /** On-chain limited-edition gift product; SUI amounts remain decimal MIST strings. */
@@ -108,7 +110,8 @@ export interface ChatMessage {
   sender: "USER" | "AI";
   content: string;
   createdAt: string;
-  gift?: { status: string; productId?: string; digest?: string };
+  /** Agent gift outcome for this reply. `reason` is the companion's private one-line note to the recipient. */
+  gift?: { status: string; productId?: string; digest?: string; reason?: string };
 }
 
 export interface InterviewQuestion {

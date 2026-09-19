@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { OwnedNftGift } from '@everyday/contracts';
 import { nftGifts } from '@/lib/gifts';
 import { Icon } from '../../icons';
+import { BottomNav } from '../../components';
 
 export default function MyGiftsPage() {
   const router = useRouter(); const [gifts, setGifts] = useState<OwnedNftGift[]>([]); const [error, setError] = useState(''); const [loading, setLoading] = useState(true);
@@ -20,5 +21,6 @@ export default function MyGiftsPage() {
         <div style={{ padding: 12 }}><strong className="body2">{gift.title}</strong><div className="caption" style={{ color: 'var(--gray-500)', marginTop: 4 }}>#{gift.edition}</div></div>
       </article>)}</div>
     </main>
+    <BottomNav active="my" />
   </div>;
 }

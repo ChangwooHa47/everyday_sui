@@ -35,11 +35,24 @@ API는 같은 PostgreSQL의 `public` schema와 `everyday` schema를 사용하며
 | `WALRUS_PUBLISHER`, `WALRUS_AGGREGATOR`, `WALRUS_EPOCHS` | 실제 상품 저장·조회. 기본 보관 요청은 7 epochs이며 무기한 보관이 아니다. |
 | `MEMWAL_DELEGATE_MASTER_KEY`, `MEMWAL_SERVER_URL`, `MEMWAL_PACKAGE_ID`, `MEMWAL_REGISTRY_ID` | 승인 기억 저장·검색. master는 32바이트 hex 비밀값, package/registry는 실제 relayer와 대조한다. |
 | `AI_DAILY_LIMIT`, `AI_GLOBAL_DAILY_LIMIT`, `MARKET_PREVIEW_TURNS` | 기본 사용자 50회/전체 100회 일일 요청 한도, 상품별 미리보기 3턴. 금액 기준 비용 상한은 아니다. |
-| `AGENT_GIFTS_ENABLED` | 기본 0. 마켓 선물 코드만 활성화하며 기존 제품 채팅 트리거·상품 제공까지 연결해 주는 설정은 아니다. |
+| `AGENT_GIFTS_ENABLED` | 기본 0. 1이면 구매한 캐릭터의 일반 채팅 뒤에 선물 판단·금고 결제·채팅 카드까지 실행한다. 아래 [선물 데모 준비](#선물-데모-준비)의 전제가 필요하다. |
+| `NFT_GIFT_PACKAGE_ID`, `NFT_GIFT_PRODUCT_IDS` | NFT 상품 카탈로그. 선물을 켜려면 `SUI_MARKET_PACKAGE_ID`와 같은 패키지여야 하며, 다르면 API가 기동 시 거부한다. |
 
 전체 예시는 [API 환경변수](../apps/api/.env.example)와 [웹 공개 환경변수](../apps/web/.env.local.example)에 있다. 웹의 `NEXT_PUBLIC_API_BASE`는 브라우저가 접근하는 API Origin이고 변경 후 재빌드한다. 키·서명·delegate 비밀값은 API 환경이나 비밀 저장소에만 둔다. `SPRING_DATASOURCE_*`, `SPRING_API_URL`, `WALLET_AUTH_URL`, `APP_MARKET_API_URL`, Java 설정은 새 런타임에서 사용하지 않는다. production에서는 `NEXT_PUBLIC_LEGACY_BASELINE`을 사용하지 않는다.
 
 `npm.cmd run dev:api:local`은 별도 PGlite에 같은 제품 SQL과 API를 실행한다. `dev:api:configured`는 `apps/api/.env.local`을 명시적으로 읽는 같은 개발 API다. 두 명령의 데이터는 Docker PostgreSQL이나 운영 DB와 공유하지 않으며 공급자·체인 기능에는 각각 실제 설정이 필요하다. 일반 서버는 프로세스 환경을 사용하며 자동 dotenv 로딩을 하지 않는다.
+
+## 선물 데모 준비
+
+`send_nft_gift`는 Listing과 `NftGiftProduct`를 한 Move 호출로 받으므로 두 객체가 같은 패키지에 있어야 한다. 현재 testnet의 시드 Listing 10개는 `0x3ff2…` 패키지, NFT 상품 3개는 `0x3e99…` 패키지에 있고 시드 Listing은 한도 0·허용 상품 없음으로 생성돼 계약상 바꿀 수 없다. 코드는 그대로 두고 아래 순서로 데이터를 준비한다. 이 절차는 운영 변수와 온체인 상태를 바꾸므로 담당자가 승인한 뒤 실행한다.
+
+1. API의 `SUI_MARKET_PACKAGE_ID`와 웹의 `NEXT_PUBLIC_SUI_PACKAGE_ID`를 NFT 상품이 있는 패키지로 맞춘다. `NFT_GIFT_PACKAGE_ID`도 같은 값이거나 비운다. 기존 패키지의 시드 Listing은 카탈로그에서 보이지 않게 되므로 데모용 캐릭터를 새로 게시한다.
+2. 제작자 지갑으로 로그인해 캐릭터 페이지의 **마켓에 등록**에서 “NFT 선물을 보낼 수 있게 하기”를 켜고 등록한다. 웹이 `create_listing`에 허용 상품 전체·건별 한도(가장 비싼 상품 가격)·일별 한도(그 3배)를 넣는다. 등록 후에는 계약상 변경할 수 없다.
+3. 다른 지갑으로 그 캐릭터의 이용권을 구매한다. 판매액의 캐릭터 몫(현재 20%)이 Listing 금고에 쌓이며, 금고 잔액이 상품 가격 이상이어야 선물이 나간다. 상품 가격이 이용권 가격보다 높으면 여러 명이 구매하거나 이용권 가격을 올린다.
+4. `SUI_OPERATOR_KEY`가 Listing의 operator 주소와 같은지, operator 지갑에 가스용 SUI가 있는지 확인한 뒤 `AGENT_GIFTS_ENABLED=1`로 API를 재시작한다.
+5. 구매자 지갑으로 일반 채팅을 진행한다. 판단 프롬프트는 기본적으로 선물하지 않으므로 기념일·위로 맥락이 있어야 한다. 채팅 응답의 `gift`가 `confirmed`이면 카드에 상품·캐릭터의 한마디·거래 링크가 뜨고, `prepared`/`unknown`이면 “확인 중”으로 표시되며 30초 복구 루프와 화면 재조회가 상태를 갱신한다.
+
+캐릭터 페이지의 **캐릭터 자금**은 Listing의 금고 잔액과 오늘 남은 선물 예산을 온체인 값으로 보여준다. 선물 이유는 수신자별 비공개 DB 값이며 온체인이나 공개 응답에 기록하지 않는다.
 
 ## 기존 화면에서 확인할 흐름
 

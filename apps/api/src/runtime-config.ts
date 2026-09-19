@@ -23,7 +23,7 @@ export function aiFromEnv(env: NodeJS.ProcessEnv = process.env): AiConfig | unde
   return { apiKey: z.string().min(1).parse(env.AI_API_KEY), endpoint: z.string().url().parse(env.AI_ENDPOINT),
     model: z.string().min(1).parse(env.AI_MODEL), ...limits };
 }
-export function runtimeFromEnv(chain: MarketChain | undefined, env: NodeJS.ProcessEnv = process.env, db?: Database) {
+export function runtimeFromEnv(chain: MarketChain | undefined, env: NodeJS.ProcessEnv = process.env, db?: Database, giftChain?: MarketChain) {
   const rpcUrl = httpsUrl.parse(env.SUI_GRPC_URL ?? 'https://fullnode.testnet.sui.io:443');
   let runtime; let memory;
   if (env.SUI_OPERATOR_KEY) {
@@ -47,7 +47,11 @@ export function runtimeFromEnv(chain: MarketChain | undefined, env: NodeJS.Proce
   if (env.AGENT_GIFTS_ENABLED === '1') {
     const ai = aiFromEnv(env);
     if (!db || !chain || !runtime || !ai || !env.SUI_OPERATOR_KEY) throw Error('Agent gifts require DB, market runtime and AI configuration');
-    gifts = createGiftService(db, createGiftTransport(chain.packageId, rpcUrl, env.SUI_OPERATOR_KEY), giftDecision(ai),
+    // send_nft_gift takes the Listing and the NftGiftProduct in one Move call, so both must live in one package.
+    // Fail closed instead of signing transactions the chain would reject.
+    const giftPackage = (giftChain ?? chain).packageId;
+    if (giftPackage !== chain.packageId) throw Error('Agent gifts require NFT_GIFT_PACKAGE_ID to equal SUI_MARKET_PACKAGE_ID: send_nft_gift needs the Listing and NftGiftProduct in the same package');
+    gifts = createGiftService(db, createGiftTransport(giftPackage, rpcUrl, env.SUI_OPERATOR_KEY), giftDecision(ai),
       owner => reserveAiBudget(db, owner, ai.dailyLimit, ai.globalDailyLimit));
   }
   return { runtime, memory, gifts };
