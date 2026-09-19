@@ -33,7 +33,7 @@ API는 같은 PostgreSQL의 `public` schema와 `everyday` schema를 사용하며
 | `SUI_MARKET_PACKAGE_ID`, 웹 `NEXT_PUBLIC_SUI_PACKAGE_ID` | 같은 실제 testnet 배포를 가리켜야 한다. 현재 ID는 [배포 기록](../contracts/everyday/deployments/testnet.json)에 있다. |
 | `SUI_OPERATOR_KEY`, `SEAL_SERVERS_JSON`, `SEAL_THRESHOLD` | 서버의 상품 암복호화·정책 실행. 서로 다른 키 서버 2개 이상, committee 서버는 aggregatorUrl 포함. |
 | `WALRUS_PUBLISHER`, `WALRUS_AGGREGATOR`, `WALRUS_EPOCHS` | 실제 상품 저장·조회. 기본 보관 요청은 testnet 최대값인 53 epochs이며 무기한 보관이 아니다. 만료 전에 실제 재저장·재다운로드로 갱신을 검증한다. |
-| `MEMWAL_DELEGATE_MASTER_KEY`, `MEMWAL_SERVER_URL`, `MEMWAL_PACKAGE_ID`, `MEMWAL_REGISTRY_ID` | 승인 기억 저장·검색. master는 32바이트 hex 비밀값, package/registry는 실제 relayer와 대조한다. |
+| `MEMWAL_DELEGATE_MASTER_KEY`, `MEMWAL_SERVER_URL`, `MEMWAL_PACKAGE_ID`, `MEMWAL_REGISTRY_ID` | 포괄 동의된 자동 장기기억 저장·검색. master는 32바이트 hex 비밀값, package/registry는 실제 relayer와 대조한다. |
 | `AI_DAILY_LIMIT`, `AI_GLOBAL_DAILY_LIMIT`, `MARKET_PREVIEW_TURNS` | 기본 사용자 50회/전체 100회 일일 요청 한도, 상품별 미리보기 3턴. 금액 기준 비용 상한은 아니다. |
 | `AGENT_GIFTS_ENABLED` | 기본 0. 라이선스 마켓 turn과 가져온 캐릭터의 제품 채팅에서 선물 판단·온체인 실행을 활성화한다. Listing의 allowlist·건별/일일 한도와 암호화 패키지의 `giftPersona.enabled`가 모두 유효해야 한다. |
 | `NFT_GIFT_PACKAGE_ID`, `NFT_GIFT_PRODUCT_IDS` | NFT 상품 카탈로그. 선물을 켜려면 `SUI_MARKET_PACKAGE_ID`와 같은 패키지여야 하며, 다르면 API가 기동 시 거부한다. |

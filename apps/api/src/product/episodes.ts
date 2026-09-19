@@ -3,6 +3,7 @@ import type { EpisodeItem, EpisodeStart } from '@everyday/contracts';
 import type { Database } from '../database.js';
 import { numericId, ok, productError, productId, withTransaction, type ProductContext } from './core.js';
 import { chatInput, claimChatTurn, completedMessage, completeChatTurn, conversationContext, messageResponse, readMessages, releaseChatTurn, saveMessage } from './conversations.js';
+import { enqueueAutomaticMemoryExtraction } from './automatic-memory.js';
 
 interface EpisodeRow extends Record<string, unknown> {
   id: string; code: string; title: string; emoji: string | null; description: string; scene_prompt_seed: string | null;
@@ -170,7 +171,7 @@ export function registerProductEpisodes(app: FastifyInstance, ctx: ProductContex
       return await withTransaction(ctx.db, async tx => {
         const character = await ctx.ownedCharacter(user.userId, id, tx, true);
         const episode = await getEpisode(tx, episodeId);
-        await saveMessage(tx, id, currentId, 'USER', content);
+        const userMessage = await saveMessage(tx, id, currentId, 'USER', content);
         const context = await conversationContext(tx, id, currentId);
         const prompt = await ctx.withApprovedMemory(req, id,
           character.system_prompt + '\n\n[현재 에피소드 상황]\n' + episode.scene_prompt_seed, content, tx);
@@ -178,6 +179,7 @@ export function registerProductEpisodes(app: FastifyInstance, ctx: ProductContex
         providerStarted = true;
         const response = await ctx.llm.chat(prompt, context);
         const message = await saveMessage(tx, id, currentId, 'AI', response);
+        await enqueueAutomaticMemoryExtraction(tx, user.userId, id, String(userMessage.id), String(message.id));
         await completeChatTurn(tx, requestId, String(message.id));
         return ok(messageResponse(message));
       });
