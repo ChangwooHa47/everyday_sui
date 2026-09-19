@@ -45,7 +45,9 @@ export function createHiggsfieldImageProvider(config: HiggsfieldConfig, options:
     async generateImages(prompt, referenceImageUrl, count, soulId = null) {
       const result = await call<JobSet>('/v1/text2image/soul', { params: {
         prompt, width_and_height: '1536x2048', quality: '1080p', batch_size: count >= 4 ? 4 : 1,
-        enhance_prompt: true,
+        // Soul's prompt enhancer pushes every portrait toward the same golden-hour, film look.
+        // Send the authored prompt as written so scene, outfit and lighting come from the character.
+        enhance_prompt: false,
         ...(referenceImageUrl?.trim() ? { image_reference: { type: 'image_url', image_url: referenceImageUrl } } : {}),
         ...(soulId === null ? {} : { custom_reference_id: soulId, custom_reference_strength: 1.0 }),
       } });

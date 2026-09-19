@@ -17,7 +17,7 @@ test('Soul provider submits exactly once and preserves image/reference parameter
   assert.equal(calls.filter(call => call.init?.method === 'POST').length, 1);
   assert.equal(calls.length, 3);
   assert.deepEqual(JSON.parse(String(calls[0]!.init!.body)), { params: {
-    prompt: 'portrait', width_and_height: '1536x2048', quality: '1080p', batch_size: 4, enhance_prompt: true,
+    prompt: 'portrait', width_and_height: '1536x2048', quality: '1080p', batch_size: 4, enhance_prompt: false,
     image_reference: { type: 'image_url', image_url: 'https://images.invalid/reference' },
     custom_reference_id: 'soul-id', custom_reference_strength: 1,
   } });
