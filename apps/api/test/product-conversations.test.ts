@@ -178,6 +178,17 @@ test('ported conversation and episode behavior preserves transactions, replay sa
     assert.equal((await post(base + '/episodes/' + authored[0].id + '/start')).statusCode, 403);
     assert.equal((await post('/api/characters/3/episodes/' + authored[0].id + '/start')).statusCode, 200);
     assert.equal((await post('/api/characters/3/episodes/' + authored[0].id + '/start', {}, '2')).statusCode, 403);
+    const owner = '0x' + 'a'.repeat(64);
+    await db.query('UPDATE everyday.users SET wallet_address=$2 WHERE id=$1', ['1', owner]);
+    await db.query(`INSERT INTO memory_accounts(owner,account_id,enabled,auto_store)
+      VALUES($1,$2,true,true)`, [owner, '0x' + 'e'.repeat(64)]);
+    const authoredMessage = await post('/api/characters/3/episodes/' + authored[0].id + '/messages',
+      { requestId: randomUUID(), content: 'authored episode memory' });
+    assert.equal(authoredMessage.statusCode, 200, authoredMessage.body);
+    const queued = (await db.query<{ character_id: string; source_user_message_id: string; source_ai_message_id: string }>(
+      'SELECT character_id,source_user_message_id,source_ai_message_id FROM everyday.automatic_memory_extractions WHERE character_id=3')).rows;
+    assert.equal(queued.length, 1);
+    assert.notEqual(String(queued[0].source_user_message_id), String(queued[0].source_ai_message_id));
     assert.equal((await post('/api/characters/4/episodes/' + episodeId + '/messages', { content: 'not started' })).statusCode, 404);
 
     const retryBase = '/api/characters/4/episodes/' + episodeId;

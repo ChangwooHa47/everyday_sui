@@ -12,7 +12,8 @@ export async function migrateProduct(db: Database, directory = new URL('../../mi
   }[];
   const files = (await readdir(directory)).filter(file => /^V[1-9][0-9]*__.*\.sql$/.test(file))
     .sort((a, b) => Number(a.match(/^V(\d+)/)![1]) - Number(b.match(/^V(\d+)/)![1]));
-  if (files.length !== 11) throw Error('Expected all eleven existing product migrations');
+  if (files.length !== 12 || files.some((file, index) => Number(file.match(/^V(\d+)/)![1]) !== index + 1))
+    throw Error('Expected contiguous product migrations V1 through V12');
   const migrations = await Promise.all(files.map(async script => {
     const sql = await readFile(new URL(script, directory), 'utf8');
     const [, version, description] = script.match(/^V(\d+)__(.*)\.sql$/)!;

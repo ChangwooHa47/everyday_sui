@@ -782,5 +782,250 @@
     "udt_name": "timestamp",
     "is_nullable": "YES",
     "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memory_extractions",
+    "column_name": "source_ai_message_id",
+    "udt_name": "int8",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memory_extractions",
+    "column_name": "user_id",
+    "udt_name": "int8",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memory_extractions",
+    "column_name": "character_id",
+    "udt_name": "int8",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memory_extractions",
+    "column_name": "source_user_message_id",
+    "udt_name": "int8",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memory_extractions",
+    "column_name": "status",
+    "udt_name": "varchar",
+    "is_nullable": "NO",
+    "character_maximum_length": 16
+  },
+  {
+    "table_name": "automatic_memory_extractions",
+    "column_name": "created_at",
+    "udt_name": "timestamptz",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memory_extractions",
+    "column_name": "updated_at",
+    "udt_name": "timestamptz",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "id",
+    "udt_name": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "request_id",
+    "udt_name": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "user_id",
+    "udt_name": "int8",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "character_id",
+    "udt_name": "int8",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "listing_id",
+    "udt_name": "varchar",
+    "is_nullable": "NO",
+    "character_maximum_length": 66
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "source_user_message_id",
+    "udt_name": "int8",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "source_ai_message_id",
+    "udt_name": "int8",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "kind",
+    "udt_name": "varchar",
+    "is_nullable": "NO",
+    "character_maximum_length": 32
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "summary",
+    "udt_name": "varchar",
+    "is_nullable": "NO",
+    "character_maximum_length": 500
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "fingerprint",
+    "udt_name": "varchar",
+    "is_nullable": "NO",
+    "character_maximum_length": 64
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "confidence",
+    "udt_name": "int2",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "event_date",
+    "udt_name": "date",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "promise_status",
+    "udt_name": "varchar",
+    "is_nullable": "YES",
+    "character_maximum_length": 16
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "supersedes_id",
+    "udt_name": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "status",
+    "udt_name": "varchar",
+    "is_nullable": "NO",
+    "character_maximum_length": 16
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "provider_job_id",
+    "udt_name": "varchar",
+    "is_nullable": "YES",
+    "character_maximum_length": 256
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "provider_blob_id",
+    "udt_name": "varchar",
+    "is_nullable": "YES",
+    "character_maximum_length": 64
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "created_at",
+    "udt_name": "timestamptz",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "automatic_memories",
+    "column_name": "updated_at",
+    "udt_name": "timestamptz",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "relationship_events",
+    "column_name": "id",
+    "udt_name": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "relationship_events",
+    "column_name": "user_id",
+    "udt_name": "int8",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "relationship_events",
+    "column_name": "character_id",
+    "udt_name": "int8",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "relationship_events",
+    "column_name": "event_type",
+    "udt_name": "varchar",
+    "is_nullable": "NO",
+    "character_maximum_length": 32
+  },
+  {
+    "table_name": "relationship_events",
+    "column_name": "source_kind",
+    "udt_name": "varchar",
+    "is_nullable": "NO",
+    "character_maximum_length": 32
+  },
+  {
+    "table_name": "relationship_events",
+    "column_name": "source_id",
+    "udt_name": "varchar",
+    "is_nullable": "NO",
+    "character_maximum_length": 256
+  },
+  {
+    "table_name": "relationship_events",
+    "column_name": "summary",
+    "udt_name": "varchar",
+    "is_nullable": "NO",
+    "character_maximum_length": 500
+  },
+  {
+    "table_name": "relationship_events",
+    "column_name": "occurred_at",
+    "udt_name": "timestamptz",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "relationship_events",
+    "column_name": "created_at",
+    "udt_name": "timestamptz",
+    "is_nullable": "NO",
+    "character_maximum_length": null
   }
 ]
