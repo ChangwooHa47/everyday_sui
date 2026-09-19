@@ -25,6 +25,30 @@ const gifts: NftGiftProduct[] = [{
   imageHash: '0'.repeat(64), merchant: id(99), priceMist: '1', maxSupply: '1', minted: '1', active: true,
 }];
 
+test('settings logout reports server failure, permits retry and returns to landing on success', async ({ page }) => {
+  await fixtures(page);
+  let calls = 0;
+  await page.route('**/v1/auth/session', route => {
+    expect(route.request().method()).toBe('DELETE');
+    calls++;
+    return route.fulfill({ status: calls === 1 ? 503 : 204 });
+  });
+  await page.goto('/settings');
+  await page.getByRole('button', { name: '로그아웃', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: '로그아웃을 완료하지 못했어요' })).toBeVisible();
+  await expect(page).toHaveURL(/\/settings$/);
+  await page.getByRole('button', { name: '로그아웃', exact: true }).click();
+  await expect(page).toHaveURL('http://127.0.0.1:13200/');
+  expect(calls).toBe(2);
+});
+
+test('my page links to settings even when profile retrieval fails', async ({ page }) => {
+  await fixtures(page, { fail: true });
+  await page.goto('/my');
+  await page.getByRole('button', { name: '설정', exact: true }).click();
+  await expect(page.getByRole('button', { name: '로그아웃', exact: true })).toBeVisible();
+});
+
 async function fixtures(page: Page, options: { fail?: boolean; cycle?: boolean } = {}) {
   await page.addInitScript(() => localStorage.setItem('everyday.v2.jwt', 'fixture-not-a-real-session'));
   // Prevent an unexpected SDK/provider request from reaching a live service.

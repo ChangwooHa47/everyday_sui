@@ -9,10 +9,21 @@ import { getActiveCharacterId, setActiveCharacterId, prepareChatRequest, getPend
 import { giftPolicyFor, nftGiftImageUrl } from '../lib/gifts';
 import { sortCards, type CommunityCard } from '../lib/community';
 import { marketImageSources } from '../lib/market-images';
-import { refreshSession, type WalletSession } from '../lib/wallet-session';
+import { endSession, refreshSession, type WalletSession } from '../lib/wallet-session';
 import { restoredLandingRoute } from '../lib/entry-route';
 const pkg = '0x'+'1'.repeat(64);
 const metadata = {schemaVersion:1,network:'testnet',appPackage:pkg,revision:'0',previousRef:null,createdAt:'2026-09-08T00:00:00.000Z'};
+
+test('logout revokes before clearing and disconnecting, and never treats an outage as success', async () => {
+  for (const status of [204, 401]) {
+    const steps: string[] = [];
+    await endSession(async () => { steps.push('revoke'); return new Response(null, { status }); },
+      () => { steps.push('clear'); }, async () => { steps.push('disconnect'); });
+    assert.deepEqual(steps, ['revoke', 'clear', 'disconnect']);
+  }
+  await assert.rejects(endSession(async () => new Response(null, { status: 503 }),
+    () => assert.fail('must not report local success'), async () => assert.fail('must permit retry')), /로그아웃/);
+});
 
 test('landing stays signed out on auth/API failure and never forces an empty account into creation', async () => {
   let reads = 0;

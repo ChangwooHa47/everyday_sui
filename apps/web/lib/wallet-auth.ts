@@ -2,7 +2,7 @@ import { createDAppKit } from '@mysten/dapp-kit-react';
 import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import { apiUrl, rpcUrl } from './web3/config';
-import { refreshSession, type WalletSession } from './wallet-session';
+import { endSession, refreshSession, type WalletSession } from './wallet-session';
 
 export const walletKit = createDAppKit({ networks: ['testnet'],
   slushWalletConfig: typeof window === 'undefined' ? null : { appName: 'everyday' },
@@ -24,6 +24,7 @@ function remember(value: Session | null) {
   try { if (value) sessionStorage.setItem(sessionKey, JSON.stringify(value)); else sessionStorage.removeItem(sessionKey); } catch {}
 }
 let generation = 0;
+let loggingOut = false;
 let connected: string | undefined;
 function revoke(token: string | null, includeRefresh = true) {
   void fetch(`${apiUrl}/v1/auth/session`, { method: 'DELETE',
@@ -36,6 +37,7 @@ walletKit.stores.$connection.subscribe(connection => {
   const previous = connected;
   connected = address;
   generation++;
+  if (loggingOut) return;
   const accountChanged = previous && (!address || normalizeSuiAddress(address) !== normalizeSuiAddress(previous));
   if (accountChanged || (session && (!address || normalizeSuiAddress(address) !== session.address))) {
     revoke(session?.token ?? null); remember(null);
@@ -67,6 +69,7 @@ export function refreshWalletToken() {
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
     await waitForWalletConnection();
+    if (loggingOut) throw Error('로그아웃 중입니다.');
     const account = walletKit.stores.$connection.get().account;
     if (!account) { remember(null); throw Error('로그인해주세요.'); }
     const owner = normalizeSuiAddress(account.address);
@@ -82,12 +85,14 @@ export function refreshWalletToken() {
 }
 
 export async function restoreWalletToken() {
+  if (loggingOut) throw Error('로그아웃 중입니다.');
   await waitForWalletConnection();
   try { return getWalletToken(); }
   catch { return refreshWalletToken(); }
 }
 
 export async function loginWithWallet() {
+  if (loggingOut) throw Error('로그아웃 중입니다.');
   const account = walletKit.stores.$connection.get().account;
   if (!account) throw Error('로그인해주세요.');
   const owner = normalizeSuiAddress(account.address);
@@ -120,4 +125,23 @@ export async function loginWithWallet() {
   check();
   if (session) revoke(session.token, false);
   remember(result);
+}
+
+export async function logoutWallet() {
+  if (loggingOut) throw Error('로그아웃 중입니다.');
+  loggingOut = true;
+  generation++; // Reject any login/refresh response already in flight.
+  const token = session?.token;
+  try {
+    await endSession(() => fetch(`${apiUrl}/v1/auth/session`, {
+      method: 'DELETE', credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      signal: AbortSignal.timeout(15000),
+    }), () => {
+      remember(null);
+      try { localStorage.removeItem('everyday.v2.jwt'); } catch {}
+    }, async () => {
+      if (walletKit.stores.$connection.get().wallet) await walletKit.disconnectWallet();
+    });
+  } finally { loggingOut = false; }
 }

@@ -21,7 +21,7 @@ const MENU: MenuRow[] = [
   { label: "내 NFT 선물", href: "/my/gifts" },
   { label: "정보 관리" },
   { label: "구독 관리", ...(process.env.NEXT_PUBLIC_LEGACY_BASELINE === '1' ? { href: '/subscription' } : {}) },
-  { label: "설정" },
+  { label: "설정", href: "/settings" },
 ];
 
 export default function MyPage() {
@@ -54,6 +54,7 @@ export default function MyPage() {
     return (
       <div style={{ display: "grid", placeItems: "center", height: "100dvh", padding: 24 }}>
         <div className="body2" style={{ color: "var(--gray-500)", textAlign: "center" }}>{error}</div>
+        <button className="chip" onClick={() => router.push('/settings')}>설정</button>
       </div>
     );
   }
