@@ -71,6 +71,15 @@ async function api<T>(path: string, init?: RequestInit, retried = false): Promis
       ...init?.headers,
     },
   });
+  if (res.status === 401 && process.env.NEXT_PUBLIC_LEGACY_BASELINE !== '1' && !retried) {
+    try {
+      await (await import('./wallet-auth')).refreshWalletToken();
+      return api<T>(path, init, true);
+    } catch {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') window.location.replace('/');
+      throw new Error('다시 로그인해주세요.');
+    }
+  }
   if (res.status === 401 && process.env.NEXT_PUBLIC_LEGACY_BASELINE !== '1') {
     if (typeof window !== 'undefined' && window.location.pathname !== '/') window.location.replace('/');
     throw new Error('다시 로그인해주세요.');
