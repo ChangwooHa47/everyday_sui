@@ -13,7 +13,7 @@ function LoginButton({ onLogin }: { onLogin: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const requested = useRef(false);
-  const style = { background: 'none', border: 0, padding: '12px 20px', color: 'var(--gray-500)', cursor: 'pointer' };
+  const style = { background: 'none', border: 0, padding: '12px 20px', color: 'inherit', font: 'inherit', cursor: 'pointer' };
   async function login() {
     if (busy) return;
     setBusy(true); setError('');

@@ -96,9 +96,7 @@ function BaselineSubscription() {
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
       <header className="topbar">
-        <span className="logo" style={{ fontSize: 22, color: "var(--gray-800)" }}>
-          Dear Mine
-        </span>
+        <span className="logo" style={{ fontSize: 24 }}>dear.</span>
       </header>
 
       <div style={{ padding: "6px 20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>

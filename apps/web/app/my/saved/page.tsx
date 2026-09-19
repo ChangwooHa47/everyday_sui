@@ -30,7 +30,7 @@ export default function SavedPage() {
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
       <header className="topbar">
         <button className="nav-btn nav-prev" onClick={() => router.back()} aria-label="이전"><Icon name="chevron-left" size={24} /></button>
-        <span className="headline1">찜한 캐릭터</span>
+        <span className="page-title">Saved</span>
         <span style={{ width: 24 }} />
       </header>
       <main style={{ flex: 1, padding: "8px 20px 8px" }}>

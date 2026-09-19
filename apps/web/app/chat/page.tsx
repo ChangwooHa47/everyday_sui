@@ -53,7 +53,7 @@ function GiftCard({ gift, product, onOpen }: { gift: NonNullable<Msg['gift']>; p
           ? <img src={nftGiftImageUrl(product)} alt={product.title} className="gift-image" />
           : <div className="gift-image skeleton" aria-hidden />}
         <div style={{ minWidth: 0 }}>
-          <div className="caption" style={{ color: 'var(--orange-700)', fontWeight: 700 }}>🎁 NFT 선물이 도착했어요</div>
+          <div className="caption" style={{ color: 'var(--key)', fontWeight: 700 }}>🎁 NFT 선물이 도착했어요</div>
           <strong className="body2" style={{ display: 'block', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {product?.title ?? '선물'}
           </strong>
@@ -428,14 +428,14 @@ export default function ChatPage() {
       {/* 페이지 전용 스타일 — globals.css는 원본 유지 원칙에 따라 손대지 않는다. */}
       <style>{`
         .gift-card {
-          margin-top: 6px; max-width: 260px; width: 100%; padding: 12px; border-radius: 16px;
-          border: 1px solid var(--orange-300); background: var(--orange-50);
+          margin-top: 6px; max-width: 260px; width: 100%; padding: 12px; border-radius: 8px;
+          border: 1px solid var(--key-100); background: var(--key-50);
           animation: gift-pop 360ms var(--ease);
         }
         .gift-pending { display: flex; align-items: center; gap: 10px; border-style: dashed; }
         .gift-spinner {
           width: 18px; height: 18px; flex: 0 0 auto; border-radius: 50%;
-          border: 2px solid var(--orange-300); border-top-color: var(--orange-700);
+          border: 2px solid var(--key-100); border-top-color: var(--key);
           animation: gift-spin 900ms linear infinite;
         }
         .gift-hero {
@@ -443,7 +443,7 @@ export default function ChatPage() {
           background: transparent; text-align: left; cursor: pointer; font: inherit; color: inherit;
         }
         .gift-image {
-          width: 64px; height: 64px; flex: 0 0 auto; border-radius: 12px; object-fit: cover;
+          width: 64px; height: 64px; flex: 0 0 auto; border-radius: 4px; object-fit: cover;
           background: var(--orange-100); display: block;
         }
         .gift-reason { margin: 10px 0 0; color: var(--gray-800); }

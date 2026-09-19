@@ -64,9 +64,7 @@ export default function MyPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
       <header className="topbar">
-        <span className="logo" style={{ fontSize: 22, color: "var(--gray-800)" }}>
-          Dear Mine
-        </span>
+        <span className="logo" style={{ fontSize: 24 }}>dear.</span>
         <span className="point-badge">{suiBalance === null ? "…" : suiBalance} SUI</span>
       </header>
 
