@@ -2,11 +2,12 @@ import { createDAppKit } from '@mysten/dapp-kit-react';
 import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import { apiUrl, rpcUrl } from './web3/config';
+import { refreshSession, type WalletSession } from './wallet-session';
 
 export const walletKit = createDAppKit({ networks: ['testnet'],
   slushWalletConfig: typeof window === 'undefined' ? null : { appName: 'everyday' },
   createClient: () => new SuiGrpcClient({ network: 'testnet', baseUrl: rpcUrl }) });
-type Session = { token: string; address: string; expiresAt: string };
+type Session = WalletSession;
 const sessionKey = 'everyday.session.v1';
 function readSession(): Session | null {
   if (typeof window === 'undefined') return null;
@@ -69,18 +70,13 @@ export function refreshWalletToken() {
     const account = walletKit.stores.$connection.get().account;
     if (!account) { remember(null); throw Error('로그인해주세요.'); }
     const owner = normalizeSuiAddress(account.address);
-    const response = await fetch(`${apiUrl}/v1/auth/session/refresh`, { method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(15000) });
-    if (!response.ok) { remember(null); throw Error('다시 로그인해주세요.'); }
-    const result = await response.json() as Session | null;
-    if (!result || typeof result.token !== 'string' || result.address !== owner || !Number.isFinite(Date.parse(result.expiresAt))
-        || Date.parse(result.expiresAt) <= Date.now()) {
-      if (result && typeof result.token === 'string') revoke(result.token);
-      remember(null);
-      throw Error('로그인 응답을 확인할 수 없습니다.');
-    }
-    remember(result);
-    return result.token;
+    const started = generation;
+    return refreshSession({ owner, isCurrent: () => generation === started, remember,
+      // A stale response must not revoke the new account's HttpOnly refresh cookie.
+      revoke: token => revoke(token, false),
+      request: () => fetch(`${apiUrl}/v1/auth/session/refresh`, { method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(15000) }),
+    });
   })().finally(() => { refreshInFlight = null; });
   return refreshInFlight;
 }

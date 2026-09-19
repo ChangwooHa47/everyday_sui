@@ -51,7 +51,7 @@ function Post({ card, onOpen }: { card: CommunityCard; onOpen: () => void }) {
       {imageSources.length > 0 && (
         <div style={{ paddingLeft: 32 }}>
           <button type="button" onClick={onOpen} aria-label={`${listing.title} 프로필 보기`}
-            style={{ width: 267, height: 267, borderRadius: 4, overflow: "hidden", border: 0, padding: 0, background: "var(--orange-100)", cursor: "pointer" }}>
+            style={{ width: "100%", maxWidth: 267, aspectRatio: "1", borderRadius: 4, overflow: "hidden", border: 0, padding: 0, background: "var(--orange-100)", cursor: "pointer" }}>
             <ResilientImage sources={imageSources} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           </button>
         </div>
@@ -67,7 +67,7 @@ function SwipeCard({ card, stats, onOpen }: { card: CommunityCard; stats?: Marke
   const imageSources = marketImageSources(listing, preview?.imageUrl);
   return (
     <article data-card
-      style={{ position: "relative", flex: "0 0 calc(min(375px, 100vw) - 40px)", scrollSnapAlign: "center", height: "100%",
+      style={{ position: "relative", flex: "0 0 calc(min(var(--app-max-width), 100vw) - 40px)", scrollSnapAlign: "center", height: "100%",
         borderRadius: 12, overflow: "hidden", background: "linear-gradient(160deg, var(--orange-100), var(--orange-400))",
         display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
       <ResilientImage sources={imageSources} alt=""
@@ -192,7 +192,7 @@ export default function CommunityPage() {
         <div ref={swipeRef} className="swipe-strip" onScroll={onSwipeScroll}
           style={{ flex: 1, minHeight: 0, display: "flex", gap: 12, padding: "28px 20px", overflowX: "auto", overflowY: "hidden",
             scrollSnapType: "x mandatory", scrollbarWidth: "none" }}>
-          {cards === null && <div className="skeleton" style={{ flex: "0 0 calc(min(375px, 100vw) - 40px)", height: "100%", borderRadius: 12 }} />}
+          {cards === null && <div className="skeleton" style={{ flex: "0 0 calc(min(var(--app-max-width), 100vw) - 40px)", height: "100%", borderRadius: 12 }} />}
           {cards !== null && visible.length === 0 && (
             <div style={{ flex: 1, display: "grid", placeItems: "center", textAlign: "center", color: "var(--gray-500)" }}>
               <p className="body2">아직 넘겨볼 캐릭터가 없어요.</p>
@@ -210,7 +210,7 @@ export default function CommunityPage() {
             <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", borderRadius: 4, background: "var(--gray-50)" }}>
               <Icon name="search" size={18} style={{ color: "var(--gray-500)" }} />
               <input value={query} onChange={e => setQuery(e.target.value)} placeholder="이름이나 소개로 찾기" aria-label="캐릭터 검색"
-                style={{ flex: 1, border: 0, background: "transparent", font: "inherit", fontSize: 14, outline: "none", color: "var(--black)" }} />
+                style={{ flex: 1, minWidth: 0, border: 0, background: "transparent", font: "inherit", fontSize: 14, outline: "none", color: "var(--black)" }} />
             </label>
           </div>
 

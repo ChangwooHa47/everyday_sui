@@ -11,6 +11,7 @@
     "start:baseline": "node scripts/baseline.mjs start",
     "dev:baseline": "node scripts/baseline.mjs dev",
     "test:e2e": "playwright test",
+    "test:product": "playwright test --config playwright.product.config.ts",
     "test:unit": "tsx --test tests/web3.test.ts",
     "test:web3": "playwright test --config playwright.web3.config.ts",
     "build:static": "node scripts/export.mjs"

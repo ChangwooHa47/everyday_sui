@@ -3,6 +3,7 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
 
 :root {
+  --app-max-width: 425px;
   /* GrayScale */
   --gray-50: #f7f7fa;
   --gray-100: #f0f0f5;
@@ -51,9 +52,10 @@ body {
   color: var(--black);
 }
 
-/* 폰 프레임 (375 고정, 데스크탑에선 중앙) */
+/* 모바일은 425px까지 채우고, 그 이상은 중앙 정렬한다. */
 .phone {
-  max-width: 375px;
+  width: 100%;
+  max-width: var(--app-max-width);
   margin: 0 auto;
   min-height: 100dvh;
   background: #fff;

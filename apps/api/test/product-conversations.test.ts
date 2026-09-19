@@ -103,6 +103,7 @@ test('ported conversation and episode behavior preserves transactions, replay sa
     const response = await post(base + '/messages', { requestId: randomUUID(), content: 'today matters' });
     assert.equal(response.statusCode, 200, response.body);
     assert.equal(response.json().data.gift.status, 'unknown');
+    assert.match(calls.at(-1)!.system, /완료 주장을 하지 마세요/);
     assert.match(observed[0].at(-1)!.content, /APPROVED_PRIVATE_MEMORY/);
     assert.equal((await db.query<{ count: number }>('SELECT count(*)::integer AS count FROM everyday.chat_messages WHERE content=$1', ['today matters'])).rows[0].count, 1);
     ctx.gifts = undefined; ctx.licensedGiftContext = undefined;
